@@ -24,6 +24,10 @@ function IntegrationsContent() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // HubSpot Private App token
+  const [hubspotToken, setHubspotToken] = useState('');
+  const [savingHubspot, setSavingHubspot] = useState(false);
+
   // Slack webhook form
   const [slackWebhook, setSlackWebhook] = useState('');
   const [slackChannel, setSlackChannel] = useState('');
@@ -77,6 +81,33 @@ function IntegrationsContent() {
       console.error('Failed to fetch integration statuses:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveHubSpotToken = async () => {
+    if (!hubspotToken.trim()) return;
+
+    setSavingHubspot(true);
+    try {
+      const response = await fetch('/api/hubspot/auth', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: hubspotToken.trim() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHubspotStatus({ connected: true, connectedAt: new Date().toISOString() });
+        setHubspotToken('');
+        setMessage({ type: 'success', text: 'HubSpot connected successfully!' });
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to connect HubSpot' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save HubSpot token' });
+    } finally {
+      setSavingHubspot(false);
     }
   };
 
@@ -176,63 +207,82 @@ function IntegrationsContent() {
 
         {/* HubSpot Integration */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-[#ff7a59] rounded-lg flex items-center justify-center text-white font-bold">
-                HS
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-[#101E57]">HubSpot</h2>
-                <p className="text-sm text-[#667085] mt-1">
-                  Sync contacts, log meetings, and create tasks from office hours sessions
-                </p>
-              </div>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-[#ff7a59] rounded-lg flex items-center justify-center text-white font-bold">
+              HS
             </div>
-            <div className="flex items-center gap-2">
-              {hubspotStatus?.connected ? (
-                <>
-                  <span className="flex items-center gap-1 text-sm text-green-600">
-                    <span className="w-2 h-2 bg-green-500 rounded-full" />
-                    Connected
-                  </span>
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-[#101E57]">HubSpot</h2>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Sync contacts, log meetings, and create tasks from office hours sessions
+                  </p>
+                </div>
+                {hubspotStatus?.connected && (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-sm text-green-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                      Connected
+                    </span>
+                    <button
+                      onClick={disconnectHubSpot}
+                      disabled={disconnecting}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium ml-4"
+                    >
+                      {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!hubspotStatus?.connected && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Private App Access Token
+                    </label>
+                    <input
+                      type="password"
+                      value={hubspotToken}
+                      onChange={(e) => setHubspotToken(e.target.value)}
+                      placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <p className="text-xs text-[#667085] mt-1">
+                      Find this in your HubSpot Private App settings under Auth → Access token
+                    </p>
+                  </div>
                   <button
-                    onClick={disconnectHubSpot}
-                    disabled={disconnecting}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium ml-4"
+                    onClick={saveHubSpotToken}
+                    disabled={!hubspotToken.trim() || savingHubspot}
+                    className="bg-[#ff7a59] text-white px-4 py-2 rounded-lg hover:bg-[#e66b4d] transition font-medium text-sm disabled:opacity-50"
                   >
-                    {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                    {savingHubspot ? 'Connecting...' : 'Connect HubSpot'}
                   </button>
-                </>
-              ) : (
-                <a
-                  href="/api/hubspot/auth"
-                  className="bg-[#ff7a59] text-white px-4 py-2 rounded-lg hover:bg-[#e66b4d] transition font-medium text-sm"
-                >
-                  Connect HubSpot
-                </a>
+                </div>
+              )}
+
+              {hubspotStatus?.connected && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  {hubspotStatus.connectedAt && (
+                    <p className="text-sm text-[#667085] mb-4">
+                      Connected: {new Date(hubspotStatus.connectedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                  <div className="bg-[#F6F6F9] p-4 rounded-lg">
+                    <h3 className="font-medium text-[#101E57] mb-2">Features enabled:</h3>
+                    <ul className="text-sm text-[#667085] space-y-1">
+                      <li>- Automatic contact creation/lookup on booking</li>
+                      <li>- Meeting activity logging on sessions</li>
+                      <li>- Create follow-up tasks from session panel</li>
+                      <li>- Contact info card in slot details</li>
+                    </ul>
+                  </div>
+                </div>
               )}
             </div>
           </div>
-
-          {hubspotStatus?.connected && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="text-sm text-[#667085]">
-                <p>Portal ID: {hubspotStatus.portalId}</p>
-                {hubspotStatus.connectedAt && (
-                  <p>Connected: {new Date(hubspotStatus.connectedAt).toLocaleDateString()}</p>
-                )}
-              </div>
-              <div className="mt-4 bg-[#F6F6F9] p-4 rounded-lg">
-                <h3 className="font-medium text-[#101E57] mb-2">Features enabled:</h3>
-                <ul className="text-sm text-[#667085] space-y-1">
-                  <li>- Automatic contact creation/lookup on booking</li>
-                  <li>- Meeting activity logging on sessions</li>
-                  <li>- Create follow-up tasks from session panel</li>
-                  <li>- Contact info card in slot details</li>
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Slack Integration */}

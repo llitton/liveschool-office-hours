@@ -168,3 +168,59 @@ export async function POST() {
     connectedAt: data.created_at,
   });
 }
+
+// PUT - Save Private App access token
+export async function PUT(request: NextRequest) {
+  try {
+    await requireAuth();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const { access_token } = body;
+
+  if (!access_token) {
+    return NextResponse.json({ error: 'Access token is required' }, { status: 400 });
+  }
+
+  // Verify the token works by making a test API call
+  try {
+    const testResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    if (!testResponse.ok) {
+      return NextResponse.json({ error: 'Invalid access token. Please check your token and try again.' }, { status: 400 });
+    }
+  } catch (err) {
+    return NextResponse.json({ error: 'Failed to verify token with HubSpot' }, { status: 400 });
+  }
+
+  const supabase = getServiceSupabase();
+
+  // Deactivate any existing HubSpot config
+  await supabase
+    .from('oh_hubspot_config')
+    .update({ is_active: false })
+    .eq('is_active', true);
+
+  // Save new config (Private App tokens don't have refresh tokens)
+  const { error: insertError } = await supabase
+    .from('oh_hubspot_config')
+    .insert({
+      access_token,
+      refresh_token: null,
+      portal_id: null,
+      is_active: true,
+    });
+
+  if (insertError) {
+    console.error('Failed to save HubSpot config:', insertError);
+    return NextResponse.json({ error: 'Failed to save configuration' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
