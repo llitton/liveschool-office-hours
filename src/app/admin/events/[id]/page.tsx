@@ -7,6 +7,7 @@ import { format, addMinutes, parseISO, addDays, addWeeks, startOfDay, isBefore, 
 import type { OHEvent, OHSlot, OHBooking } from '@/types';
 import SlotCard from './SlotCard';
 import Breadcrumb from '@/components/Breadcrumb';
+import DayTimeline from '@/components/DayTimeline';
 
 interface SlotWithBookings extends OHSlot {
   booking_count: number;
@@ -448,40 +449,51 @@ export default function ManageEventPage({
 
           {/* Single Slot Form */}
           {creationMode === 'single' && (
-            <form onSubmit={handleAddSingleSlot} className="flex flex-wrap gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={newSlotDate}
-                  onChange={(e) => setNewSlotDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Time
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={newSlotTime}
-                  onChange={(e) => setNewSlotTime(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={addingSlot}
-                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
-              >
-                {addingSlot ? 'Adding...' : 'Add Slot'}
-              </button>
-            </form>
+            <div>
+              <form onSubmit={handleAddSingleSlot} className="flex flex-wrap gap-4 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newSlotDate}
+                    onChange={(e) => setNewSlotDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Time
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={newSlotTime}
+                    onChange={(e) => setNewSlotTime(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={addingSlot || !newSlotDate || !newSlotTime}
+                  className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                >
+                  {addingSlot ? 'Adding...' : 'Add Slot'}
+                </button>
+              </form>
+
+              {/* Day Timeline - shows when date is selected */}
+              <DayTimeline
+                date={newSlotDate}
+                eventId={id}
+                selectedTime={newSlotTime}
+                onSelectTime={(time) => setNewSlotTime(time)}
+                slotDuration={event?.duration_minutes || 30}
+              />
+            </div>
           )}
 
           {/* Bulk Create Form */}
