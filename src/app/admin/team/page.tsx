@@ -151,7 +151,10 @@ export default function TeamPage() {
 
         {/* Add New Admin */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Add Team Member</h2>
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Add Team Member</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Team members can sign in with Google and will have full access to create events, manage bookings, and view analytics.
+          </p>
           <form onSubmit={handleAddAdmin} className="flex gap-4 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium text-[#101E57] mb-1">
@@ -195,8 +198,16 @@ export default function TeamPage() {
           </div>
 
           {admins.length === 0 ? (
-            <div className="p-6 text-center text-[#667085]">
-              No team members yet. Add someone above!
+            <div className="p-8 text-center">
+              <div className="w-12 h-12 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-[#101E57] font-medium mb-1">No team members yet</h3>
+              <p className="text-sm text-[#667085] max-w-xs mx-auto">
+                You&apos;re the only admin right now. Add team members above to give them access to manage Office Hours.
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -228,15 +239,14 @@ export default function TeamPage() {
           )}
         </div>
 
-        {/* Info Box */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-blue-900 mb-1">How access works</h3>
-          <p className="text-sm text-blue-800">
-            Team members can sign in with their Google account. They must use an email address
-            listed above. When they sign in, they&apos;ll have full access to create events,
-            manage bookings, and view analytics.
-          </p>
-        </div>
+        {/* Role Labels Info */}
+        {admins.length > 0 && (
+          <div className="mt-6 text-center">
+            <p className="text-xs text-[#667085]">
+              All team members have full admin access. Role-based permissions coming soon.
+            </p>
+          </div>
+        )}
       </main>
     </div>
   );

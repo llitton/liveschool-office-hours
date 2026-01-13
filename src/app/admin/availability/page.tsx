@@ -257,12 +257,50 @@ export default function AvailabilityPage() {
           )}
         </div>
 
+        {/* Empty State Banner */}
+        {editPatterns.length === 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-amber-800">No availability set</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  Setting your available hours helps you quickly create time slots and shows attendees when you prefer to meet.
+                  Use the quick presets below or click on any day to set custom hours.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Weekly Availability Patterns */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Weekly Availability</h2>
-          <p className="text-sm text-[#667085] mb-6">
-            Set your regular hours when you&apos;re available for office hours sessions
-          </p>
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-[#101E57]">Weekly Availability</h2>
+              <p className="text-sm text-[#667085] mt-1">
+                Set your regular hours when you&apos;re available for office hours sessions
+              </p>
+            </div>
+            {editPatterns.length > 0 && (
+              <div className="text-right">
+                <p className="text-sm font-medium text-[#417762]">
+                  {editPatterns.length} day{editPatterns.length !== 1 ? 's' : ''} configured
+                </p>
+                <p className="text-xs text-[#667085]">
+                  {editPatterns.reduce((total, p) => {
+                    const start = parseInt(p.start_time.split(':')[0]) + parseInt(p.start_time.split(':')[1]) / 60;
+                    const end = parseInt(p.end_time.split(':')[0]) + parseInt(p.end_time.split(':')[1]) / 60;
+                    return total + (end - start);
+                  }, 0).toFixed(1)} hours/week
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-4">
             {DAY_NAMES.map((day, index) => {

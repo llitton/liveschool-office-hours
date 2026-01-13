@@ -113,25 +113,101 @@ export default function AnalyticsPage() {
         {loading ? (
           <div className="text-center py-8 text-[#667085]">Loading analytics...</div>
         ) : !analytics || analytics.totalBookingsAnalyzed === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+          <div className="space-y-6">
+            {/* Main Empty State */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+              <div className="max-w-2xl mx-auto">
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-[#6F71EE]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#101E57] mb-2">Unlock attendee insights</h3>
+                  <p className="text-[#667085] max-w-md mx-auto">
+                    Add booking questions to your events to understand what topics attendees want to discuss before they arrive.
+                  </p>
+                </div>
+
+                {/* Steps to get started */}
+                <div className="bg-[#F6F6F9] rounded-lg p-6 mb-6">
+                  <h4 className="font-medium text-[#101E57] mb-4">How to start collecting insights:</h4>
+                  <ol className="space-y-3">
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
+                      <div>
+                        <p className="text-[#101E57] font-medium">Add a booking question</p>
+                        <p className="text-sm text-[#667085]">Go to any event → Settings → Add a question like &quot;What topics do you want to discuss?&quot;</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">2</span>
+                      <div>
+                        <p className="text-[#101E57] font-medium">Attendees answer when booking</p>
+                        <p className="text-sm text-[#667085]">Their responses are collected automatically with each booking</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
+                      <div>
+                        <p className="text-[#101E57] font-medium">See trends and topics here</p>
+                        <p className="text-sm text-[#667085]">We&apos;ll analyze responses and show you the most common themes</p>
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+
+                {events.length > 0 ? (
+                  <div className="text-center">
+                    <Link
+                      href={`/admin/events/${events[0].id}/settings`}
+                      className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-6 py-3 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                    >
+                      Add questions to {events[0].name}
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Link
+                      href="/admin/events/new"
+                      className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-6 py-3 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                    >
+                      Create your first event
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-[#101E57] mb-2">No analytics data yet</h3>
-            <p className="text-[#667085] max-w-md mx-auto mb-6">
-              Analytics will populate once attendees start booking sessions and answering your custom questions. Add questions in your event settings to start collecting insights.
-            </p>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-2 text-[#6F71EE] hover:text-[#5a5cd0] font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Dashboard
-            </Link>
+
+            {/* Example Preview */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h4 className="text-sm font-medium text-[#667085] uppercase tracking-wide mb-4">Example: What you&apos;ll see</h4>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-[#F6F6F9] rounded-lg p-4">
+                  <p className="text-sm font-medium text-[#101E57] mb-3">Common Topics</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['rewards setup', 'student store', 'points system', 'reports', 'parent access'].map((topic) => (
+                      <span key={topic} className="px-3 py-1 bg-[#6F71EE]/10 text-[#6F71EE] rounded-full text-sm opacity-60">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-[#F6F6F9] rounded-lg p-4">
+                  <p className="text-sm font-medium text-[#101E57] mb-3">Recent Responses</p>
+                  <ul className="space-y-2 text-sm text-[#667085] opacity-60">
+                    <li className="bg-white p-2 rounded">&quot;Help setting up our student store&quot;</li>
+                    <li className="bg-white p-2 rounded">&quot;Questions about the points system&quot;</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <>
