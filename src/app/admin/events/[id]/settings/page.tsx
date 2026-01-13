@@ -21,6 +21,14 @@ export default function EventSettingsPage({
   // Form state
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [prepMaterials, setPrepMaterials] = useState('');
+  const [bannerMode, setBannerMode] = useState<'none' | 'preset' | 'custom'>('none');
+  const [bannerImage, setBannerImage] = useState('');
+  const [customBannerUrl, setCustomBannerUrl] = useState('');
+
+  // Available preset banners
+  const PRESET_BANNERS = [
+    { label: 'Default Office Hours', value: '/banners/default-banner.png' },
+  ];
 
   useEffect(() => {
     fetchEvent();
@@ -34,6 +42,18 @@ export default function EventSettingsPage({
       setEvent(eventData);
       setCustomQuestions(eventData.custom_questions || []);
       setPrepMaterials(eventData.prep_materials || '');
+
+      // Set banner state
+      const currentBanner = eventData.banner_image || '';
+      setBannerImage(currentBanner);
+      if (!currentBanner) {
+        setBannerMode('none');
+      } else if (PRESET_BANNERS.some((b) => b.value === currentBanner)) {
+        setBannerMode('preset');
+      } else {
+        setBannerMode('custom');
+        setCustomBannerUrl(currentBanner);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load event');
     } finally {
@@ -46,6 +66,14 @@ export default function EventSettingsPage({
     setError('');
     setSuccess('');
 
+    // Determine banner_image value based on mode
+    let finalBannerImage: string | null = null;
+    if (bannerMode === 'preset') {
+      finalBannerImage = bannerImage || PRESET_BANNERS[0]?.value || null;
+    } else if (bannerMode === 'custom' && customBannerUrl.trim()) {
+      finalBannerImage = customBannerUrl.trim();
+    }
+
     try {
       const response = await fetch(`/api/events/${id}`, {
         method: 'PATCH',
@@ -53,6 +81,7 @@ export default function EventSettingsPage({
         body: JSON.stringify({
           custom_questions: customQuestions,
           prep_materials: prepMaterials,
+          banner_image: finalBannerImage,
         }),
       });
 
@@ -287,6 +316,124 @@ export default function EventSettingsPage({
           >
             + Add Question
           </button>
+        </div>
+
+        {/* Banner Image */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Banner Image</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Add a banner image to display at the top of your public booking page.
+          </p>
+
+          {/* Banner Mode Selection */}
+          <div className="flex gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setBannerMode('none')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                bannerMode === 'none'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              No Banner
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setBannerMode('preset');
+                setBannerImage(PRESET_BANNERS[0]?.value || '');
+              }}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                bannerMode === 'preset'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Use Default
+            </button>
+            <button
+              type="button"
+              onClick={() => setBannerMode('custom')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                bannerMode === 'custom'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Custom URL
+            </button>
+          </div>
+
+          {/* Preset Banner Selection */}
+          {bannerMode === 'preset' && (
+            <div className="space-y-3">
+              {PRESET_BANNERS.map((banner) => (
+                <label
+                  key={banner.value}
+                  className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition ${
+                    bannerImage === banner.value
+                      ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="preset_banner"
+                    checked={bannerImage === banner.value}
+                    onChange={() => setBannerImage(banner.value)}
+                    className="sr-only"
+                  />
+                  <div className="relative w-32 h-20 rounded overflow-hidden bg-gray-100">
+                    <Image
+                      src={banner.value}
+                      alt={banner.label}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <span className="font-medium text-[#101E57]">{banner.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {/* Custom URL Input */}
+          {bannerMode === 'custom' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  value={customBannerUrl}
+                  onChange={(e) => setCustomBannerUrl(e.target.value)}
+                  placeholder="https://example.com/your-image.png"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  Enter a URL to an image. Recommended size: 800x300 pixels.
+                </p>
+              </div>
+              {customBannerUrl && (
+                <div className="p-4 bg-[#F6F6F9] rounded-lg">
+                  <p className="text-sm font-medium text-[#101E57] mb-2">Preview:</p>
+                  <div className="relative w-full h-32 rounded overflow-hidden bg-gray-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={customBannerUrl}
+                      alt="Banner preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Prep Materials */}

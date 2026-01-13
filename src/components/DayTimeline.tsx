@@ -25,21 +25,19 @@ interface DayTimelineProps {
   slotDuration?: number;
 }
 
-// Time range to display (8am to 8pm)
+// Time range to display (8am to 6pm)
 const START_HOUR = 8;
-const END_HOUR = 20;
-const TOTAL_HOURS = END_HOUR - START_HOUR;
+const END_HOUR = 18;
 
 function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
 }
 
-function minutesToPosition(minutes: number): number {
-  const startMinutes = START_HOUR * 60;
-  const endMinutes = END_HOUR * 60;
-  const totalMinutes = endMinutes - startMinutes;
-  return ((minutes - startMinutes) / totalMinutes) * 100;
+function formatTime(hour: number, minute: number = 0): string {
+  const h = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  return minute === 0 ? `${h} ${ampm}` : `${h}:${minute.toString().padStart(2, '0')} ${ampm}`;
 }
 
 export default function DayTimeline({
@@ -103,14 +101,7 @@ export default function DayTimeline({
 
   if (!schedule) return null;
 
-  // Generate hour markers
-  const hours = [];
-  for (let h = START_HOUR; h <= END_HOUR; h++) {
-    hours.push(h);
-  }
-
-  // Calculate clickable time slots (every 30 min within available windows or all if no patterns)
-  const clickableSlots: string[] = [];
+  // Check if a time slot is available
   const checkAvailable = (time: string): boolean => {
     const timeMin = timeToMinutes(time);
     const slotEndMin = timeMin + slotDuration;
@@ -143,21 +134,46 @@ export default function DayTimeline({
     return true;
   };
 
-  // Generate 30-min slots
-  for (let h = START_HOUR; h < END_HOUR; h++) {
-    for (let m = 0; m < 60; m += 30) {
-      const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-      if (checkAvailable(time)) {
-        clickableSlots.push(time);
+  // Get block at a specific time
+  const getBlockAt = (hour: number, minute: number): TimeBlock | null => {
+    const timeMin = hour * 60 + minute;
+    for (const block of schedule.blocks) {
+      const blockStart = timeToMinutes(block.start);
+      const blockEnd = timeToMinutes(block.end);
+      if (timeMin >= blockStart && timeMin < blockEnd) {
+        return block;
       }
     }
-  }
+    return null;
+  };
 
-  const handleTimeClick = (time: string) => {
-    if (onSelectTime) {
+  // Check if time is within available window
+  const isInAvailableWindow = (hour: number, minute: number): boolean => {
+    if (!schedule.hasAvailabilityPatterns) return true;
+    const timeMin = hour * 60 + minute;
+    for (const window of schedule.availableWindows) {
+      const windowStart = timeToMinutes(window.start);
+      const windowEnd = timeToMinutes(window.end);
+      if (timeMin >= windowStart && timeMin < windowEnd) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const handleTimeClick = (hour: number, minute: number) => {
+    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    if (checkAvailable(time) && onSelectTime) {
       onSelectTime(time);
     }
   };
+
+  // Generate time slots
+  const timeSlots: { hour: number; minute: number }[] = [];
+  for (let h = START_HOUR; h < END_HOUR; h++) {
+    timeSlots.push({ hour: h, minute: 0 });
+    timeSlots.push({ hour: h, minute: 30 });
+  }
 
   return (
     <div className="mt-4 bg-[#F6F6F9] rounded-lg p-4">
@@ -165,142 +181,98 @@ export default function DayTimeline({
         <p className="text-sm font-medium text-[#101E57]">
           {schedule.dayOfWeek} Schedule
         </p>
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-3 text-xs text-[#667085]">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-gray-300" />
+            <span className="w-2.5 h-2.5 rounded bg-gray-400" />
             Busy
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-[#6F71EE]" />
+            <span className="w-2.5 h-2.5 rounded bg-[#6F71EE]" />
             OH Slot
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-[#417762]" />
+            <span className="w-2.5 h-2.5 rounded bg-[#417762]" />
             Available
           </span>
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="relative">
-        {/* Hour labels */}
-        <div className="flex justify-between text-xs text-[#667085] mb-1">
-          {hours.map((h) => (
-            <span key={h} className="w-8 text-center">
-              {h > 12 ? `${h - 12}p` : h === 12 ? '12p' : `${h}a`}
-            </span>
-          ))}
-        </div>
+      {/* Vertical Timeline */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden max-h-[400px] overflow-y-auto">
+        {timeSlots.map(({ hour, minute }, index) => {
+          const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+          const block = getBlockAt(hour, minute);
+          const isAvailable = checkAvailable(time);
+          const inAvailWindow = isInAvailableWindow(hour, minute);
+          const isSelected = selectedTime === time;
+          const isHourMark = minute === 0;
 
-        {/* Timeline bar */}
-        <div className="relative h-12 bg-white rounded border border-gray-200">
-          {/* Available windows background */}
-          {schedule.hasAvailabilityPatterns &&
-            schedule.availableWindows.map((window, i) => {
-              const startMin = timeToMinutes(window.start);
-              const endMin = timeToMinutes(window.end);
-              const left = minutesToPosition(startMin);
-              const width = minutesToPosition(endMin) - left;
+          // Skip if this slot is continuation of a block (show block only on first row)
+          const prevSlot = index > 0 ? timeSlots[index - 1] : null;
+          const prevBlock = prevSlot ? getBlockAt(prevSlot.hour, prevSlot.minute) : null;
+          const isBlockContinuation = block && prevBlock &&
+            block.start === prevBlock.start && block.end === prevBlock.end;
 
-              return (
-                <div
-                  key={`avail-${i}`}
-                  className="absolute top-0 bottom-0 bg-[#417762]/10"
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                />
-              );
-            })}
-
-          {/* Busy blocks */}
-          {schedule.blocks.map((block, i) => {
-            const startMin = timeToMinutes(block.start);
-            const endMin = timeToMinutes(block.end);
-
-            // Clamp to visible range
-            const clampedStart = Math.max(startMin, START_HOUR * 60);
-            const clampedEnd = Math.min(endMin, END_HOUR * 60);
-
-            if (clampedStart >= clampedEnd) return null;
-
-            const left = minutesToPosition(clampedStart);
-            const width = minutesToPosition(clampedEnd) - left;
-
-            return (
-              <div
-                key={`block-${i}`}
-                className={`absolute top-1 bottom-1 rounded ${
-                  block.type === 'busy'
-                    ? 'bg-gray-300'
-                    : 'bg-[#6F71EE]'
-                }`}
-                style={{ left: `${left}%`, width: `${width}%` }}
-                title={`${block.title || block.type}: ${block.start} - ${block.end}`}
-              >
-                {width > 8 && (
-                  <span className="absolute inset-0 flex items-center justify-center text-xs text-white truncate px-1">
-                    {block.title || block.type}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Selected time indicator */}
-          {selectedTime && (
+          return (
             <div
-              className="absolute top-0 bottom-0 w-1 bg-[#417762] z-10"
-              style={{ left: `${minutesToPosition(timeToMinutes(selectedTime))}%` }}
-            />
-          )}
-        </div>
+              key={time}
+              className={`flex items-stretch border-b border-gray-100 last:border-b-0 ${
+                isHourMark ? 'border-t border-gray-200' : ''
+              }`}
+            >
+              {/* Time label */}
+              <div className={`w-20 flex-shrink-0 px-3 py-2 text-xs ${
+                isHourMark ? 'font-medium text-[#101E57]' : 'text-[#667085]'
+              } ${inAvailWindow && !block ? 'bg-[#417762]/5' : 'bg-gray-50'}`}>
+                {formatTime(hour, minute)}
+              </div>
 
-        {/* Clickable available slots */}
-        <div className="mt-3">
-          <p className="text-xs text-[#667085] mb-2">
-            {clickableSlots.length > 0
-              ? 'Click an available time:'
-              : 'No available times in this range'}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {clickableSlots.slice(0, 16).map((time) => {
-              const hour = parseInt(time.split(':')[0]);
-              const minute = time.split(':')[1];
-              const displayTime =
-                hour > 12
-                  ? `${hour - 12}:${minute} PM`
-                  : hour === 12
-                  ? `12:${minute} PM`
-                  : `${hour}:${minute} AM`;
-
-              return (
-                <button
-                  key={time}
-                  type="button"
-                  onClick={() => handleTimeClick(time)}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition ${
-                    selectedTime === time
-                      ? 'bg-[#417762] text-white'
-                      : 'bg-white border border-[#417762] text-[#417762] hover:bg-[#417762]/10'
-                  }`}
-                >
-                  {displayTime}
-                </button>
-              );
-            })}
-            {clickableSlots.length > 16 && (
-              <span className="px-3 py-1.5 text-sm text-[#667085]">
-                +{clickableSlots.length - 16} more
-              </span>
-            )}
-          </div>
-        </div>
+              {/* Slot content */}
+              <div
+                className={`flex-1 px-3 py-2 min-h-[40px] flex items-center transition cursor-pointer ${
+                  block
+                    ? block.type === 'busy'
+                      ? 'bg-gray-200'
+                      : 'bg-[#6F71EE]/20'
+                    : isSelected
+                    ? 'bg-[#417762] text-white'
+                    : isAvailable
+                    ? inAvailWindow
+                      ? 'bg-[#417762]/10 hover:bg-[#417762]/20'
+                      : 'bg-white hover:bg-gray-50'
+                    : 'bg-gray-50'
+                }`}
+                onClick={() => !block && handleTimeClick(hour, minute)}
+              >
+                {block && !isBlockContinuation ? (
+                  <span className={`text-xs font-medium ${
+                    block.type === 'busy' ? 'text-gray-600' : 'text-[#6F71EE]'
+                  }`}>
+                    {block.title || (block.type === 'busy' ? 'Busy' : 'Office Hours')}
+                    <span className="font-normal ml-2 opacity-75">
+                      {block.start} - {block.end}
+                    </span>
+                  </span>
+                ) : isSelected ? (
+                  <span className="text-xs font-medium">
+                    Selected - {slotDuration} min slot
+                  </span>
+                ) : isAvailable ? (
+                  <span className="text-xs text-[#417762]">
+                    Click to select
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {!schedule.hasAvailabilityPatterns && (
         <p className="text-xs text-[#667085] mt-3">
-          Tip: Set up{' '}
+          Tip:{' '}
           <a href="/admin/availability" className="text-[#6F71EE] hover:underline">
-            availability patterns
+            Set up availability patterns
           </a>{' '}
           to highlight your preferred hours.
         </p>

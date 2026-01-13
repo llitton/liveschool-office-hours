@@ -29,6 +29,8 @@ export interface OHEvent {
   // Custom questions and prep materials
   custom_questions: CustomQuestion[] | null;
   prep_materials: string | null;
+  // Banner image for public booking page
+  banner_image: string | null;
 }
 
 export interface OHSlot {

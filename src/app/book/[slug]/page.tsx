@@ -471,6 +471,19 @@ export default function BookingPage({
     <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Banner Image */}
+          {event.banner_image && (
+            <div className="relative w-full h-48 md:h-64">
+              <Image
+                src={event.banner_image}
+                alt={event.name}
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+          )}
+
           {/* Header */}
           <div className="p-6 border-b">
             <Image
