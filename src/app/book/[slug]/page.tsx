@@ -473,12 +473,13 @@ export default function BookingPage({
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Banner Image */}
           {event.banner_image && (
-            <div className="relative w-full h-48 md:h-64">
+            <div className="relative w-full">
               <Image
                 src={event.banner_image}
                 alt={event.name}
-                fill
-                className="object-cover"
+                width={800}
+                height={300}
+                className="w-full h-auto"
                 priority
               />
             </div>
