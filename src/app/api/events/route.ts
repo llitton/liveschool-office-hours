@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServiceSupabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
+
+// GET all events (public)
+export async function GET() {
+  const supabase = getServiceSupabase();
+
+  const { data: events, error } = await supabase
+    .from('oh_events')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(events);
+}
+
+// POST create new event (admin only)
+export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const {
+    name,
+    slug,
+    description,
+    duration_minutes = 30,
+    host_name = 'Hannah Kelly',
+    host_email = 'hannah@liveschoolinc.com',
+    max_attendees = 30,
+    buffer_minutes = 15,
+  } = body;
+
+  if (!name || !slug) {
+    return NextResponse.json(
+      { error: 'Name and slug are required' },
+      { status: 400 }
+    );
+  }
+
+  const supabase = getServiceSupabase();
+
+  const { data: event, error } = await supabase
+    .from('oh_events')
+    .insert({
+      name,
+      slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+      description,
+      duration_minutes,
+      host_name,
+      host_email,
+      max_attendees,
+      buffer_minutes,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === '23505') {
+      return NextResponse.json(
+        { error: 'An event with this slug already exists' },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(event);
+}
