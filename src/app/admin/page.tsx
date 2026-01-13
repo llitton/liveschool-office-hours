@@ -222,7 +222,7 @@ export default async function AdminPage({
                   {/* Quick actions bar */}
                   <div className="px-6 py-3 bg-[#F6F6F9] border-t border-gray-100 flex items-center justify-between">
                     <span className="text-xs text-[#667085]">/{event.slug}</span>
-                    <EventActions eventId={event.id} eventSlug={event.slug} />
+                    <EventActions eventId={event.id} eventSlug={event.slug} eventName={event.name} />
                   </div>
                 </div>
               );
