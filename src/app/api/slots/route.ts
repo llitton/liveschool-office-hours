@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession, getHostWithTokens } from '@/lib/auth';
-import { createCalendarEvent } from '@/lib/google';
+import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { checkTimeAvailability } from '@/lib/availability';
-import { parseISO } from 'date-fns';
+import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping } from 'date-fns';
 
 // GET slots for an event
 export async function GET(request: NextRequest) {
@@ -128,8 +128,65 @@ export async function POST(request: NextRequest) {
     hostId = sessionAdmin?.id;
   }
 
-  // Check availability against the host's calendar (if host exists and has patterns set up)
-  if (hostAdmin) {
+  // Check availability against the host's calendar using LIVE Google Calendar data
+  if (hostAdmin?.google_access_token && hostAdmin?.google_refresh_token) {
+    try {
+      const slotStart = parseISO(start_time);
+      const slotEnd = parseISO(end_time);
+      const dayStart = startOfDay(slotStart);
+      const dayEnd = endOfDay(slotStart);
+
+      // Fetch live busy times from Google Calendar
+      const busyTimes = await getFreeBusy(
+        hostAdmin.google_access_token,
+        hostAdmin.google_refresh_token,
+        dayStart.toISOString(),
+        dayEnd.toISOString()
+      );
+
+      // Check for conflicts with live calendar data
+      for (const busy of busyTimes) {
+        const busyStart = new Date(busy.start);
+        const busyEnd = new Date(busy.end);
+
+        if (
+          areIntervalsOverlapping(
+            { start: slotStart, end: slotEnd },
+            { start: busyStart, end: busyEnd }
+          )
+        ) {
+          return NextResponse.json(
+            { error: 'Conflicts with calendar event' },
+            { status: 400 }
+          );
+        }
+      }
+    } catch (err) {
+      // Log but don't block - live calendar check is optional
+      console.warn('Live calendar check failed, falling back to cached data:', err);
+
+      // Fall back to cached availability check
+      try {
+        const availabilityCheck = await checkTimeAvailability(
+          hostAdmin.id,
+          parseISO(start_time),
+          parseISO(end_time),
+          event_id,
+          event.buffer_minutes || 0
+        );
+
+        if (!availabilityCheck.available) {
+          return NextResponse.json(
+            { error: availabilityCheck.reason || 'Time slot is not available' },
+            { status: 400 }
+          );
+        }
+      } catch (innerErr) {
+        console.warn('Cached availability check also failed:', innerErr);
+      }
+    }
+  } else if (hostAdmin) {
+    // No Google tokens - use cached availability check
     try {
       const availabilityCheck = await checkTimeAvailability(
         hostAdmin.id,
@@ -146,7 +203,6 @@ export async function POST(request: NextRequest) {
         );
       }
     } catch (err) {
-      // Log but don't block - availability check is optional
       console.warn('Availability check failed, proceeding anyway:', err);
     }
   }
