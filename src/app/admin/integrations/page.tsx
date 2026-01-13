@@ -32,6 +32,8 @@ function IntegrationsContent() {
   const [slackWebhook, setSlackWebhook] = useState('');
   const [slackChannel, setSlackChannel] = useState('');
   const [savingSlack, setSavingSlack] = useState(false);
+  const [showSlackSetup, setShowSlackSetup] = useState(false);
+  const [testingSlack, setTestingSlack] = useState(false);
 
   useEffect(() => {
     fetchStatuses();
@@ -141,6 +143,7 @@ function IntegrationsContent() {
       if (response.ok) {
         setSlackStatus({ connected: true, webhookConfigured: true });
         setMessage({ type: 'success', text: 'Slack configuration saved!' });
+        setShowSlackSetup(false);
       } else {
         const data = await response.json();
         setMessage({ type: 'error', text: data.error || 'Failed to save Slack config' });
@@ -149,6 +152,23 @@ function IntegrationsContent() {
       setMessage({ type: 'error', text: 'Failed to save Slack configuration' });
     } finally {
       setSavingSlack(false);
+    }
+  };
+
+  const testSlackConnection = async () => {
+    setTestingSlack(true);
+    try {
+      const response = await fetch('/api/slack/test', { method: 'POST' });
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Test message sent! Check your Slack channel.' });
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to send test message' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to send test message' });
+    } finally {
+      setTestingSlack(false);
     }
   };
 
@@ -216,7 +236,7 @@ function IntegrationsContent() {
                 <div>
                   <h2 className="text-lg font-semibold text-[#101E57]">HubSpot</h2>
                   <p className="text-sm text-[#667085] mt-1">
-                    Sync contacts, log meetings, and create tasks from office hours sessions
+                    Keep your CRM up-to-date automatically - every conversation gets logged
                   </p>
                 </div>
                 {hubspotStatus?.connected && (
@@ -237,29 +257,50 @@ function IntegrationsContent() {
               </div>
 
               {!hubspotStatus?.connected && (
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      Private App Access Token
-                    </label>
-                    <input
-                      type="password"
-                      value={hubspotToken}
-                      onChange={(e) => setHubspotToken(e.target.value)}
-                      placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                    />
-                    <p className="text-xs text-[#667085] mt-1">
-                      Find this in your HubSpot Private App settings under Auth → Access token
-                    </p>
+                <div className="mt-4">
+                  {/* Benefits preview */}
+                  <div className="bg-gradient-to-r from-[#fff5f3] to-[#fff9f7] border border-[#ffd6cc] rounded-lg p-4 mb-4">
+                    <p className="text-sm font-medium text-[#101E57] mb-2">When you connect HubSpot, you&apos;ll be able to:</p>
+                    <ul className="text-sm text-[#667085] space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#ff7a59] mt-0.5">&#10003;</span>
+                        <span>See each attendee&apos;s full CRM history before your session</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#ff7a59] mt-0.5">&#10003;</span>
+                        <span>Auto-log meetings so nothing gets lost</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#ff7a59] mt-0.5">&#10003;</span>
+                        <span>Create follow-up tasks with one click during sessions</span>
+                      </li>
+                    </ul>
                   </div>
-                  <button
-                    onClick={saveHubSpotToken}
-                    disabled={!hubspotToken.trim() || savingHubspot}
-                    className="bg-[#ff7a59] text-white px-4 py-2 rounded-lg hover:bg-[#e66b4d] transition font-medium text-sm disabled:opacity-50"
-                  >
-                    {savingHubspot ? 'Connecting...' : 'Connect HubSpot'}
-                  </button>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Private App Access Token
+                      </label>
+                      <input
+                        type="password"
+                        value={hubspotToken}
+                        onChange={(e) => setHubspotToken(e.target.value)}
+                        placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      <p className="text-xs text-[#667085] mt-1">
+                        Find this in HubSpot → Settings → Integrations → Private Apps → Your App → Auth
+                      </p>
+                    </div>
+                    <button
+                      onClick={saveHubSpotToken}
+                      disabled={!hubspotToken.trim() || savingHubspot}
+                      className="bg-[#ff7a59] text-white px-4 py-2 rounded-lg hover:bg-[#e66b4d] transition font-medium text-sm disabled:opacity-50"
+                    >
+                      {savingHubspot ? 'Connecting...' : 'Connect HubSpot'}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -270,14 +311,26 @@ function IntegrationsContent() {
                       Connected: {new Date(hubspotStatus.connectedAt).toLocaleDateString()}
                     </p>
                   )}
-                  <div className="bg-[#F6F6F9] p-4 rounded-lg">
-                    <h3 className="font-medium text-[#101E57] mb-2">Features enabled:</h3>
-                    <ul className="text-sm text-[#667085] space-y-1">
-                      <li>- Automatic contact creation/lookup on booking</li>
-                      <li>- Meeting activity logging on sessions</li>
-                      <li>- Create follow-up tasks from session panel</li>
-                      <li>- Contact info card in slot details</li>
-                    </ul>
+                  <div className="bg-gradient-to-r from-[#fff5f3] to-[#fff9f7] border border-[#ffd6cc] rounded-lg p-4">
+                    <h3 className="font-medium text-[#101E57] mb-3">Working for you:</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#ff7a59]">&#10003;</span>
+                        <span className="text-[#667085]">Contacts auto-synced</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#ff7a59]">&#10003;</span>
+                        <span className="text-[#667085]">Meetings auto-logged</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#ff7a59]">&#10003;</span>
+                        <span className="text-[#667085]">One-click tasks</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#ff7a59]">&#10003;</span>
+                        <span className="text-[#667085]">CRM context in sessions</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -292,66 +345,145 @@ function IntegrationsContent() {
               S
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-[#101E57]">Slack</h2>
-              <p className="text-sm text-[#667085] mt-1">
-                Get notified about bookings and session summaries in Slack
-              </p>
-
-              <div className="mt-4 space-y-4">
+              <div className="flex items-start justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Webhook URL
-                  </label>
-                  <input
-                    type="url"
-                    value={slackWebhook}
-                    onChange={(e) => setSlackWebhook(e.target.value)}
-                    placeholder="https://hooks.slack.com/services/..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
-                  <p className="text-xs text-[#667085] mt-1">
-                    Create an incoming webhook in your Slack workspace settings
+                  <h2 className="text-lg font-semibold text-[#101E57]">Slack</h2>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Never miss a booking - get instant notifications in your team channel
                   </p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Default Channel (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={slackChannel}
-                    onChange={(e) => setSlackChannel(e.target.value)}
-                    placeholder="#office-hours"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={saveSlackConfig}
-                    disabled={!slackWebhook || savingSlack}
-                    className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
-                  >
-                    {savingSlack ? 'Saving...' : 'Save Slack Config'}
-                  </button>
-                  {slackStatus?.connected && (
-                    <span className="flex items-center gap-1 text-sm text-green-600">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      Configured
-                    </span>
-                  )}
-                </div>
+                {slackStatus?.connected && (
+                  <span className="flex items-center gap-1 text-sm text-green-600">
+                    <span className="w-2 h-2 bg-green-500 rounded-full" />
+                    Connected
+                  </span>
+                )}
               </div>
 
+              {!slackStatus?.connected && !showSlackSetup && (
+                <div className="mt-4">
+                  {/* Benefits preview */}
+                  <div className="bg-gradient-to-r from-[#f3f0f4] to-[#f9f7fa] border border-[#d9c8e0] rounded-lg p-4 mb-4">
+                    <p className="text-sm font-medium text-[#101E57] mb-2">Stay in the loop with your team:</p>
+                    <ul className="text-sm text-[#667085] space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#4A154B] mt-0.5">&#10003;</span>
+                        <span>Get notified instantly when someone books a session</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#4A154B] mt-0.5">&#10003;</span>
+                        <span>Daily digest of your upcoming sessions at 7am</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#4A154B] mt-0.5">&#10003;</span>
+                        <span>Post-session summaries to share learnings with your team</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <button
+                    onClick={() => setShowSlackSetup(true)}
+                    className="bg-[#4A154B] text-white px-4 py-2 rounded-lg hover:bg-[#3c1040] transition font-medium text-sm"
+                  >
+                    Set Up Slack
+                  </button>
+                </div>
+              )}
+
+              {!slackStatus?.connected && showSlackSetup && (
+                <div className="mt-4">
+                  {/* Step-by-step setup guide */}
+                  <div className="bg-[#F6F6F9] rounded-lg p-4 mb-4">
+                    <h3 className="font-medium text-[#101E57] mb-3">Quick Setup Guide</h3>
+                    <ol className="text-sm text-[#667085] space-y-3">
+                      <li className="flex gap-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#4A154B] text-white rounded-full flex items-center justify-center text-xs font-medium">1</span>
+                        <span>Go to your <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-[#6F71EE] hover:underline">Slack Apps</a> and create a new app (or use an existing one)</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#4A154B] text-white rounded-full flex items-center justify-center text-xs font-medium">2</span>
+                        <span>Enable &quot;Incoming Webhooks&quot; in your app settings</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#4A154B] text-white rounded-full flex items-center justify-center text-xs font-medium">3</span>
+                        <span>Click &quot;Add New Webhook to Workspace&quot; and select your channel</span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="flex-shrink-0 w-6 h-6 bg-[#4A154B] text-white rounded-full flex items-center justify-center text-xs font-medium">4</span>
+                        <span>Copy the webhook URL and paste it below</span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Webhook URL
+                      </label>
+                      <input
+                        type="url"
+                        value={slackWebhook}
+                        onChange={(e) => setSlackWebhook(e.target.value)}
+                        placeholder="https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXX"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono text-sm"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={saveSlackConfig}
+                        disabled={!slackWebhook || savingSlack}
+                        className="bg-[#4A154B] text-white px-4 py-2 rounded-lg hover:bg-[#3c1040] transition disabled:opacity-50 font-medium text-sm"
+                      >
+                        {savingSlack ? 'Connecting...' : 'Connect Slack'}
+                      </button>
+                      <button
+                        onClick={() => setShowSlackSetup(false)}
+                        className="text-[#667085] hover:text-[#101E57] text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {slackStatus?.connected && (
-                <div className="mt-4 bg-[#F6F6F9] p-4 rounded-lg">
-                  <h3 className="font-medium text-[#101E57] mb-2">Notifications enabled:</h3>
-                  <ul className="text-sm text-[#667085] space-y-1">
-                    <li>- New booking notifications</li>
-                    <li>- Daily digest of upcoming sessions</li>
-                    <li>- Post-session summaries</li>
-                  </ul>
+                <div className="mt-4">
+                  {/* Connected state with benefits and actions */}
+                  <div className="bg-gradient-to-r from-[#f3f0f4] to-[#f9f7fa] border border-[#d9c8e0] rounded-lg p-4 mb-4">
+                    <h3 className="font-medium text-[#101E57] mb-3">Notifications active:</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#4A154B]">&#10003;</span>
+                        <span className="text-[#667085]">New bookings</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#4A154B]">&#10003;</span>
+                        <span className="text-[#667085]">Daily digest (7am)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#4A154B]">&#10003;</span>
+                        <span className="text-[#667085]">Session summaries</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={testSlackConnection}
+                      disabled={testingSlack}
+                      className="bg-[#4A154B] text-white px-4 py-2 rounded-lg hover:bg-[#3c1040] transition disabled:opacity-50 font-medium text-sm"
+                    >
+                      {testingSlack ? 'Sending...' : 'Send Test Message'}
+                    </button>
+                    <button
+                      onClick={() => setShowSlackSetup(true)}
+                      className="text-[#667085] hover:text-[#101E57] text-sm"
+                    >
+                      Update webhook
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

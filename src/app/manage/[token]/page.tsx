@@ -144,98 +144,115 @@ export default function ManageBookingPage({
 
   const { booking, slot, event } = data;
   const isCancelled = !!booking.cancelled_at;
+  const availableSlotsForReschedule = data.availableSlots.filter((s) => s.id !== slot.id);
 
   return (
     <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
       <div className="max-w-lg mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="p-6 border-b">
+          {/* Header - changes color based on status */}
+          <div className={`p-6 text-center ${isCancelled ? 'bg-gray-500' : 'bg-[#101E57]'} text-white`}>
             <Image
               src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
               alt="LiveSchool"
-              width={140}
-              height={36}
-              className="mb-4"
+              width={120}
+              height={32}
+              className="mx-auto mb-4 brightness-0 invert"
             />
-            <h1 className="text-xl font-semibold text-[#101E57]">Manage Your Booking</h1>
+            {isCancelled ? (
+              <>
+                <h1 className="text-xl font-semibold">Booking Cancelled</h1>
+                <p className="text-white/80 mt-1">This session has been cancelled</p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-xl font-semibold">Hi {booking.first_name}!</h1>
+                <p className="text-white/80 mt-1">Here are your booking details</p>
+              </>
+            )}
           </div>
 
           {/* Booking Details */}
           <div className="p-6">
             {success && (
-              <div className="bg-green-50 text-green-700 p-4 rounded mb-4 text-sm">
-                {success}
+              <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-lg mb-4 text-sm flex items-start gap-3">
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{success}</span>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-50 text-red-700 p-4 rounded mb-4 text-sm">
-                {error}
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4 text-sm flex items-start gap-3">
+                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{error}</span>
               </div>
             )}
 
+            {/* Session details card */}
             <div className={`bg-[#F6F6F9] rounded-lg p-4 mb-6 ${isCancelled ? 'opacity-60' : ''}`}>
-              {isCancelled && (
-                <div className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm font-medium mb-3 inline-block">
-                  Cancelled
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
                 </div>
-              )}
-
-              <h2 className="font-semibold text-[#101E57] text-lg">{event.name}</h2>
-              <p className="text-[#667085] mt-1">with {event.host_name}</p>
-
-              <div className="mt-4 space-y-2">
-                <p className="text-[#101E57]">
-                  <strong>Date:</strong>{' '}
-                  {formatInTimeZone(parseISO(slot.start_time), timezone, 'EEEE, MMMM d, yyyy')}
-                </p>
-                <p className="text-[#101E57]">
-                  <strong>Time:</strong>{' '}
-                  {formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')} -{' '}
-                  {formatInTimeZone(parseISO(slot.end_time), timezone, 'h:mm a')}
-                </p>
-                <p className="text-[#667085] text-sm">{timezone}</p>
-
-                {slot.google_meet_link && !isCancelled && (
-                  <p className="mt-2">
-                    <a
-                      href={slot.google_meet_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#6F71EE] hover:underline font-medium"
-                    >
-                      Join Google Meet →
-                    </a>
+                <div className="flex-1">
+                  <h2 className="font-semibold text-[#101E57]">{event.name}</h2>
+                  <p className="text-sm text-[#667085]">with {event.host_name}</p>
+                  <p className="text-[#667085] mt-2">
+                    {formatInTimeZone(parseISO(slot.start_time), timezone, 'EEEE, MMMM d, yyyy')}
                   </p>
-                )}
+                  <p className="text-[#101E57] font-medium">
+                    {formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')} -{' '}
+                    {formatInTimeZone(parseISO(slot.end_time), timezone, 'h:mm a')}
+                  </p>
+                  <p className="text-[#667085] text-sm">{timezone}</p>
+                </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-[#667085]">
-                  <strong>Attendee:</strong> {booking.first_name} {booking.last_name}
-                </p>
-                <p className="text-sm text-[#667085]">{booking.email}</p>
-              </div>
+              {/* Google Meet button */}
+              {slot.google_meet_link && !isCancelled && (
+                <a
+                  href={slot.google_meet_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex items-center justify-center gap-2 w-full bg-[#6F71EE] text-white py-2.5 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Join Google Meet
+                </a>
+              )}
             </div>
 
-            {/* Add to Calendar */}
-            {!isCancelled && (
+            {/* Add to Calendar - with icons */}
+            {!isCancelled && !showReschedule && (
               <div className="mb-6">
-                <p className="text-sm font-medium text-[#101E57] mb-2">Add to Calendar:</p>
+                <p className="text-sm font-medium text-[#101E57] mb-2">Add to your calendar:</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={downloadIcal}
-                    className="px-3 py-1.5 bg-[#F6F6F9] text-[#101E57] rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                    className="flex items-center gap-2 px-3 py-2 bg-[#F6F6F9] text-[#101E57] rounded-lg text-sm font-medium hover:bg-gray-200 transition"
                   >
-                    Apple Calendar / Outlook (.ics)
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download .ics
                   </button>
                   <a
                     href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${format(parseISO(slot.start_time), "yyyyMMdd'T'HHmmss'Z'")}/${format(parseISO(slot.end_time), "yyyyMMdd'T'HHmmss'Z'")}&details=${encodeURIComponent(`Join: ${slot.google_meet_link || 'Link in calendar invite'}`)}&location=${encodeURIComponent(slot.google_meet_link || 'Google Meet')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-[#F6F6F9] text-[#101E57] rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                    className="flex items-center gap-2 px-3 py-2 bg-[#F6F6F9] text-[#101E57] rounded-lg text-sm font-medium hover:bg-gray-200 transition"
                   >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                     Google Calendar
                   </a>
                 </div>
@@ -244,39 +261,52 @@ export default function ManageBookingPage({
 
             {/* Reschedule Section */}
             {!isCancelled && showReschedule && (
-              <div className="mb-6 p-4 bg-[#F6F6F9] rounded-lg">
-                <h3 className="font-medium text-[#101E57] mb-3">Select a new time:</h3>
-                {data.availableSlots.length === 0 ? (
-                  <p className="text-[#667085] text-sm">No other time slots available.</p>
+              <div className="mb-6 p-4 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg">
+                <h3 className="font-medium text-[#101E57] mb-1">Pick a new time</h3>
+                <p className="text-sm text-[#667085] mb-4">Your current slot will be released for others to book.</p>
+                {availableSlotsForReschedule.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-[#667085] text-sm mb-2">No other time slots available right now.</p>
+                    <p className="text-[#667085] text-xs">Check back later or contact the host.</p>
+                  </div>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {data.availableSlots
-                      .filter((s) => s.id !== slot.id)
-                      .map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelectedSlot(s.id)}
-                          className={`w-full text-left px-3 py-2 rounded-lg border transition ${
-                            selectedSlot === s.id
-                              ? 'border-[#6F71EE] bg-[#6F71EE]/10'
-                              : 'border-gray-200 hover:border-[#6F71EE]'
-                          }`}
-                        >
-                          <p className="text-sm font-medium text-[#101E57]">
-                            {formatInTimeZone(parseISO(s.start_time), timezone, 'EEEE, MMMM d')}
-                          </p>
-                          <p className="text-sm text-[#667085]">
-                            {formatInTimeZone(parseISO(s.start_time), timezone, 'h:mm a')}
-                          </p>
-                        </button>
-                      ))}
+                    {availableSlotsForReschedule.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedSlot(s.id)}
+                        className={`w-full text-left px-3 py-3 rounded-lg border transition ${
+                          selectedSlot === s.id
+                            ? 'border-[#6F71EE] bg-white shadow-sm'
+                            : 'border-gray-200 bg-white hover:border-[#6F71EE]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-[#101E57]">
+                              {formatInTimeZone(parseISO(s.start_time), timezone, 'EEEE, MMMM d')}
+                            </p>
+                            <p className="text-sm text-[#667085]">
+                              {formatInTimeZone(parseISO(s.start_time), timezone, 'h:mm a')}
+                            </p>
+                          </div>
+                          {selectedSlot === s.id && (
+                            <div className="w-5 h-5 bg-[#6F71EE] rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
                 <div className="flex gap-2 mt-4">
                   <button
                     onClick={handleReschedule}
                     disabled={!selectedSlot || processing}
-                    className="px-4 py-2 bg-[#6F71EE] text-white rounded-lg text-sm font-medium hover:bg-[#5a5cd0] transition disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-[#6F71EE] text-white rounded-lg text-sm font-medium hover:bg-[#5a5cd0] transition disabled:opacity-50"
                   >
                     {processing ? 'Rescheduling...' : 'Confirm New Time'}
                   </button>
@@ -285,38 +315,73 @@ export default function ManageBookingPage({
                       setShowReschedule(false);
                       setSelectedSlot(null);
                     }}
-                    className="px-4 py-2 text-[#667085] text-sm font-medium hover:text-[#101E57]"
+                    className="px-4 py-2.5 text-[#667085] text-sm font-medium hover:text-[#101E57] transition"
                   >
-                    Cancel
+                    Keep Current
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
+            {/* Action Buttons - redesigned */}
             {!isCancelled && !showReschedule && (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowReschedule(true)}
-                  className="flex-1 px-4 py-2 border border-[#6F71EE] text-[#6F71EE] rounded-lg font-medium hover:bg-[#6F71EE] hover:text-white transition"
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-[#101E57]">Need to make changes?</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowReschedule(true)}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#6F71EE] text-white rounded-lg font-medium hover:bg-[#5a5cd0] transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Reschedule
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    disabled={processing}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-[#667085] rounded-lg font-medium hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {processing ? 'Cancelling...' : 'Cancel'}
+                  </button>
+                </div>
+                <p className="text-xs text-[#667085] text-center">
+                  You&apos;ll receive an email confirmation for any changes
+                </p>
+              </div>
+            )}
+
+            {/* Cancelled state - offer to rebook */}
+            {isCancelled && (
+              <div className="text-center py-4">
+                <p className="text-[#667085] mb-4">
+                  Want to book a new session?
+                </p>
+                <a
+                  href={`/book/${event.slug}`}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#6F71EE] text-white rounded-lg font-medium hover:bg-[#5a5cd0] transition"
                 >
-                  Reschedule
-                </button>
-                <button
-                  onClick={handleCancel}
-                  disabled={processing}
-                  className="flex-1 px-4 py-2 border border-red-500 text-red-500 rounded-lg font-medium hover:bg-red-500 hover:text-white transition disabled:opacity-50"
-                >
-                  {processing ? 'Cancelling...' : 'Cancel Booking'}
-                </button>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Book New Session
+                </a>
               </div>
             )}
 
             {/* Prep Materials */}
             {event.prep_materials && !isCancelled && (
               <div className="mt-6 pt-6 border-t">
-                <h3 className="font-medium text-[#101E57] mb-2">Preparation Materials</h3>
-                <div className="text-sm text-[#667085] whitespace-pre-wrap">
+                <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Before your session
+                </h3>
+                <div className="text-sm text-[#667085] whitespace-pre-wrap bg-[#F6F6F9] rounded-lg p-3">
                   {event.prep_materials}
                 </div>
               </div>
@@ -326,9 +391,19 @@ export default function ManageBookingPage({
           {/* Footer */}
           <div className="p-4 bg-[#F6F6F9] border-t text-center">
             <p className="text-sm text-[#667085]">
-              Questions? Reply to your confirmation email.
+              Questions? Reply to your confirmation email or contact the host directly.
             </p>
           </div>
+        </div>
+
+        <div className="text-center mt-6">
+          <Image
+            src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+            alt="LiveSchool"
+            width={100}
+            height={26}
+            className="mx-auto opacity-60"
+          />
         </div>
       </div>
     </div>

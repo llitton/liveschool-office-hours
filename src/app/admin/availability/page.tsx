@@ -14,6 +14,17 @@ interface PatternInput {
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// Common US timezones for the dropdown
+const TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern Time (ET)' },
+  { value: 'America/Chicago', label: 'Central Time (CT)' },
+  { value: 'America/Denver', label: 'Mountain Time (MT)' },
+  { value: 'America/Phoenix', label: 'Arizona (MST)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+  { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time (HST)' },
+];
+
 export default function AvailabilityPage() {
   const [patterns, setPatterns] = useState<OHAvailabilityPattern[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +40,17 @@ export default function AvailabilityPage() {
 
   // Editable patterns state
   const [editPatterns, setEditPatterns] = useState<PatternInput[]>([]);
+  const [showInactiveDays, setShowInactiveDays] = useState(false);
+
+  // Timezone state - detect from browser initially
+  const [timezone, setTimezone] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Check if browser timezone is in our list, otherwise default to Eastern
+      return TIMEZONES.some(tz => tz.value === browserTz) ? browserTz : 'America/New_York';
+    }
+    return 'America/New_York';
+  });
 
   useEffect(() => {
     fetchData();
@@ -51,6 +73,10 @@ export default function AvailabilityPage() {
             end_time: p.end_time.slice(0, 5),
           }))
         );
+        // Load saved timezone from first pattern (all patterns share same timezone)
+        if (data.length > 0 && data[0].timezone) {
+          setTimezone(data[0].timezone);
+        }
       }
 
       if (syncRes.ok) {
@@ -83,7 +109,7 @@ export default function AvailabilityPage() {
       const response = await fetch('/api/availability/patterns', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patterns: editPatterns }),
+        body: JSON.stringify({ patterns: editPatterns, timezone }),
       });
 
       if (!response.ok) {
@@ -279,7 +305,7 @@ export default function AvailabilityPage() {
 
         {/* Weekly Availability Patterns */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <div className="flex items-start justify-between mb-6">
+          <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-lg font-semibold text-[#101E57]">Weekly Availability</h2>
               <p className="text-sm text-[#667085] mt-1">
@@ -302,59 +328,133 @@ export default function AvailabilityPage() {
             )}
           </div>
 
-          <div className="space-y-4">
-            {DAY_NAMES.map((day, index) => {
-              const pattern = editPatterns.find((p) => p.day_of_week === index);
-              const isActive = !!pattern;
+          {/* Timezone Selector */}
+          <div className="flex items-center gap-3 mb-6 p-3 bg-[#F6F6F9] rounded-lg">
+            <svg className="w-5 h-5 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <label className="text-sm font-medium text-[#101E57]">Your timezone:</label>
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="flex-1 max-w-xs px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] text-sm"
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-[#667085]">
+              All times below are in this timezone
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {/* Active days - always shown */}
+            {editPatterns.length > 0 ? (
+              editPatterns
+                .sort((a, b) => a.day_of_week - b.day_of_week)
+                .map((pattern) => (
+                  <div
+                    key={pattern.day_of_week}
+                    className="flex items-center gap-4 p-4 rounded-lg bg-[#6F71EE]/5 border border-[#6F71EE]/20"
+                  >
+                    <div className="w-28">
+                      <span className="font-medium text-[#101E57]">
+                        {DAY_NAMES[pattern.day_of_week]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="time"
+                        value={pattern.start_time}
+                        onChange={(e) => updatePattern(pattern.day_of_week, 'start_time', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      <span className="text-[#667085]">to</span>
+                      <input
+                        type="time"
+                        value={pattern.end_time}
+                        onChange={(e) => updatePattern(pattern.day_of_week, 'end_time', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      <span className="text-xs text-[#667085] ml-2">
+                        {(() => {
+                          const start = parseInt(pattern.start_time.split(':')[0]) + parseInt(pattern.start_time.split(':')[1]) / 60;
+                          const end = parseInt(pattern.end_time.split(':')[0]) + parseInt(pattern.end_time.split(':')[1]) / 60;
+                          const hours = end - start;
+                          return hours > 0 ? `${hours}h` : '';
+                        })()}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => removePattern(pattern.day_of_week)}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))
+            ) : (
+              <div className="text-center py-8 text-[#667085]">
+                <p className="mb-2">No days configured yet</p>
+                <p className="text-sm">Click below to add availability for specific days</p>
+              </div>
+            )}
+
+            {/* Inactive days - collapsed by default */}
+            {(() => {
+              const activeDays = editPatterns.map(p => p.day_of_week);
+              const inactiveDays = [0, 1, 2, 3, 4, 5, 6].filter(d => !activeDays.includes(d));
+
+              if (inactiveDays.length === 0) return null;
 
               return (
-                <div
-                  key={day}
-                  className={`flex items-center gap-4 p-4 rounded-lg transition ${
-                    isActive ? 'bg-[#6F71EE]/5 border border-[#6F71EE]/20' : 'bg-[#F6F6F9]'
-                  }`}
-                >
-                  <div className="w-24">
-                    <span className={`font-medium ${isActive ? 'text-[#101E57]' : 'text-[#667085]'}`}>
-                      {day}
-                    </span>
-                  </div>
-
-                  {isActive ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="time"
-                          value={pattern.start_time}
-                          onChange={(e) => updatePattern(index, 'start_time', e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                        />
-                        <span className="text-[#667085]">to</span>
-                        <input
-                          type="time"
-                          value={pattern.end_time}
-                          onChange={(e) => updatePattern(index, 'end_time', e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                        />
-                      </div>
-                      <button
-                        onClick={() => removePattern(index)}
-                        className="ml-auto text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Remove
-                      </button>
-                    </>
-                  ) : (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  {!showInactiveDays ? (
                     <button
-                      onClick={() => addPattern(index)}
-                      className="text-[#6F71EE] hover:text-[#5a5cd0] text-sm font-medium"
+                      onClick={() => setShowInactiveDays(true)}
+                      className="flex items-center gap-2 text-[#6F71EE] hover:text-[#5a5cd0] text-sm font-medium"
                     >
-                      + Add availability
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add availability to {inactiveDays.length === 7 ? 'a day' : `${inactiveDays.length} more day${inactiveDays.length !== 1 ? 's' : ''}`}
+                      <span className="text-[#667085] font-normal">
+                        ({inactiveDays.map(d => DAY_SHORT[d]).join(', ')})
+                      </span>
                     </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-[#667085]">Add availability:</span>
+                        <button
+                          onClick={() => setShowInactiveDays(false)}
+                          className="text-xs text-[#667085] hover:text-[#101E57]"
+                        >
+                          Hide
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {inactiveDays.map((dayIndex) => (
+                          <button
+                            key={dayIndex}
+                            onClick={() => {
+                              addPattern(dayIndex);
+                              if (inactiveDays.length === 1) setShowInactiveDays(false);
+                            }}
+                            className="px-4 py-2 bg-[#F6F6F9] hover:bg-[#6F71EE]/10 rounded-lg text-sm text-[#667085] hover:text-[#6F71EE] transition"
+                          >
+                            + {DAY_NAMES[dayIndex]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               );
-            })}
+            })()}
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-100 flex gap-4">

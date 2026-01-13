@@ -151,42 +151,58 @@ export default function TeamPage() {
 
         {/* Add New Admin */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Add Team Member</h2>
-          <p className="text-sm text-[#667085] mb-4">
-            Team members can sign in with Google and will have full access to create events, manage bookings, and view analytics.
-          </p>
-          <form onSubmit={handleAddAdmin} className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="colleague@liveschoolinc.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                required
-              />
+          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Add Team Member</h2>
+          <form onSubmit={handleAddAdmin} className="space-y-4">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="colleague@liveschoolinc.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  required
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Name (optional)
+                </label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="First name"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                Name (optional)
-              </label>
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="First name"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-              />
+
+            {/* Access info - inline helper */}
+            <div className="bg-[#F6F6F9] rounded-lg p-3 flex items-start gap-3">
+              <svg className="w-5 h-5 text-[#6F71EE] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm text-[#667085]">
+                <p className="font-medium text-[#101E57] mb-1">What they&apos;ll be able to do:</p>
+                <ul className="space-y-0.5">
+                  <li>• Sign in with their Google account</li>
+                  <li>• Create and manage office hours events</li>
+                  <li>• View all bookings and analytics</li>
+                  <li>• Configure integrations</li>
+                </ul>
+              </div>
             </div>
+
             <button
               type="submit"
               disabled={adding || !newEmail.trim()}
-              className="bg-[#6F71EE] text-white px-6 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium whitespace-nowrap"
+              className="bg-[#6F71EE] text-white px-6 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
             >
-              {adding ? 'Adding...' : 'Add Member'}
+              {adding ? 'Adding...' : 'Add Team Member'}
             </button>
           </form>
         </div>
@@ -211,27 +227,39 @@ export default function TeamPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {admins.map((admin) => (
+              {admins.map((admin, index) => (
                 <div
                   key={admin.id}
                   className="px-6 py-4 flex items-center justify-between hover:bg-gray-50"
                 >
-                  <div>
-                    <p className="text-[#101E57] font-medium">
-                      {admin.name || admin.email.split('@')[0]}
-                    </p>
-                    <p className="text-sm text-[#667085]">{admin.email}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-medium">
+                      {(admin.name || admin.email)[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[#101E57] font-medium">
+                          {admin.name || admin.email.split('@')[0]}
+                        </p>
+                        <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] text-xs font-medium rounded-full">
+                          {index === 0 ? 'Owner' : 'Admin'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#667085]">{admin.email}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-[#667085]">
                       Added {new Date(admin.created_at).toLocaleDateString()}
                     </span>
-                    <button
-                      onClick={() => handleRemoveAdmin(admin.id, admin.email)}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
-                    >
-                      Remove
-                    </button>
+                    {index !== 0 && (
+                      <button
+                        onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -239,14 +267,17 @@ export default function TeamPage() {
           )}
         </div>
 
-        {/* Role Labels Info */}
-        {admins.length > 0 && (
-          <div className="mt-6 text-center">
-            <p className="text-xs text-[#667085]">
-              All team members have full admin access. Role-based permissions coming soon.
-            </p>
+        {/* Role explanation */}
+        <div className="mt-4 flex items-center justify-center gap-6 text-xs text-[#667085]">
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] font-medium rounded-full">Owner</span>
+            <span>Full access, cannot be removed</span>
           </div>
-        )}
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] font-medium rounded-full">Admin</span>
+            <span>Full access</span>
+          </div>
+        </div>
       </main>
     </div>
   );

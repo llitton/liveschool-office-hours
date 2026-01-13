@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { patterns } = body;
+  const { patterns, timezone: requestTimezone } = body;
 
   if (!Array.isArray(patterns)) {
     return NextResponse.json(
@@ -155,6 +155,9 @@ export async function PUT(request: NextRequest) {
     const normalizeTime = (time: string) =>
       time.length === 5 ? `${time}:00` : time;
 
+    // Use top-level timezone, fall back to pattern-level, then default
+    const effectiveTimezone = requestTimezone || 'America/New_York';
+
     const patternsToInsert = patterns.map((p: {
       day_of_week: number;
       start_time: string;
@@ -165,7 +168,7 @@ export async function PUT(request: NextRequest) {
       day_of_week: p.day_of_week,
       start_time: normalizeTime(p.start_time),
       end_time: normalizeTime(p.end_time),
-      timezone: p.timezone || 'America/New_York',
+      timezone: p.timezone || effectiveTimezone,
       is_active: true,
     }));
 

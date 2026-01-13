@@ -153,6 +153,40 @@ export async function addAttendeeToEvent(
   return response.data;
 }
 
+// Remove attendee from existing calendar event
+export async function removeAttendeeFromEvent(
+  accessToken: string,
+  refreshToken: string,
+  eventId: string,
+  attendeeEmail: string
+) {
+  const calendar = getCalendarClient(accessToken, refreshToken);
+
+  // First get the current event
+  const currentEvent = await calendar.events.get({
+    calendarId: 'primary',
+    eventId,
+  });
+
+  const existingAttendees = currentEvent.data.attendees || [];
+
+  // Remove the attendee
+  const updatedAttendees = existingAttendees.filter(
+    (attendee) => attendee.email?.toLowerCase() !== attendeeEmail.toLowerCase()
+  );
+
+  const response = await calendar.events.patch({
+    calendarId: 'primary',
+    eventId,
+    sendUpdates: 'all', // This will send cancellation notice to the removed attendee
+    requestBody: {
+      attendees: updatedAttendees,
+    },
+  });
+
+  return response.data;
+}
+
 // Get free/busy information from Google Calendar
 export async function getFreeBusy(
   accessToken: string,

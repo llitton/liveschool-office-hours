@@ -14,35 +14,41 @@ export interface EmailTemplateVariables {
 }
 
 export const defaultTemplates = {
-  confirmation_subject: "You're confirmed for {{event_name}}",
+  confirmation_subject: "You're all set for {{event_name}}!",
   confirmation_body: `Hi {{first_name}},
 
-You're confirmed for {{event_name}} on {{date}} at {{time}}.
+Great news - your spot is confirmed! I'm looking forward to connecting with you.
 
-Join via Google Meet: {{meet_link}}
+Session details:
+{{event_name}}
+{{date}} at {{time}}
 
-See you there!
-{{host_name}}`,
-
-  reminder_subject: 'Reminder: {{event_name}} is coming up!',
-  reminder_body: `Hi {{first_name}},
-
-This is a friendly reminder that {{event_name}} is {{reminder_timing}}.
-
-Date: {{date}}
-Time: {{time}}
-Join via Google Meet: {{meet_link}}
+Come prepared with any questions or topics you'd like to discuss. This time is dedicated to you, so don't hesitate to bring up whatever's on your mind.
 
 See you soon!
 {{host_name}}`,
 
-  cancellation_subject: '{{event_name}} has been cancelled',
+  reminder_subject: 'See you {{reminder_timing}} - {{event_name}}',
+  reminder_body: `Hi {{first_name}},
+
+Just a friendly reminder that we're meeting {{reminder_timing}}.
+
+{{event_name}}
+{{date}} at {{time}}
+
+If something came up and you need to reschedule, no worries - just use the link at the bottom of this email.
+
+Looking forward to our conversation!
+{{host_name}}`,
+
+  cancellation_subject: 'Your {{event_name}} session has been cancelled',
   cancellation_body: `Hi {{first_name}},
 
-Unfortunately, {{event_name}} scheduled for {{date}} at {{time}} has been cancelled.
+Your {{event_name}} session scheduled for {{date}} at {{time}} has been cancelled.
 
-We apologize for any inconvenience. Please check our booking page for other available times.
+If you'd like to book another time, I'd love to still connect with you. Just head back to the booking page to find a time that works.
 
+Best,
 {{host_name}}`,
 };
 

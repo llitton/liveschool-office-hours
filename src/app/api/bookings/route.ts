@@ -216,9 +216,19 @@ export async function POST(request: NextRequest) {
       const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${manage_token}`;
       const icalUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/manage/${manage_token}/ical`;
 
+      // Extract the user's question/topic if provided
+      const userTopic = question_responses?.question || question_responses?.response || question_responses?.topic || null;
+
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
           ${htmlifyEmailBody(bodyText)}
+
+          ${userTopic ? `
+            <div style="background: #EEF0FF; border-left: 4px solid #6F71EE; padding: 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #101E57; font-size: 14px; font-weight: 600;">What you want to discuss:</h3>
+              <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${userTopic}"</p>
+            </div>
+          ` : ''}
 
           ${slot.event.description ? `
             <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
@@ -253,9 +263,18 @@ export async function POST(request: NextRequest) {
             </p>
           </div>
 
-          <div style="border-top: 1px solid #E5E7EB; padding-top: 20px; margin-top: 20px;">
-            <p style="color: #667085; font-size: 14px;">
-              Need to reschedule or cancel? <a href="${manageUrl}" style="color: #6F71EE;">Manage your booking</a>
+          <div style="background: #F6F6F9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+            <p style="color: #667085; margin: 0 0 12px 0; font-size: 14px;">
+              Something come up? No problem.
+            </p>
+            <a href="${manageUrl}" style="display: inline-block; background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              Reschedule or Cancel
+            </a>
+          </div>
+
+          <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+            <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+              Sent from LiveSchool Office Hours
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { sendEmail } from '@/lib/google';
+import { sendEmail, removeAttendeeFromEvent } from '@/lib/google';
 import {
   processTemplate,
   createEmailVariables,
@@ -212,7 +212,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 });
   }
 
-  // Send cancellation confirmation to attendee
+  // Get admin for Google API access
   const { data: admin } = await supabase
     .from('oh_admins')
     .select('*')
@@ -220,12 +220,30 @@ export async function DELETE(
     .single();
 
   if (admin?.google_access_token && admin?.google_refresh_token) {
+    // Remove attendee from Google Calendar event
+    if (booking.slot.google_event_id) {
+      try {
+        await removeAttendeeFromEvent(
+          admin.google_access_token,
+          admin.google_refresh_token,
+          booking.slot.google_event_id,
+          booking.email
+        );
+        console.log(`Removed ${booking.email} from calendar event ${booking.slot.google_event_id}`);
+      } catch (err) {
+        console.error('Failed to remove attendee from calendar event:', err);
+        // Continue with cancellation even if calendar update fails
+      }
+    }
+
+    // Send cancellation confirmation email
     try {
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
           <h2>Booking Cancelled</h2>
           <p>Hi ${booking.first_name},</p>
           <p>Your booking for <strong>${booking.slot.event.name}</strong> has been cancelled as requested.</p>
+          <p>The calendar event has been removed from your calendar.</p>
           <p>If you'd like to book another time, please visit our booking page.</p>
           <p>Best,<br>${booking.slot.event.host_name}</p>
         </div>

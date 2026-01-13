@@ -187,14 +187,49 @@ export default function AnalyticsPage() {
 
             {/* Example Preview */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h4 className="text-sm font-medium text-[#667085] uppercase tracking-wide mb-4">Example: What you&apos;ll see</h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-medium text-[#667085] uppercase tracking-wide">Preview: What your analytics will look like</h4>
+                <span className="text-xs text-[#667085] bg-[#F6F6F9] px-2 py-1 rounded">Sample data</span>
+              </div>
+
+              {/* Visual Bar Chart Preview */}
+              <div className="mb-6 p-4 bg-[#F6F6F9] rounded-lg">
+                <p className="text-sm font-medium text-[#101E57] mb-4">Topic Frequency</p>
+                <div className="space-y-3">
+                  {[
+                    { topic: 'Student store setup', count: 12, percent: 100 },
+                    { topic: 'Points & rewards', count: 9, percent: 75 },
+                    { topic: 'Parent access', count: 6, percent: 50 },
+                    { topic: 'Reports & data', count: 4, percent: 33 },
+                    { topic: 'Behavior tracking', count: 3, percent: 25 },
+                  ].map((item) => (
+                    <div key={item.topic} className="flex items-center gap-3">
+                      <span className="w-32 text-sm text-[#667085] truncate">{item.topic}</span>
+                      <div className="flex-1 h-6 bg-white rounded overflow-hidden">
+                        <div
+                          className="h-full bg-[#6F71EE]/40 rounded"
+                          style={{ width: `${item.percent}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-[#667085] w-8 text-right">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-[#F6F6F9] rounded-lg p-4">
-                  <p className="text-sm font-medium text-[#101E57] mb-3">Common Topics</p>
+                  <p className="text-sm font-medium text-[#101E57] mb-3">Topic Tags</p>
                   <div className="flex flex-wrap gap-2">
-                    {['rewards setup', 'student store', 'points system', 'reports', 'parent access'].map((topic) => (
-                      <span key={topic} className="px-3 py-1 bg-[#6F71EE]/10 text-[#6F71EE] rounded-full text-sm opacity-60">
-                        {topic}
+                    {[
+                      { topic: 'rewards setup', size: 'text-base' },
+                      { topic: 'student store', size: 'text-lg font-medium' },
+                      { topic: 'points system', size: 'text-sm' },
+                      { topic: 'reports', size: 'text-sm' },
+                      { topic: 'parent access', size: 'text-base' },
+                    ].map((item) => (
+                      <span key={item.topic} className={`px-3 py-1 bg-[#6F71EE]/10 text-[#6F71EE] rounded-full ${item.size} opacity-60`}>
+                        {item.topic}
                       </span>
                     ))}
                   </div>
@@ -204,6 +239,7 @@ export default function AnalyticsPage() {
                   <ul className="space-y-2 text-sm text-[#667085] opacity-60">
                     <li className="bg-white p-2 rounded">&quot;Help setting up our student store&quot;</li>
                     <li className="bg-white p-2 rounded">&quot;Questions about the points system&quot;</li>
+                    <li className="bg-white p-2 rounded">&quot;How to generate monthly reports&quot;</li>
                   </ul>
                 </div>
               </div>

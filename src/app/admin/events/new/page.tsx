@@ -126,9 +126,17 @@ export default function NewEventPage() {
                   setFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
                 rows={4}
-                placeholder="Describe what this office hours session will cover..."
+                placeholder="Get hands-on help setting up your student store, from choosing rewards to managing inventory. Perfect for schools just getting started or looking to optimize their current setup."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
               />
+              <div className="mt-2 p-3 bg-[#F6F6F9] rounded-lg">
+                <p className="text-xs font-medium text-[#101E57] mb-1">Tips for a great description:</p>
+                <ul className="text-xs text-[#667085] space-y-0.5">
+                  <li>• <strong>Lead with the outcome:</strong> &quot;Get help with X&quot; or &quot;Learn how to Y&quot;</li>
+                  <li>• <strong>Be specific:</strong> What problems will this solve?</li>
+                  <li>• <strong>Say who it&apos;s for:</strong> &quot;Perfect for new users&quot; or &quot;Ideal if you&apos;re struggling with...&quot;</li>
+                </ul>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

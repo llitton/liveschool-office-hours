@@ -14,6 +14,59 @@ interface GroupedSlots {
   [date: string]: SlotWithCount[];
 }
 
+// Common timezones grouped by region for the dropdown
+const TIMEZONE_OPTIONS = [
+  { group: 'North America', zones: [
+    { value: 'America/New_York', label: 'Eastern Time (ET)' },
+    { value: 'America/Chicago', label: 'Central Time (CT)' },
+    { value: 'America/Denver', label: 'Mountain Time (MT)' },
+    { value: 'America/Phoenix', label: 'Arizona (MST)' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+    { value: 'America/Anchorage', label: 'Alaska (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii (HST)' },
+    { value: 'America/Toronto', label: 'Toronto (ET)' },
+    { value: 'America/Vancouver', label: 'Vancouver (PT)' },
+    { value: 'America/Mexico_City', label: 'Mexico City (CST)' },
+  ]},
+  { group: 'Europe', zones: [
+    { value: 'Europe/London', label: 'London (GMT/BST)' },
+    { value: 'Europe/Paris', label: 'Paris (CET)' },
+    { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+    { value: 'Europe/Amsterdam', label: 'Amsterdam (CET)' },
+    { value: 'Europe/Madrid', label: 'Madrid (CET)' },
+    { value: 'Europe/Rome', label: 'Rome (CET)' },
+    { value: 'Europe/Zurich', label: 'Zurich (CET)' },
+    { value: 'Europe/Stockholm', label: 'Stockholm (CET)' },
+    { value: 'Europe/Dublin', label: 'Dublin (GMT/IST)' },
+  ]},
+  { group: 'Asia & Pacific', zones: [
+    { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+    { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
+    { value: 'Asia/Hong_Kong', label: 'Hong Kong (HKT)' },
+    { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+    { value: 'Asia/Seoul', label: 'Seoul (KST)' },
+    { value: 'Asia/Mumbai', label: 'Mumbai (IST)' },
+    { value: 'Asia/Dubai', label: 'Dubai (GST)' },
+    { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+    { value: 'Australia/Melbourne', label: 'Melbourne (AEST)' },
+    { value: 'Pacific/Auckland', label: 'Auckland (NZST)' },
+  ]},
+  { group: 'South America', zones: [
+    { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
+    { value: 'America/Buenos_Aires', label: 'Buenos Aires (ART)' },
+    { value: 'America/Bogota', label: 'Bogotá (COT)' },
+    { value: 'America/Lima', label: 'Lima (PET)' },
+    { value: 'America/Santiago', label: 'Santiago (CLT)' },
+  ]},
+  { group: 'Africa & Middle East', zones: [
+    { value: 'Africa/Cairo', label: 'Cairo (EET)' },
+    { value: 'Africa/Johannesburg', label: 'Johannesburg (SAST)' },
+    { value: 'Africa/Lagos', label: 'Lagos (WAT)' },
+    { value: 'Asia/Jerusalem', label: 'Jerusalem (IST)' },
+    { value: 'Asia/Riyadh', label: 'Riyadh (AST)' },
+  ]},
+];
+
 export default function BookingPage({
   params,
 }: {
@@ -43,12 +96,19 @@ export default function BookingPage({
 
   // Timezone
   const [timezone, setTimezone] = useState('America/New_York');
+  const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
 
   useEffect(() => {
     // Detect user's timezone
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimezone(userTimezone);
+    setDetectedTimezone(userTimezone);
   }, []);
+
+  // Check if detected timezone is in our predefined list
+  const isDetectedInList = TIMEZONE_OPTIONS.some(group =>
+    group.zones.some(tz => tz.value === detectedTimezone)
+  );
 
   useEffect(() => {
     fetchEventAndSlots();
@@ -169,93 +229,147 @@ export default function BookingPage({
     return (
       <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
         <div className="max-w-lg mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-[#417762]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-[#417762]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-
-            <h1 className="text-2xl font-semibold text-[#101E57] mb-2">
-              You&apos;re booked!
-            </h1>
-
-            <p className="text-[#667085] mb-6">
-              A confirmation email and calendar invitation have been sent to{' '}
-              <strong className="text-[#101E57]">{formData.email}</strong>
-            </p>
-
-            <div className="bg-[#F6F6F9] rounded-lg p-4 text-left mb-6">
-              <h2 className="font-semibold text-[#101E57] mb-2">
-                {bookingResult.event.name}
-              </h2>
-              <p className="text-[#667085]">
-                {formatInTimeZone(
-                  parseISO(bookingResult.slot.start_time),
-                  timezone,
-                  'EEEE, MMMM d, yyyy'
-                )}
-              </p>
-              <p className="text-[#667085]">
-                {formatInTimeZone(
-                  parseISO(bookingResult.slot.start_time),
-                  timezone,
-                  'h:mm a'
-                )}{' '}
-                -{' '}
-                {formatInTimeZone(
-                  parseISO(bookingResult.slot.end_time),
-                  timezone,
-                  'h:mm a'
-                )}
-              </p>
-              <p className="text-[#667085] text-sm mt-1">{timezone}</p>
-
-              {bookingResult.slot.google_meet_link && (
-                <a
-                  href={bookingResult.slot.google_meet_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block mt-4 text-[#6F71EE] hover:text-[#5a5cd0] font-medium"
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            {/* Success header */}
+            <div className="bg-[#417762] text-white p-6 text-center">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  Join Google Meet →
-                </a>
-              )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-semibold mb-1">
+                You&apos;re all set, {formData.first_name}!
+              </h1>
+              <p className="text-white/80">
+                We&apos;re looking forward to meeting with you
+              </p>
             </div>
 
-            {/* Prep Materials */}
-            {event?.prep_materials && (
-              <div className="bg-[#F6F6F9] rounded-lg p-4 text-left mb-6">
-                <h3 className="font-semibold text-[#101E57] mb-2">Preparation Materials</h3>
-                <div className="text-[#667085] text-sm whitespace-pre-wrap">
-                  {event.prep_materials}
+            <div className="p-6">
+              {/* Session details card */}
+              <div className="bg-[#F6F6F9] rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="font-semibold text-[#101E57]">
+                      {bookingResult.event.name}
+                    </h2>
+                    <p className="text-[#667085]">
+                      {formatInTimeZone(
+                        parseISO(bookingResult.slot.start_time),
+                        timezone,
+                        'EEEE, MMMM d, yyyy'
+                      )}
+                    </p>
+                    <p className="text-[#101E57] font-medium">
+                      {formatInTimeZone(
+                        parseISO(bookingResult.slot.start_time),
+                        timezone,
+                        'h:mm a'
+                      )}{' '}
+                      -{' '}
+                      {formatInTimeZone(
+                        parseISO(bookingResult.slot.end_time),
+                        timezone,
+                        'h:mm a'
+                      )}
+                    </p>
+                    <p className="text-[#667085] text-sm">{timezone}</p>
+                  </div>
+                </div>
+
+                {bookingResult.slot.google_meet_link && (
+                  <a
+                    href={bookingResult.slot.google_meet_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 w-full bg-[#6F71EE] text-white py-2.5 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Join Google Meet
+                  </a>
+                )}
+              </div>
+
+              {/* What happens next */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-[#101E57] mb-3">Here&apos;s what happens next:</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</div>
+                    <div>
+                      <p className="text-sm text-[#101E57] font-medium">Check your inbox</p>
+                      <p className="text-sm text-[#667085]">Calendar invite sent to <strong>{formData.email}</strong></p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</div>
+                    <div>
+                      <p className="text-sm text-[#101E57] font-medium">Add to your calendar</p>
+                      <p className="text-sm text-[#667085]">Accept the invite to block the time</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</div>
+                    <div>
+                      <p className="text-sm text-[#101E57] font-medium">Join on time</p>
+                      <p className="text-sm text-[#667085]">Click the Google Meet link when it&apos;s time</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            <p className="text-sm text-[#667085]">
-              Need to reschedule or cancel?{' '}
-              {bookingResult.manage_token ? (
-                <a
-                  href={`/manage/${bookingResult.manage_token}`}
-                  className="text-[#6F71EE] hover:underline"
-                >
-                  Manage your booking
-                </a>
-              ) : (
-                'Check your confirmation email.'
+              {/* Prep Materials */}
+              {event?.prep_materials && (
+                <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mb-6">
+                  <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Before your session
+                  </h3>
+                  <div className="text-[#667085] text-sm whitespace-pre-wrap">
+                    {event.prep_materials}
+                  </div>
+                </div>
               )}
-            </p>
+
+              {/* Manage booking link */}
+              <div className="text-center pt-4 border-t border-gray-100">
+                <p className="text-sm text-[#667085] mb-2">
+                  Plans change? No problem.
+                </p>
+                {bookingResult.manage_token ? (
+                  <a
+                    href={`/manage/${bookingResult.manage_token}`}
+                    className="inline-flex items-center gap-2 text-[#6F71EE] hover:text-[#5a5cd0] font-medium text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Reschedule or cancel your booking
+                  </a>
+                ) : (
+                  <p className="text-sm text-[#667085]">Check your email for reschedule options</p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="text-center mt-6">
@@ -448,16 +562,44 @@ export default function BookingPage({
                 )}
               </div>
 
+              {/* Reassurance microcopy */}
+              <div className="mt-6 mb-4 p-4 bg-[#F6F6F9] rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-[#417762]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div className="text-sm">
+                    <p className="text-[#101E57] font-medium mb-1">What happens next:</p>
+                    <ul className="text-[#667085] space-y-1">
+                      <li className="flex items-center gap-2">
+                        <span className="w-1 h-1 bg-[#667085] rounded-full" />
+                        Calendar invite sent instantly to your email
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1 h-1 bg-[#667085] rounded-full" />
+                        Google Meet link included in the invite
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1 h-1 bg-[#667085] rounded-full" />
+                        You can reschedule or cancel anytime
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={booking}
-                className="w-full mt-6 bg-[#6F71EE] text-white py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                className="w-full bg-[#6F71EE] text-white py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
               >
                 {booking ? 'Booking...' : 'Confirm Booking'}
               </button>
 
-              <p className="text-xs text-[#667085] mt-4 text-center">
-                You&apos;ll receive a confirmation email and calendar invitation.
+              <p className="text-xs text-[#667085] mt-3 text-center">
+                No commitment required. Free to reschedule if something comes up.
               </p>
             </form>
           </div>
@@ -527,9 +669,36 @@ export default function BookingPage({
 
           {/* Time slots */}
           <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
               <h2 className="font-semibold text-[#101E57]">Select a date and time</h2>
-              <span className="text-sm text-[#667085]">{timezone}</span>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 text-[#101E57] focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] bg-white"
+                >
+                  {/* Show detected timezone at top if not in predefined list */}
+                  {detectedTimezone && !isDetectedInList && (
+                    <optgroup label="Your Timezone">
+                      <option value={detectedTimezone}>
+                        {detectedTimezone.replace(/_/g, ' ')}
+                      </option>
+                    </optgroup>
+                  )}
+                  {TIMEZONE_OPTIONS.map((group) => (
+                    <optgroup key={group.group} label={group.group}>
+                      {group.zones.map((tz) => (
+                        <option key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {Object.keys(groupedSlots).length === 0 ? (
