@@ -4,10 +4,19 @@ import { requireAuth } from '@/lib/auth';
 import { startOfMonth, endOfMonth, format, addHours } from 'date-fns';
 
 interface ActionItem {
-  type: 'no_slots' | 'low_bookings' | 'missing_template' | 'upcoming_soon';
-  message: string;
+  type: 'no_slots' | 'low_bookings' | 'missing_template' | 'upcoming_soon' | 'no_availability' | 'no_calendar';
+  title: string;
+  impact: string;
+  cta: string;
   link: string;
   priority: 'high' | 'medium' | 'low';
+}
+
+interface SetupItem {
+  id: string;
+  label: string;
+  completed: boolean;
+  link: string;
 }
 
 export async function GET() {
@@ -62,7 +71,9 @@ export async function GET() {
     if (new Date(slot.start_time) < in24Hours && booked < 3) {
       actionItems.push({
         type: 'low_bookings',
-        message: `Session tomorrow has only ${booked} booking${booked !== 1 ? 's' : ''}`,
+        title: `Session tomorrow has only ${booked} booking${booked !== 1 ? 's' : ''}`,
+        impact: 'Consider promoting this session or reaching out to potential attendees.',
+        cta: 'View session',
         link: `/admin/events/${eventData?.id || slot.event_id}`,
         priority: 'medium',
       });
@@ -87,7 +98,9 @@ export async function GET() {
     if (!hasUpcomingSlots) {
       actionItems.push({
         type: 'no_slots',
-        message: `"${event.name}" has no upcoming time slots`,
+        title: `"${event.name}" has no upcoming time slots`,
+        impact: 'Attendees cannot book this event until you add available times.',
+        cta: 'Add time slots',
         link: `/admin/events/${event.id}`,
         priority: 'high',
       });
@@ -97,7 +110,9 @@ export async function GET() {
     if (!event.confirmation_subject) {
       actionItems.push({
         type: 'missing_template',
-        message: `"${event.name}" is using default email templates`,
+        title: `"${event.name}" is using default email templates`,
+        impact: 'Personalized emails improve attendance rates and reduce no-shows.',
+        cta: 'Customize emails',
         link: `/admin/events/${event.id}/emails`,
         priority: 'low',
       });
@@ -190,6 +205,90 @@ export async function GET() {
     .order('created_at', { ascending: false })
     .limit(5);
 
+  // Get admin info for setup checklist
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('google_access_token, google_refresh_token')
+    .eq('email', session.email)
+    .single();
+
+  // Check for availability patterns
+  const { data: patterns } = await supabase
+    .from('oh_availability_patterns')
+    .select('id')
+    .limit(1);
+
+  // Check for custom questions on any event
+  const { data: eventsWithQuestions } = await supabase
+    .from('oh_events')
+    .select('custom_questions')
+    .not('custom_questions', 'is', null);
+
+  const hasCustomQuestions = eventsWithQuestions?.some(
+    e => e.custom_questions && Array.isArray(e.custom_questions) && e.custom_questions.length > 0
+  );
+
+  // Build setup checklist
+  const setupItems: SetupItem[] = [
+    {
+      id: 'event',
+      label: 'Create your first event',
+      completed: (events?.length || 0) > 0,
+      link: '/admin/events/new',
+    },
+    {
+      id: 'calendar',
+      label: 'Connect Google Calendar',
+      completed: !!(admin?.google_access_token && admin?.google_refresh_token),
+      link: '/api/auth/login',
+    },
+    {
+      id: 'availability',
+      label: 'Set availability patterns',
+      completed: (patterns?.length || 0) > 0,
+      link: '/admin/availability',
+    },
+    {
+      id: 'slots',
+      label: 'Add time slots to an event',
+      completed: (upcomingSlots?.length || 0) > 0,
+      link: events?.[0] ? `/admin/events/${events[0].id}` : '/admin/events/new',
+    },
+    {
+      id: 'questions',
+      label: 'Add booking questions',
+      completed: hasCustomQuestions || false,
+      link: events?.[0] ? `/admin/events/${events[0].id}/settings` : '/admin/events/new',
+    },
+  ];
+
+  // Add action items for setup if incomplete
+  if (!admin?.google_access_token) {
+    actionItems.push({
+      type: 'no_calendar',
+      title: 'Google Calendar not connected',
+      impact: 'Sessions won\'t sync to your calendar and attendees won\'t get Google Meet links.',
+      cta: 'Connect calendar',
+      link: '/api/auth/login',
+      priority: 'high',
+    });
+  }
+
+  if ((patterns?.length || 0) === 0 && (events?.length || 0) > 0) {
+    actionItems.push({
+      type: 'no_availability',
+      title: 'No availability patterns set',
+      impact: 'Setting your preferred hours helps you quickly create slots that work for you.',
+      cta: 'Set availability',
+      link: '/admin/availability',
+      priority: 'low',
+    });
+  }
+
+  // Sort action items by priority
+  const priorityOrder = { high: 0, medium: 1, low: 2 };
+  actionItems.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
   return NextResponse.json({
     nextSession,
     openCapacity,
@@ -197,6 +296,9 @@ export async function GET() {
     attendanceRate,
     attendanceContext,
     actionItems: actionItems.slice(0, 3), // Limit to 3 action items
+    setupItems,
+    setupComplete: setupItems.filter(s => s.completed).length,
+    setupTotal: setupItems.length,
     popularTimeSlots,
     recentBookings: recentBookings || [],
   });

@@ -63,36 +63,92 @@ export default function EventActions({ eventId, eventSlug, eventName }: EventAct
     }
   };
 
+  const [showMenu, setShowMenu] = useState(false);
+
   return (
     <>
-      <div className="flex gap-4">
+      <div className="flex items-center gap-2">
+        {/* Primary Action */}
         <Link
           href={`/admin/events/${eventId}`}
-          className="text-[#6F71EE] hover:text-[#5a5cd0] text-sm font-medium"
+          className="bg-[#6F71EE] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#5a5cd0] transition"
+          onClick={(e) => e.stopPropagation()}
         >
           Manage
         </Link>
-        <button
-          onClick={handleDuplicate}
-          disabled={duplicating}
-          className="text-[#F4B03D] hover:text-[#d99a2f] text-sm font-medium disabled:opacity-50"
-        >
-          {duplicating ? 'Duplicating...' : 'Duplicate'}
-        </button>
-        <a
-          href={`/book/${eventSlug}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#417762] hover:text-[#355f4f] text-sm font-medium"
-        >
-          View Public Page
-        </a>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="text-red-600 hover:text-red-700 text-sm font-medium"
-        >
-          Delete
-        </button>
+
+        {/* Secondary Actions Menu */}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition text-[#667085]"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+
+          {showMenu && (
+            <>
+              {/* Backdrop to close menu */}
+              <div
+                className="fixed inset-0 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowMenu(false);
+                }}
+              />
+
+              {/* Dropdown Menu */}
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <a
+                  href={`/book/${eventSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-[#101E57] hover:bg-[#F6F6F9] transition"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <svg className="w-4 h-4 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  View public page
+                </a>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(false);
+                    handleDuplicate();
+                  }}
+                  disabled={duplicating}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-[#101E57] hover:bg-[#F6F6F9] transition disabled:opacity-50 text-left"
+                >
+                  <svg className="w-4 h-4 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  {duplicating ? 'Duplicating...' : 'Duplicate event'}
+                </button>
+                <div className="border-t border-gray-100 my-1" />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(false);
+                    setShowDeleteConfirm(true);
+                  }}
+                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition text-left"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete event
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
