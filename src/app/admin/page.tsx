@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth';
 import { getServiceSupabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
 import EventActions from './EventActions';
 import DashboardStats from './DashboardStats';
 import AdminHeader from '@/components/AdminHeader';
