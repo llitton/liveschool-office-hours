@@ -1,0 +1,424 @@
+import { getServiceSupabase } from './supabase';
+
+const HUBSPOT_API_BASE = 'https://api.hubapi.com';
+
+interface HubSpotTokens {
+  access_token: string;
+  refresh_token: string;
+  portal_id: string;
+}
+
+interface ContactProperties {
+  email: string;
+  firstname?: string;
+  lastname?: string;
+  [key: string]: string | undefined;
+}
+
+interface HubSpotContact {
+  id: string;
+  properties: ContactProperties;
+}
+
+interface HubSpotTask {
+  subject: string;
+  body?: string;
+  dueDate?: Date;
+  priority?: 'HIGH' | 'MEDIUM' | 'LOW';
+  contactId: string;
+}
+
+/**
+ * Get HubSpot configuration from database
+ */
+export async function getHubSpotConfig(): Promise<HubSpotTokens | null> {
+  const supabase = getServiceSupabase();
+
+  const { data, error } = await supabase
+    .from('oh_hubspot_config')
+    .select('access_token, refresh_token, portal_id')
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token || '',
+    portal_id: data.portal_id || '',
+  };
+}
+
+/**
+ * Refresh HubSpot access token
+ */
+export async function refreshHubSpotToken(refreshToken: string): Promise<HubSpotTokens | null> {
+  const clientId = process.env.HUBSPOT_CLIENT_ID;
+  const clientSecret = process.env.HUBSPOT_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    console.error('HubSpot client credentials not configured');
+    return null;
+  }
+
+  try {
+    const response = await fetch('https://api.hubapi.com/oauth/v1/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to refresh HubSpot token');
+    }
+
+    const data = await response.json();
+
+    // Update tokens in database
+    const supabase = getServiceSupabase();
+    await supabase
+      .from('oh_hubspot_config')
+      .update({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      })
+      .eq('is_active', true);
+
+    return {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      portal_id: '',
+    };
+  } catch (error) {
+    console.error('Failed to refresh HubSpot token:', error);
+    return null;
+  }
+}
+
+/**
+ * Make authenticated HubSpot API request
+ */
+async function hubspotFetch(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const config = await getHubSpotConfig();
+  if (!config) {
+    throw new Error('HubSpot not configured');
+  }
+
+  const response = await fetch(`${HUBSPOT_API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.access_token}`,
+      ...options.headers,
+    },
+  });
+
+  // If unauthorized, try refreshing token
+  if (response.status === 401 && config.refresh_token) {
+    const newTokens = await refreshHubSpotToken(config.refresh_token);
+    if (newTokens) {
+      return fetch(`${HUBSPOT_API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${newTokens.access_token}`,
+          ...options.headers,
+        },
+      });
+    }
+  }
+
+  return response;
+}
+
+/**
+ * Search for a contact by email
+ */
+export async function findContactByEmail(email: string): Promise<HubSpotContact | null> {
+  try {
+    const response = await hubspotFetch('/crm/v3/objects/contacts/search', {
+      method: 'POST',
+      body: JSON.stringify({
+        filterGroups: [
+          {
+            filters: [
+              {
+                propertyName: 'email',
+                operator: 'EQ',
+                value: email,
+              },
+            ],
+          },
+        ],
+        properties: ['email', 'firstname', 'lastname', 'hs_object_id'],
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      return data.results[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to search HubSpot contact:', error);
+    return null;
+  }
+}
+
+/**
+ * Create a new contact in HubSpot
+ */
+export async function createContact(
+  email: string,
+  firstName?: string,
+  lastName?: string
+): Promise<HubSpotContact | null> {
+  try {
+    const properties: ContactProperties = { email };
+    if (firstName) properties.firstname = firstName;
+    if (lastName) properties.lastname = lastName;
+
+    const response = await hubspotFetch('/crm/v3/objects/contacts', {
+      method: 'POST',
+      body: JSON.stringify({ properties }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Failed to create HubSpot contact:', error);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to create HubSpot contact:', error);
+    return null;
+  }
+}
+
+/**
+ * Find or create a contact by email
+ */
+export async function findOrCreateContact(
+  email: string,
+  firstName?: string,
+  lastName?: string
+): Promise<HubSpotContact | null> {
+  // First, try to find existing contact
+  const existing = await findContactByEmail(email);
+  if (existing) {
+    return existing;
+  }
+
+  // Create new contact
+  return createContact(email, firstName, lastName);
+}
+
+/**
+ * Update contact properties
+ */
+export async function updateContactProperties(
+  contactId: string,
+  properties: Record<string, string>
+): Promise<boolean> {
+  try {
+    const response = await hubspotFetch(`/crm/v3/objects/contacts/${contactId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ properties }),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to update HubSpot contact:', error);
+    return false;
+  }
+}
+
+/**
+ * Log a meeting/engagement on a contact
+ */
+export async function logMeetingActivity(
+  contactId: string,
+  booking: {
+    id: string;
+    attendee_email: string;
+    attendee_name: string;
+    response_text?: string;
+    status: string;
+  },
+  event: {
+    name: string;
+    description?: string;
+  },
+  slot: {
+    start_time: string;
+    end_time: string;
+    google_meet_link?: string;
+  }
+): Promise<string | null> {
+  try {
+    const startTime = new Date(slot.start_time);
+    const endTime = new Date(slot.end_time);
+    const durationMs = endTime.getTime() - startTime.getTime();
+
+    const body = `
+Office Hours Session: ${event.name}
+
+Attendee: ${booking.attendee_name} (${booking.attendee_email})
+Status: ${booking.status}
+${booking.response_text ? `\nQuestion/Topic:\n${booking.response_text}` : ''}
+${slot.google_meet_link ? `\nMeet Link: ${slot.google_meet_link}` : ''}
+    `.trim();
+
+    const response = await hubspotFetch('/crm/v3/objects/meetings', {
+      method: 'POST',
+      body: JSON.stringify({
+        properties: {
+          hs_meeting_title: `Office Hours: ${event.name}`,
+          hs_meeting_body: body,
+          hs_meeting_start_time: startTime.toISOString(),
+          hs_meeting_end_time: endTime.toISOString(),
+          hs_meeting_outcome: booking.status === 'attended' ? 'COMPLETED' : 'SCHEDULED',
+          hs_internal_meeting_notes: booking.response_text || '',
+        },
+        associations: [
+          {
+            to: { id: contactId },
+            types: [
+              {
+                associationCategory: 'HUBSPOT_DEFINED',
+                associationTypeId: 200, // Meeting to Contact
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Failed to log HubSpot meeting:', error);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.id;
+  } catch (error) {
+    console.error('Failed to log HubSpot meeting:', error);
+    return null;
+  }
+}
+
+/**
+ * Create a task in HubSpot
+ */
+export async function createTask(task: HubSpotTask): Promise<string | null> {
+  try {
+    const response = await hubspotFetch('/crm/v3/objects/tasks', {
+      method: 'POST',
+      body: JSON.stringify({
+        properties: {
+          hs_task_subject: task.subject,
+          hs_task_body: task.body || '',
+          hs_task_status: 'NOT_STARTED',
+          hs_task_priority: task.priority || 'MEDIUM',
+          hs_timestamp: task.dueDate
+            ? task.dueDate.getTime()
+            : Date.now() + 7 * 24 * 60 * 60 * 1000, // Default: 1 week from now
+        },
+        associations: [
+          {
+            to: { id: task.contactId },
+            types: [
+              {
+                associationCategory: 'HUBSPOT_DEFINED',
+                associationTypeId: 204, // Task to Contact
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Failed to create HubSpot task:', error);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.id;
+  } catch (error) {
+    console.error('Failed to create HubSpot task:', error);
+    return null;
+  }
+}
+
+/**
+ * Get HubSpot contact details with recent activities
+ */
+export async function getContactDetails(contactId: string): Promise<{
+  contact: HubSpotContact;
+  recentMeetings: number;
+} | null> {
+  try {
+    const response = await hubspotFetch(
+      `/crm/v3/objects/contacts/${contactId}?properties=email,firstname,lastname,hs_object_id,notes_last_updated,num_associated_deals`
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const contact = await response.json();
+
+    // Get associated meetings count
+    const meetingsResponse = await hubspotFetch(
+      `/crm/v4/objects/contacts/${contactId}/associations/meetings`
+    );
+
+    let recentMeetings = 0;
+    if (meetingsResponse.ok) {
+      const meetingsData = await meetingsResponse.json();
+      recentMeetings = meetingsData.results?.length || 0;
+    }
+
+    return { contact, recentMeetings };
+  } catch (error) {
+    console.error('Failed to get HubSpot contact details:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if HubSpot is configured and connected
+ */
+export async function isHubSpotConnected(): Promise<boolean> {
+  const config = await getHubSpotConfig();
+  if (!config) return false;
+
+  try {
+    // Test the connection with a simple API call
+    const response = await hubspotFetch('/crm/v3/objects/contacts?limit=1');
+    return response.ok;
+  } catch {
+    return false;
+  }
+}

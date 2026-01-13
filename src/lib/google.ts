@@ -153,6 +153,32 @@ export async function addAttendeeToEvent(
   return response.data;
 }
 
+// Get free/busy information from Google Calendar
+export async function getFreeBusy(
+  accessToken: string,
+  refreshToken: string,
+  timeMin: string,
+  timeMax: string,
+  calendarId: string = 'primary'
+): Promise<Array<{ start: string; end: string }>> {
+  const calendar = getCalendarClient(accessToken, refreshToken);
+
+  const response = await calendar.freebusy.query({
+    requestBody: {
+      timeMin,
+      timeMax,
+      timeZone: 'America/New_York',
+      items: [{ id: calendarId }],
+    },
+  });
+
+  const busyTimes = response.data.calendars?.[calendarId]?.busy || [];
+  return busyTimes.map((block) => ({
+    start: block.start || '',
+    end: block.end || '',
+  }));
+}
+
 // Send email via Gmail API
 export async function sendEmail(
   accessToken: string,

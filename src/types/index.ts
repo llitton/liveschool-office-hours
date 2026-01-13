@@ -1,3 +1,11 @@
+export interface CustomQuestion {
+  id: string;
+  question: string;
+  type: 'text' | 'textarea' | 'select';
+  required: boolean;
+  options?: string[]; // For select type
+}
+
 export interface OHEvent {
   id: string;
   slug: string;
@@ -11,6 +19,16 @@ export interface OHEvent {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Email templates
+  confirmation_subject: string | null;
+  confirmation_body: string | null;
+  reminder_subject: string | null;
+  reminder_body: string | null;
+  cancellation_subject: string | null;
+  cancellation_body: string | null;
+  // Custom questions and prep materials
+  custom_questions: CustomQuestion[] | null;
+  prep_materials: string | null;
 }
 
 export interface OHSlot {
@@ -22,6 +40,8 @@ export interface OHSlot {
   google_meet_link: string | null;
   is_cancelled: boolean;
   created_at: string;
+  // Recording link for post-session
+  recording_link: string | null;
 }
 
 export interface OHBooking {
@@ -34,6 +54,30 @@ export interface OHBooking {
   calendar_invite_sent_at: string | null;
   cancelled_at: string | null;
   created_at: string;
+  reminder_24h_sent_at: string | null;
+  reminder_1h_sent_at: string | null;
+  manage_token: string | null;
+  question_responses: Record<string, string> | null;
+  // No-show tracking
+  attended_at: string | null;
+  no_show_at: string | null;
+  no_show_email_sent_at: string | null;
+  // Feedback
+  feedback_sent_at: string | null;
+  feedback_rating: number | null;
+  feedback_comment: string | null;
+  feedback_submitted_at: string | null;
+  // Recording
+  recording_sent_at: string | null;
+}
+
+export interface OHAttendeeNote {
+  id: string;
+  attendee_email: string;
+  admin_email: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OHAdmin {
@@ -54,4 +98,173 @@ export interface SlotWithBookings extends OHSlot {
 
 export interface EventWithSlots extends OHEvent {
   slots: SlotWithBookings[];
+}
+
+// ============================================
+// AVAILABILITY MANAGEMENT
+// ============================================
+
+export interface OHAvailabilityPattern {
+  id: string;
+  admin_id: string;
+  day_of_week: number; // 0=Sunday, 6=Saturday
+  start_time: string; // TIME format HH:mm:ss
+  end_time: string;
+  timezone: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface OHBusyBlock {
+  id: string;
+  admin_id: string;
+  start_time: string;
+  end_time: string;
+  source: 'google_calendar' | 'manual';
+  external_event_id: string | null;
+  synced_at: string;
+}
+
+// ============================================
+// MULTI-HOST SUPPORT
+// ============================================
+
+export interface OHEventHost {
+  id: string;
+  event_id: string;
+  admin_id: string;
+  role: 'owner' | 'host' | 'backup';
+  can_manage_slots: boolean;
+  can_view_bookings: boolean;
+  created_at: string;
+  // Joined data
+  admin?: OHAdmin;
+}
+
+// Extended slot with assigned host
+export interface OHSlotWithHost extends OHSlot {
+  assigned_host_id: string | null;
+  assigned_host?: OHAdmin;
+}
+
+// ============================================
+// SESSION TAGS & QUICK ACTIONS
+// ============================================
+
+export interface OHSessionTag {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface OHBookingTag {
+  booking_id: string;
+  tag_id: string;
+  applied_at: string;
+  applied_by: string | null;
+  // Joined data
+  tag?: OHSessionTag;
+}
+
+export interface OHQuickTask {
+  id: string;
+  booking_id: string;
+  title: string;
+  notes: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  hubspot_task_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+// Extended booking with tags and tasks
+export interface OHBookingWithExtras extends OHBooking {
+  tags?: OHSessionTag[];
+  tasks?: OHQuickTask[];
+  hubspot_contact_id?: string | null;
+  series_id?: string | null;
+  series_sequence?: number | null;
+  prep_resources_sent?: string[];
+}
+
+// ============================================
+// SERIES BOOKINGS
+// ============================================
+
+export interface OHBookingSeries {
+  id: string;
+  attendee_email: string;
+  event_id: string;
+  recurrence_pattern: 'weekly' | 'biweekly' | 'monthly';
+  total_sessions: number;
+  preferred_day: number | null;
+  preferred_time: string | null;
+  created_at: string;
+  // Joined data
+  bookings?: OHBooking[];
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+export interface OHHubSpotConfig {
+  id: string;
+  access_token: string;
+  refresh_token: string | null;
+  portal_id: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OHSlackConfig {
+  id: string;
+  webhook_url: string;
+  default_channel: string | null;
+  notify_on_booking: boolean;
+  daily_digest: boolean;
+  daily_digest_time: string;
+  post_session_summary: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// PREP RESOURCES
+// ============================================
+
+export interface OHPrepResource {
+  id: string;
+  event_id: string;
+  title: string;
+  content: string;
+  link: string | null;
+  keywords: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+export interface OHEffectivenessMetrics {
+  id: string;
+  event_id: string | null;
+  period_start: string;
+  period_end: string;
+  total_bookings: number;
+  attended_count: number;
+  no_show_count: number;
+  cancelled_count: number;
+  feedback_count: number;
+  avg_feedback_rating: number | null;
+  resolved_count: number;
+  follow_up_count: number;
+  escalated_count: number;
+  computed_at: string;
 }

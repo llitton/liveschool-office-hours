@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import Link from 'next/link';
-import { format, addMinutes, parseISO } from 'date-fns';
+import Image from 'next/image';
+import { format, addMinutes, parseISO, addDays, addWeeks, startOfDay, isBefore, isPast } from 'date-fns';
 import type { OHEvent, OHSlot, OHBooking } from '@/types';
+import SlotCard from './SlotCard';
+import Breadcrumb from '@/components/Breadcrumb';
 
 interface SlotWithBookings extends OHSlot {
   booking_count: number;
 }
+
+type SlotCreationMode = 'single' | 'bulk' | 'recurring';
 
 export default function ManageEventPage({
   params,
@@ -21,14 +26,73 @@ export default function ManageEventPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // New slot form
+  // Slot creation mode
+  const [creationMode, setCreationMode] = useState<SlotCreationMode>('single');
+
+  // Single slot form
   const [newSlotDate, setNewSlotDate] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('10:00');
+
+  // Bulk slot form
+  const [bulkStartDate, setBulkStartDate] = useState('');
+  const [bulkEndDate, setBulkEndDate] = useState('');
+  const [bulkTime, setBulkTime] = useState('10:00');
+  const [bulkDays, setBulkDays] = useState<number[]>([]);
+
+  // Recurring slot form
+  const [recurringStartDate, setRecurringStartDate] = useState('');
+  const [recurringTime, setRecurringTime] = useState('10:00');
+  const [recurringWeeks, setRecurringWeeks] = useState(4);
+
   const [addingSlot, setAddingSlot] = useState(false);
+  const [slotsToCreate, setSlotsToCreate] = useState<Date[]>([]);
+
+  const slotsRef = useRef<HTMLDivElement>(null);
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const scrollToAddSlots = () => {
+    slotsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  // Preview slots to be created
+  useEffect(() => {
+    if (!event) return;
+
+    const preview: Date[] = [];
+    const today = startOfDay(new Date());
+
+    if (creationMode === 'bulk' && bulkStartDate && bulkEndDate && bulkDays.length > 0) {
+      let current = parseISO(bulkStartDate);
+      const end = parseISO(bulkEndDate);
+
+      while (!isBefore(end, current)) {
+        if (bulkDays.includes(current.getDay())) {
+          const [hours, minutes] = bulkTime.split(':').map(Number);
+          const slotTime = new Date(current);
+          slotTime.setHours(hours, minutes, 0, 0);
+          if (!isBefore(slotTime, today)) {
+            preview.push(slotTime);
+          }
+        }
+        current = addDays(current, 1);
+      }
+    } else if (creationMode === 'recurring' && recurringStartDate) {
+      const [hours, minutes] = recurringTime.split(':').map(Number);
+      for (let i = 0; i < recurringWeeks; i++) {
+        const slotTime = addWeeks(parseISO(recurringStartDate), i);
+        slotTime.setHours(hours, minutes, 0, 0);
+        if (!isBefore(slotTime, today)) {
+          preview.push(slotTime);
+        }
+      }
+    }
+
+    setSlotsToCreate(preview);
+  }, [creationMode, bulkStartDate, bulkEndDate, bulkTime, bulkDays, recurringStartDate, recurringTime, recurringWeeks, event]);
 
   const fetchData = async () => {
     try {
@@ -61,7 +125,27 @@ export default function ManageEventPage({
     }
   };
 
-  const handleAddSlot = async (e: React.FormEvent) => {
+  const createSlot = async (startTime: Date) => {
+    if (!event) return;
+    const endTime = addMinutes(startTime, event.duration_minutes);
+
+    const response = await fetch('/api/slots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: id,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to add slot');
+    }
+  };
+
+  const handleAddSingleSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!event || !newSlotDate || !newSlotTime) return;
 
@@ -70,25 +154,7 @@ export default function ManageEventPage({
 
     try {
       const startTime = new Date(`${newSlotDate}T${newSlotTime}:00`);
-      const endTime = addMinutes(startTime, event.duration_minutes);
-
-      const response = await fetch('/api/slots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_id: id,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to add slot');
-      }
-
-      // Refresh data
+      await createSlot(startTime);
       await fetchData();
       setNewSlotDate('');
       setNewSlotTime('10:00');
@@ -97,6 +163,57 @@ export default function ManageEventPage({
     } finally {
       setAddingSlot(false);
     }
+  };
+
+  const handleAddBulkSlots = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (slotsToCreate.length === 0) return;
+
+    setAddingSlot(true);
+    setError('');
+
+    try {
+      for (const slotTime of slotsToCreate) {
+        await createSlot(slotTime);
+      }
+      await fetchData();
+      setBulkStartDate('');
+      setBulkEndDate('');
+      setBulkDays([]);
+      setSlotsToCreate([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add slots');
+    } finally {
+      setAddingSlot(false);
+    }
+  };
+
+  const handleAddRecurringSlots = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (slotsToCreate.length === 0) return;
+
+    setAddingSlot(true);
+    setError('');
+
+    try {
+      for (const slotTime of slotsToCreate) {
+        await createSlot(slotTime);
+      }
+      await fetchData();
+      setRecurringStartDate('');
+      setRecurringWeeks(4);
+      setSlotsToCreate([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add slots');
+    } finally {
+      setAddingSlot(false);
+    }
+  };
+
+  const toggleBulkDay = (day: number) => {
+    setBulkDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
   };
 
   const handleDeleteSlot = async (slotId: string) => {
@@ -119,52 +236,165 @@ export default function ManageEventPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
+        <p className="text-[#667085]">Loading...</p>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>Event not found</p>
+      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
+        <p className="text-[#667085]">Event not found</p>
       </div>
     );
   }
 
+  // Calculate quick stats
+  const upcomingSlots = slots.filter(s => !isPast(parseISO(s.end_time)));
+  const totalBookings = upcomingSlots.reduce((sum, s) => sum + (s.booking_count || 0), 0);
+  const totalCapacity = upcomingSlots.length * event.max_attendees;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
+    <div className="min-h-screen bg-[#F6F6F9]">
+      <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-4">
-          <Link href="/admin" className="text-blue-600 hover:text-blue-700">
-            ← Back to Dashboard
-          </Link>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Image
+                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+                alt="LiveSchool"
+                width={120}
+                height={32}
+              />
+              <Breadcrumb
+                items={[
+                  { label: 'Dashboard', href: '/admin' },
+                  { label: event.name },
+                ]}
+              />
+            </div>
+          </div>
         </div>
       </header>
 
+      {/* Primary Action Bar */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              {/* Quick Stats */}
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-[#667085]">
+                  <span className="font-semibold text-[#101E57]">{upcomingSlots.length}</span> upcoming slot{upcomingSlots.length !== 1 ? 's' : ''}
+                </span>
+                <span className="text-gray-300">|</span>
+                <span className="text-[#667085]">
+                  <span className="font-semibold text-[#101E57]">{totalBookings}</span> / {totalCapacity} booked
+                </span>
+              </div>
+            </div>
+
+            {/* Primary Actions */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={scrollToAddSlots}
+                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Time Slots
+              </button>
+              <a
+                href={`/book/${event.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white text-[#6F71EE] border border-[#6F71EE] px-4 py-2 rounded-lg hover:bg-[#6F71EE]/5 transition font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                View Public Page
+              </a>
+              <div className="relative group">
+                <button className="text-[#667085] hover:text-[#101E57] p-2 rounded-lg hover:bg-gray-100 transition">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+                {/* More Actions Dropdown */}
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                  <Link
+                    href={`/admin/events/${id}/settings`}
+                    className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    Edit Settings
+                  </Link>
+                  <Link
+                    href={`/admin/events/${id}/emails`}
+                    className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    Email Templates
+                  </Link>
+                  <a
+                    href={`/api/events/${id}/export`}
+                    className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    Export Bookings (CSV)
+                  </a>
+                  <Link
+                    href="/admin/analytics"
+                    className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    Topic Analytics
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <main className="max-w-5xl mx-auto px-4 py-8">
         {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded mb-6">{error}</div>
+          <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
         )}
 
         {/* Event Details */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h1 className="text-2xl font-bold">{event.name}</h1>
-          <p className="text-gray-500 mt-1">
-            {event.duration_minutes} min · {event.host_name} · Max {event.max_attendees} attendees
-          </p>
-          {event.description && (
-            <p className="text-gray-600 mt-2">{event.description}</p>
-          )}
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-500">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
+              <p className="text-[#667085] mt-1">
+                {event.duration_minutes} min · {event.host_name} · Max {event.max_attendees} attendees
+              </p>
+              {event.description && (
+                <p className="text-[#667085] mt-2">{event.description}</p>
+              )}
+            </div>
+            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+              upcomingSlots.length === 0
+                ? 'bg-amber-100 text-amber-700'
+                : totalBookings >= totalCapacity
+                ? 'bg-red-100 text-red-700'
+                : 'bg-[#417762]/10 text-[#417762]'
+            }`}>
+              {upcomingSlots.length === 0
+                ? 'No slots'
+                : totalBookings >= totalCapacity
+                ? 'Fully booked'
+                : 'Active'}
+            </span>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-sm text-[#667085]">
               Public booking link:{' '}
               <a
                 href={`/book/${event.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className="text-[#6F71EE] hover:underline font-medium"
               >
                 /book/{event.slug}
               </a>
@@ -172,112 +402,344 @@ export default function ManageEventPage({
           </div>
         </div>
 
-        {/* Add New Slot */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Add New Time Slot</h2>
-          <form onSubmit={handleAddSlot} className="flex flex-wrap gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                required
-                value={newSlotDate}
-                onChange={(e) => setNewSlotDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Time
-              </label>
-              <input
-                type="time"
-                required
-                value={newSlotTime}
-                onChange={(e) => setNewSlotTime(e.target.value)}
-                className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+        {/* Add Time Slots */}
+        <div ref={slotsRef} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 scroll-mt-4">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Add Time Slots</h2>
+
+          {/* Mode Tabs */}
+          <div className="flex gap-2 mb-2">
             <button
-              type="submit"
-              disabled={addingSlot}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              onClick={() => setCreationMode('single')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'single'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
             >
-              {addingSlot ? 'Adding...' : 'Add Slot'}
+              Single Slot
             </button>
-          </form>
-          <p className="text-sm text-gray-500 mt-2">
-            Duration: {event.duration_minutes} minutes (ends automatically)
+            <button
+              onClick={() => setCreationMode('bulk')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'bulk'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Bulk Create
+            </button>
+            <button
+              onClick={() => setCreationMode('recurring')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'recurring'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Weekly Recurring
+            </button>
+          </div>
+          {/* Tab Helper Text */}
+          <p className="text-sm text-[#667085] mb-6">
+            {creationMode === 'single' && 'Add one specific date and time'}
+            {creationMode === 'bulk' && 'Create multiple slots across a date range on selected days'}
+            {creationMode === 'recurring' && 'Repeat on the same day each week'}
+          </p>
+
+          {/* Single Slot Form */}
+          {creationMode === 'single' && (
+            <form onSubmit={handleAddSingleSlot} className="flex flex-wrap gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={newSlotDate}
+                  onChange={(e) => setNewSlotDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Time
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={newSlotTime}
+                  onChange={(e) => setNewSlotTime(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={addingSlot}
+                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+              >
+                {addingSlot ? 'Adding...' : 'Add Slot'}
+              </button>
+            </form>
+          )}
+
+          {/* Bulk Create Form */}
+          {creationMode === 'bulk' && (
+            <form onSubmit={handleAddBulkSlots}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={bulkStartDate}
+                    onChange={(e) => setBulkStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={bulkEndDate}
+                    onChange={(e) => setBulkEndDate(e.target.value)}
+                    min={bulkStartDate || new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Days of Week
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {dayNames.map((day, index) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleBulkDay(index)}
+                      className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                        bulkDays.includes(index)
+                          ? 'bg-[#6F71EE] text-white'
+                          : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Time
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={bulkTime}
+                  onChange={(e) => setBulkTime(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+
+              {slotsToCreate.length > 0 && (
+                <div className="mb-4 p-4 bg-[#F6F6F9] rounded-lg">
+                  <p className="text-sm font-medium text-[#101E57] mb-2">
+                    Preview: {slotsToCreate.length} slots will be created
+                  </p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {slotsToCreate.map((slot, i) => (
+                      <span
+                        key={i}
+                        className="text-xs bg-white px-2 py-1 rounded border border-gray-200 text-[#667085]"
+                      >
+                        {format(slot, 'EEE, MMM d')} at {format(slot, 'h:mm a')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={addingSlot || slotsToCreate.length === 0}
+                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+              >
+                {addingSlot
+                  ? 'Creating...'
+                  : slotsToCreate.length === 0
+                  ? 'Select dates to create slots'
+                  : `Create ${slotsToCreate.length} Slot${slotsToCreate.length !== 1 ? 's' : ''}`}
+              </button>
+            </form>
+          )}
+
+          {/* Weekly Recurring Form */}
+          {creationMode === 'recurring' && (
+            <form onSubmit={handleAddRecurringSlots}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    First Session Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={recurringStartDate}
+                    onChange={(e) => setRecurringStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Time
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={recurringTime}
+                    onChange={(e) => setRecurringTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Number of Weeks
+                  </label>
+                  <select
+                    value={recurringWeeks}
+                    onChange={(e) => setRecurringWeeks(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    {[2, 4, 6, 8, 10, 12].map((n) => (
+                      <option key={n} value={n}>
+                        {n} weeks
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {recurringStartDate && (
+                <p className="text-sm text-[#667085] mb-4">
+                  Every {format(parseISO(recurringStartDate), 'EEEE')} at {recurringTime} for {recurringWeeks} weeks
+                </p>
+              )}
+
+              {slotsToCreate.length > 0 && (
+                <div className="mb-4 p-4 bg-[#F6F6F9] rounded-lg">
+                  <p className="text-sm font-medium text-[#101E57] mb-2">
+                    Preview: {slotsToCreate.length} slots will be created
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {slotsToCreate.map((slot, i) => (
+                      <span
+                        key={i}
+                        className="text-xs bg-white px-2 py-1 rounded border border-gray-200 text-[#667085]"
+                      >
+                        {format(slot, 'EEE, MMM d')} at {format(slot, 'h:mm a')}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={addingSlot || slotsToCreate.length === 0}
+                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+              >
+                {addingSlot
+                  ? 'Creating...'
+                  : slotsToCreate.length === 0
+                  ? 'Select a start date'
+                  : `Create ${slotsToCreate.length} Slot${slotsToCreate.length !== 1 ? 's' : ''}`}
+              </button>
+            </form>
+          )}
+
+          <p className="text-sm text-[#667085] mt-4">
+            Each slot is {event.duration_minutes} minutes. Google Calendar events with Meet links will be created automatically.
           </p>
         </div>
 
-        {/* Existing Slots */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Upcoming Time Slots</h2>
+        {/* Upcoming Slots */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Upcoming Time Slots</h2>
 
-          {slots.length === 0 ? (
-            <p className="text-gray-500">No time slots scheduled yet.</p>
+          {slots.filter(s => !isPast(parseISO(s.end_time))).length === 0 ? (
+            <div className="text-center py-12 bg-[#F6F6F9] rounded-lg">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-[#101E57] mb-2">No upcoming sessions</h3>
+              <p className="text-[#667085] mb-6 max-w-sm mx-auto">
+                Create time slots above to start accepting bookings. Attendees will see available times on your public booking page.
+              </p>
+              <button
+                onClick={scrollToAddSlots}
+                className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Your First Time Slot
+              </button>
+            </div>
           ) : (
             <div className="space-y-4">
-              {slots.map((slot) => (
-                <div
-                  key={slot.id}
-                  className="border rounded-lg p-4"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">
-                        {format(parseISO(slot.start_time), 'EEEE, MMMM d, yyyy')}
-                      </p>
-                      <p className="text-gray-600">
-                        {format(parseISO(slot.start_time), 'h:mm a')} -{' '}
-                        {format(parseISO(slot.end_time), 'h:mm a')}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {slot.booking_count} / {event.max_attendees} booked
-                      </p>
-                      {slot.google_meet_link && (
-                        <a
-                          href={slot.google_meet_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          Google Meet Link
-                        </a>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => handleDeleteSlot(slot.id)}
-                      className="text-red-600 hover:text-red-700 text-sm"
-                    >
-                      Cancel Slot
-                    </button>
-                  </div>
-
-                  {/* Bookings for this slot */}
-                  {bookings[slot.id] && bookings[slot.id].length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-sm font-medium text-gray-700 mb-2">
-                        Attendees:
-                      </p>
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        {bookings[slot.id].map((booking) => (
-                          <li key={booking.id}>
-                            {booking.first_name} {booking.last_name} ({booking.email})
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {slots
+                .filter(s => !isPast(parseISO(s.end_time)))
+                .map((slot) => (
+                  <SlotCard
+                    key={slot.id}
+                    slot={slot}
+                    event={event}
+                    bookings={bookings[slot.id] || []}
+                    onDeleteSlot={handleDeleteSlot}
+                    onRefresh={fetchData}
+                  />
+                ))}
             </div>
           )}
         </div>
+
+        {/* Past Slots (with attendance tracking) */}
+        {slots.filter(s => isPast(parseISO(s.end_time))).length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-[#101E57] mb-4">Past Sessions</h2>
+            <p className="text-sm text-[#667085] mb-4">
+              Mark attendance and add recording links for past sessions.
+            </p>
+            <div className="space-y-4">
+              {slots
+                .filter(s => isPast(parseISO(s.end_time)))
+                .slice(0, 10) // Show last 10
+                .map((slot) => (
+                  <SlotCard
+                    key={slot.id}
+                    slot={slot}
+                    event={event}
+                    bookings={bookings[slot.id] || []}
+                    onDeleteSlot={handleDeleteSlot}
+                    onRefresh={fetchData}
+                  />
+                ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

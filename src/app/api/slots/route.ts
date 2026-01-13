@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { getSession } from '@/lib/auth';
+import { getSession, getHostWithTokens } from '@/lib/auth';
 import { createCalendarEvent } from '@/lib/google';
+import { checkTimeAvailability } from '@/lib/availability';
+import { parseISO } from 'date-fns';
 
 // GET slots for an event
 export async function GET(request: NextRequest) {
@@ -14,12 +16,13 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // Get slots with booking counts
+  // Get slots with booking counts and assigned host info
   const { data: slots, error } = await supabase
     .from('oh_slots')
     .select(`
       *,
-      bookings:oh_bookings(count)
+      bookings:oh_bookings(count),
+      assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)
     .eq('event_id', eventId)
     .eq('is_cancelled', false)
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { event_id, start_time, end_time } = body;
+  const { event_id, start_time, end_time, assigned_host_id } = body;
 
   if (!event_id || !start_time || !end_time) {
     return NextResponse.json(
@@ -69,21 +72,105 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 
-  // Create Google Calendar event if admin has tokens
+  // Check for buffer time conflicts with existing slots
+  if (event.buffer_minutes > 0) {
+    const slotStart = new Date(start_time);
+    const slotEnd = new Date(end_time);
+    const bufferMs = event.buffer_minutes * 60 * 1000;
+
+    // Calculate buffer window
+    const bufferStart = new Date(slotStart.getTime() - bufferMs);
+    const bufferEnd = new Date(slotEnd.getTime() + bufferMs);
+
+    // Check for overlapping slots
+    const { data: existingSlots } = await supabase
+      .from('oh_slots')
+      .select('id, start_time, end_time')
+      .eq('event_id', event_id)
+      .eq('is_cancelled', false);
+
+    for (const existing of existingSlots || []) {
+      const existingStart = new Date(existing.start_time);
+      const existingEnd = new Date(existing.end_time);
+
+      // Check if new slot overlaps with existing slot (including buffer)
+      if (
+        (slotStart < existingEnd && slotEnd > existingStart) || // Direct overlap
+        (slotStart < new Date(existingEnd.getTime() + bufferMs) && slotEnd > existingStart) || // New slot starts during buffer after existing
+        (slotEnd > new Date(existingStart.getTime() - bufferMs) && slotStart < existingEnd) // New slot ends during buffer before existing
+      ) {
+        return NextResponse.json(
+          { error: `This slot conflicts with existing slots. Buffer time: ${event.buffer_minutes} minutes.` },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
+  // Determine which host to use for availability check and calendar
+  // Priority: assigned_host_id > event.host_id > current session
+  let hostAdmin = null;
+  let hostId = assigned_host_id || event.host_id;
+
+  if (hostId) {
+    // Use the assigned or event host
+    hostAdmin = await getHostWithTokens(hostId);
+  }
+
+  // Fall back to current session if no host specified
+  if (!hostAdmin) {
+    const { data: sessionAdmin } = await supabase
+      .from('oh_admins')
+      .select('*')
+      .eq('email', session.email)
+      .single();
+    hostAdmin = sessionAdmin;
+    hostId = sessionAdmin?.id;
+  }
+
+  // Check availability against the host's calendar (if host exists and has patterns set up)
+  if (hostAdmin) {
+    try {
+      const availabilityCheck = await checkTimeAvailability(
+        hostAdmin.id,
+        parseISO(start_time),
+        parseISO(end_time),
+        event_id,
+        event.buffer_minutes || 0
+      );
+
+      if (!availabilityCheck.available) {
+        return NextResponse.json(
+          { error: availabilityCheck.reason || 'Time slot is not available' },
+          { status: 400 }
+        );
+      }
+    } catch (err) {
+      // Log but don't block - availability check is optional
+      console.warn('Availability check failed, proceeding anyway:', err);
+    }
+  }
+
+  // Create Google Calendar event using host's tokens
   let googleEventId: string | null = null;
   let googleMeetLink: string | null = null;
 
-  if (session.google_access_token && session.google_refresh_token) {
+  // Use host's tokens if available, otherwise fall back to session
+  const calendarAccessToken = hostAdmin?.google_access_token || session.google_access_token;
+  const calendarRefreshToken = hostAdmin?.google_refresh_token || session.google_refresh_token;
+  const hostEmail = hostAdmin?.email || event.host_email;
+
+  if (calendarAccessToken && calendarRefreshToken) {
     try {
       const calendarResult = await createCalendarEvent(
-        session.google_access_token,
-        session.google_refresh_token,
+        calendarAccessToken,
+        calendarRefreshToken,
         {
           summary: `[Office Hours] ${event.name}`,
           description: event.description || '',
           startTime: start_time,
           endTime: end_time,
-          hostEmail: event.host_email,
+          hostEmail: hostEmail,
         }
       );
       googleEventId = calendarResult.eventId || null;
@@ -101,6 +188,7 @@ export async function POST(request: NextRequest) {
       event_id,
       start_time,
       end_time,
+      assigned_host_id: assigned_host_id || null,
       google_event_id: googleEventId,
       google_meet_link: googleMeetLink,
     })

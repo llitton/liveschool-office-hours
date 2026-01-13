@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -58,26 +59,32 @@ export default function NewEventPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <Link href="/admin" className="text-blue-600 hover:text-blue-700">
+    <div className="min-h-screen bg-[#F6F6F9]">
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
+          <Image
+            src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+            alt="LiveSchool"
+            width={120}
+            height={32}
+          />
+          <Link href="/admin" className="text-[#6F71EE] hover:text-[#5a5cd0] font-medium">
             ← Back to Dashboard
           </Link>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Create New Office Hours Event</h1>
+        <h1 className="text-2xl font-semibold text-[#101E57] mb-6">Create New Office Hours Event</h1>
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded mb-6">{error}</div>
+          <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
                 Event Name *
               </label>
               <input
@@ -86,16 +93,16 @@ export default function NewEventPage() {
                 value={formData.name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g., From Points to Prizes: Mastering LiveSchool Store Logistics"
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
                 URL Slug *
               </label>
               <div className="flex items-center">
-                <span className="text-gray-500 mr-1">/book/</span>
+                <span className="text-[#667085] mr-1">/book/</span>
                 <input
                   type="text"
                   required
@@ -104,13 +111,13 @@ export default function NewEventPage() {
                     setFormData((prev) => ({ ...prev, slug: e.target.value }))
                   }
                   placeholder="e.g., liveschool-store"
-                  className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
                 Description
               </label>
               <textarea
@@ -120,13 +127,13 @@ export default function NewEventPage() {
                 }
                 rows={4}
                 placeholder="Describe what this office hours session will cover..."
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
                   Duration (minutes)
                 </label>
                 <select
@@ -137,7 +144,7 @@ export default function NewEventPage() {
                       duration_minutes: parseInt(e.target.value),
                     }))
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 >
                   <option value={15}>15 minutes</option>
                   <option value={30}>30 minutes</option>
@@ -147,7 +154,7 @@ export default function NewEventPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
                   Buffer Time (minutes)
                 </label>
                 <select
@@ -158,7 +165,7 @@ export default function NewEventPage() {
                       buffer_minutes: parseInt(e.target.value),
                     }))
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 >
                   <option value={0}>No buffer</option>
                   <option value={5}>5 minutes</option>
@@ -170,7 +177,7 @@ export default function NewEventPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
                 Max Attendees per Session
               </label>
               <input
@@ -183,13 +190,13 @@ export default function NewEventPage() {
                     max_attendees: parseInt(e.target.value) || 1,
                   }))
                 }
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
                   Host Name
                 </label>
                 <input
@@ -198,12 +205,12 @@ export default function NewEventPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, host_name: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
                   Host Email
                 </label>
                 <input
@@ -212,7 +219,7 @@ export default function NewEventPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, host_email: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
               </div>
             </div>
@@ -222,13 +229,13 @@ export default function NewEventPage() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="bg-[#6F71EE] text-white px-6 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
             >
               {loading ? 'Creating...' : 'Create Event'}
             </button>
             <Link
               href="/admin"
-              className="px-6 py-2 border rounded-lg hover:bg-gray-50 transition"
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
             >
               Cancel
             </Link>

@@ -1,0 +1,377 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Breadcrumb from '@/components/Breadcrumb';
+import type { OHAvailabilityPattern } from '@/types';
+
+interface PatternInput {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export default function AvailabilityPage() {
+  const [patterns, setPatterns] = useState<OHAvailabilityPattern[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{
+    googleConnected: boolean;
+    lastSynced: string | null;
+    busyBlocksCount: number;
+  } | null>(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Editable patterns state
+  const [editPatterns, setEditPatterns] = useState<PatternInput[]>([]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [patternsRes, syncRes] = await Promise.all([
+        fetch('/api/availability/patterns'),
+        fetch('/api/availability/sync'),
+      ]);
+
+      if (patternsRes.ok) {
+        const data = await patternsRes.json();
+        setPatterns(data);
+        setEditPatterns(
+          data.map((p: OHAvailabilityPattern) => ({
+            day_of_week: p.day_of_week,
+            start_time: p.start_time.slice(0, 5), // Convert HH:mm:ss to HH:mm
+            end_time: p.end_time.slice(0, 5),
+          }))
+        );
+      }
+
+      if (syncRes.ok) {
+        const syncData = await syncRes.json();
+        setSyncStatus(syncData);
+      }
+    } catch (err) {
+      setError('Failed to load availability data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePatterns = async () => {
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    // Validate patterns
+    for (const pattern of editPatterns) {
+      if (pattern.start_time >= pattern.end_time) {
+        setError(`Invalid time range for ${DAY_NAMES[pattern.day_of_week]}: start must be before end`);
+        setSaving(false);
+        return;
+      }
+    }
+
+    try {
+      const response = await fetch('/api/availability/patterns', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patterns: editPatterns }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save patterns');
+      }
+
+      const data = await response.json();
+      setPatterns(data);
+      setSuccess('Availability saved successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to save availability');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSyncCalendar = async () => {
+    setSyncing(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/availability/sync', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync calendar');
+      }
+
+      const data = await response.json();
+      setSyncStatus({
+        googleConnected: true,
+        lastSynced: new Date().toISOString(),
+        busyBlocksCount: data.busyBlocksCount,
+      });
+      setSuccess('Calendar synced successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to sync with Google Calendar');
+      console.error(err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const addPattern = (dayOfWeek: number) => {
+    // Check if pattern for this day already exists
+    const existing = editPatterns.find((p) => p.day_of_week === dayOfWeek);
+    if (existing) {
+      setError(`You already have availability set for ${DAY_NAMES[dayOfWeek]}`);
+      return;
+    }
+
+    setEditPatterns([
+      ...editPatterns,
+      { day_of_week: dayOfWeek, start_time: '09:00', end_time: '17:00' },
+    ].sort((a, b) => a.day_of_week - b.day_of_week));
+  };
+
+  const updatePattern = (dayOfWeek: number, field: 'start_time' | 'end_time', value: string) => {
+    setEditPatterns(
+      editPatterns.map((p) =>
+        p.day_of_week === dayOfWeek ? { ...p, [field]: value } : p
+      )
+    );
+  };
+
+  const removePattern = (dayOfWeek: number) => {
+    setEditPatterns(editPatterns.filter((p) => p.day_of_week !== dayOfWeek));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
+        <p className="text-[#667085]">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F6F6F9]">
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
+          <Image
+            src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+            alt="LiveSchool"
+            width={120}
+            height={32}
+          />
+          <Breadcrumb
+            items={[
+              { label: 'Dashboard', href: '/admin' },
+              { label: 'Availability' },
+            ]}
+          />
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-[#101E57]">Availability Settings</h1>
+          <p className="text-[#667085] mt-1">
+            Set your recurring availability and sync with Google Calendar
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 text-sm">{error}</div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6 text-sm">{success}</div>
+        )}
+
+        {/* Google Calendar Sync */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#101E57]">Google Calendar Sync</h2>
+              <p className="text-sm text-[#667085] mt-1">
+                Automatically block times from your Google Calendar
+              </p>
+            </div>
+            {syncStatus?.googleConnected ? (
+              <button
+                onClick={handleSyncCalendar}
+                disabled={syncing}
+                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+              >
+                {syncing ? 'Syncing...' : 'Sync Now'}
+              </button>
+            ) : (
+              <a
+                href="/api/auth/login"
+                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+              >
+                Connect Google Calendar
+              </a>
+            )}
+          </div>
+
+          {syncStatus && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${syncStatus.googleConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  <span className="text-[#667085]">
+                    {syncStatus.googleConnected ? 'Connected' : 'Not connected'}
+                  </span>
+                </div>
+                {syncStatus.lastSynced && (
+                  <span className="text-[#667085]">
+                    Last synced: {new Date(syncStatus.lastSynced).toLocaleString()}
+                  </span>
+                )}
+                {syncStatus.busyBlocksCount > 0 && (
+                  <span className="text-[#667085]">
+                    {syncStatus.busyBlocksCount} busy blocks cached
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Weekly Availability Patterns */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Weekly Availability</h2>
+          <p className="text-sm text-[#667085] mb-6">
+            Set your regular hours when you&apos;re available for office hours sessions
+          </p>
+
+          <div className="space-y-4">
+            {DAY_NAMES.map((day, index) => {
+              const pattern = editPatterns.find((p) => p.day_of_week === index);
+              const isActive = !!pattern;
+
+              return (
+                <div
+                  key={day}
+                  className={`flex items-center gap-4 p-4 rounded-lg transition ${
+                    isActive ? 'bg-[#6F71EE]/5 border border-[#6F71EE]/20' : 'bg-[#F6F6F9]'
+                  }`}
+                >
+                  <div className="w-24">
+                    <span className={`font-medium ${isActive ? 'text-[#101E57]' : 'text-[#667085]'}`}>
+                      {day}
+                    </span>
+                  </div>
+
+                  {isActive ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={pattern.start_time}
+                          onChange={(e) => updatePattern(index, 'start_time', e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                        />
+                        <span className="text-[#667085]">to</span>
+                        <input
+                          type="time"
+                          value={pattern.end_time}
+                          onChange={(e) => updatePattern(index, 'end_time', e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                        />
+                      </div>
+                      <button
+                        onClick={() => removePattern(index)}
+                        className="ml-auto text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => addPattern(index)}
+                      className="text-[#6F71EE] hover:text-[#5a5cd0] text-sm font-medium"
+                    >
+                      + Add availability
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-100 flex gap-4">
+            <button
+              onClick={handleSavePatterns}
+              disabled={saving}
+              className="bg-[#6F71EE] text-white px-6 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+            >
+              {saving ? 'Saving...' : 'Save Availability'}
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Quick Presets</h2>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                setEditPatterns([
+                  { day_of_week: 1, start_time: '09:00', end_time: '17:00' },
+                  { day_of_week: 2, start_time: '09:00', end_time: '17:00' },
+                  { day_of_week: 3, start_time: '09:00', end_time: '17:00' },
+                  { day_of_week: 4, start_time: '09:00', end_time: '17:00' },
+                  { day_of_week: 5, start_time: '09:00', end_time: '17:00' },
+                ]);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm text-[#667085]"
+            >
+              Weekdays 9am-5pm
+            </button>
+            <button
+              onClick={() => {
+                setEditPatterns([
+                  { day_of_week: 2, start_time: '14:00', end_time: '16:00' },
+                  { day_of_week: 4, start_time: '14:00', end_time: '16:00' },
+                ]);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm text-[#667085]"
+            >
+              Tue/Thu 2-4pm
+            </button>
+            <button
+              onClick={() => {
+                setEditPatterns([
+                  { day_of_week: 3, start_time: '10:00', end_time: '12:00' },
+                ]);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm text-[#667085]"
+            >
+              Wednesday mornings
+            </button>
+            <button
+              onClick={() => setEditPatterns([])}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm text-red-600"
+            >
+              Clear all
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

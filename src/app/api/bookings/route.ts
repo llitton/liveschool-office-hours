@@ -1,12 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { addAttendeeToEvent, sendEmail } from '@/lib/google';
-import { format } from 'date-fns';
+import {
+  processTemplate,
+  createEmailVariables,
+  defaultTemplates,
+  htmlifyEmailBody,
+} from '@/lib/email-templates';
+import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
+import { findOrCreateContact, logMeetingActivity } from '@/lib/hubspot';
+import { notifyNewBooking } from '@/lib/slack';
+import { matchPrepResources, formatResourcesForEmail } from '@/lib/prep-matcher';
+import { parseISO, format } from 'date-fns';
+import crypto from 'crypto';
+
+function generateManageToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Helper to sync booking to HubSpot
+async function syncBookingToHubSpot(
+  booking: { id: string; status?: string },
+  event: { name: string; description?: string },
+  slot: { start_time: string; end_time: string; google_meet_link?: string },
+  firstName: string,
+  lastName: string,
+  email: string,
+  supabase: ReturnType<typeof getServiceSupabase>
+) {
+  try {
+    // Find or create HubSpot contact
+    const contact = await findOrCreateContact(email, firstName, lastName);
+    if (!contact) {
+      return;
+    }
+
+    // Update booking with HubSpot contact ID
+    await supabase
+      .from('oh_bookings')
+      .update({ hubspot_contact_id: contact.id })
+      .eq('id', booking.id);
+
+    // Log meeting activity
+    await logMeetingActivity(
+      contact.id,
+      {
+        id: booking.id,
+        attendee_email: email,
+        attendee_name: `${firstName} ${lastName}`,
+        status: booking.status || 'booked',
+      },
+      event,
+      slot
+    );
+  } catch (err) {
+    console.error('Failed to sync booking to HubSpot:', err);
+  }
+}
 
 // POST create booking (public)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { slot_id, first_name, last_name, email } = body;
+  const { slot_id, first_name, last_name, email, question_responses } = body;
 
   if (!slot_id || !first_name || !last_name || !email) {
     return NextResponse.json(
@@ -64,6 +119,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Generate manage token for attendee self-service
+  const manage_token = generateManageToken();
+
   // Create the booking
   const { data: booking, error: bookingError } = await supabase
     .from('oh_bookings')
@@ -72,6 +130,8 @@ export async function POST(request: NextRequest) {
       first_name,
       last_name,
       email: email.toLowerCase(),
+      manage_token,
+      question_responses: question_responses || {},
     })
     .select()
     .single();
@@ -107,55 +167,108 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send confirmation email
+    // Send confirmation email using templates
     try {
-      const eventDate = new Date(slot.start_time);
-      const formattedDate = format(eventDate, 'EEEE, MMMM d, yyyy');
-      const formattedTime = format(eventDate, 'h:mm a');
+      // Match prep resources based on booking question responses
+      const matchedResources = await matchPrepResources(
+        slot.event_id,
+        question_responses || {}
+      );
+      const prepResourcesHtml = formatResourcesForEmail(matchedResources);
+
+      // Track which resources were sent
+      if (matchedResources.length > 0) {
+        await supabase
+          .from('oh_bookings')
+          .update({
+            prep_resources_sent: matchedResources.map((r) => r.id),
+          })
+          .eq('id', booking.id);
+      }
+
+      const variables = createEmailVariables(
+        { first_name, last_name, email },
+        slot.event,
+        slot
+      );
+
+      const subject = processTemplate(
+        slot.event.confirmation_subject || defaultTemplates.confirmation_subject,
+        variables
+      );
+
+      const bodyText = processTemplate(
+        slot.event.confirmation_body || defaultTemplates.confirmation_body,
+        variables
+      );
+
+      // Generate calendar URLs
+      const calendarEvent = {
+        title: slot.event.name,
+        description: `${slot.event.description || ''}\n\n${slot.google_meet_link ? `Join: ${slot.google_meet_link}` : ''}`.trim(),
+        location: slot.google_meet_link || 'Google Meet',
+        startTime: parseISO(slot.start_time),
+        endTime: parseISO(slot.end_time),
+      };
+
+      const googleCalUrl = generateGoogleCalendarUrl(calendarEvent);
+      const outlookUrl = generateOutlookUrl(calendarEvent);
+      const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${manage_token}`;
+      const icalUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/manage/${manage_token}/ical`;
+
+      const htmlBody = `
+        <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+          ${htmlifyEmailBody(bodyText)}
+
+          ${slot.event.description ? `
+            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #101E57;">About this session:</h3>
+              <p style="color: #667085;">${slot.event.description}</p>
+            </div>
+          ` : ''}
+
+          ${slot.google_meet_link ? `
+            <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
+                Join Google Meet →
+              </a>
+            </div>
+          ` : ''}
+
+          ${slot.event.prep_materials ? `
+            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #101E57;">Preparation Materials</h3>
+              <p style="color: #667085; white-space: pre-wrap;">${slot.event.prep_materials}</p>
+            </div>
+          ` : ''}
+
+          ${prepResourcesHtml}
+
+          <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #101E57;">Add to Calendar</h3>
+            <p style="margin-bottom: 12px;">
+              <a href="${googleCalUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Google Calendar</a>
+              <a href="${outlookUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Outlook</a>
+              <a href="${icalUrl}" style="color: #6F71EE; text-decoration: none;">Apple Calendar (.ics)</a>
+            </p>
+          </div>
+
+          <div style="border-top: 1px solid #E5E7EB; padding-top: 20px; margin-top: 20px;">
+            <p style="color: #667085; font-size: 14px;">
+              Need to reschedule or cancel? <a href="${manageUrl}" style="color: #6F71EE;">Manage your booking</a>
+            </p>
+          </div>
+        </div>
+      `;
 
       await sendEmail(
         admin.google_access_token,
         admin.google_refresh_token,
         {
           to: email,
-          subject: `Confirmed: ${slot.event.name} with ${slot.event.host_name} on ${formattedDate}`,
+          subject,
           replyTo: slot.event.host_email,
-          htmlBody: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">Hi ${first_name} ${last_name},</h2>
-
-              <p style="font-size: 16px; color: #333;">
-                Your <strong>${slot.event.name}</strong> with ${slot.event.host_name} at
-                <strong>${formattedTime}</strong> on <strong>${formattedDate}</strong> is scheduled.
-              </p>
-
-              ${slot.event.description ? `
-                <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0; color: #333;">About this session:</h3>
-                  <p style="color: #555;">${slot.event.description}</p>
-                </div>
-              ` : ''}
-
-              <div style="background: #e8f4f8; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #333;">Location:</h3>
-                <p style="color: #555;">
-                  ${slot.google_meet_link
-                    ? `<a href="${slot.google_meet_link}" style="color: #1a73e8;">Join Google Meet</a>`
-                    : 'Google Meet (link will be provided in calendar invite)'}
-                </p>
-              </div>
-
-              <p style="font-size: 14px; color: #666;">
-                A calendar invitation has been sent to your email. If you need to cancel or reschedule,
-                please reply to this email.
-              </p>
-
-              <p style="font-size: 14px; color: #666;">
-                See you there!<br>
-                ${slot.event.host_name}
-              </p>
-            </div>
-          `,
+          htmlBody,
         }
       );
 
@@ -167,6 +280,27 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send confirmation email:', err);
     }
   }
+
+  // Sync with HubSpot (non-blocking)
+  syncBookingToHubSpot(booking, slot.event, slot, first_name, last_name, email, supabase).catch(
+    (err) => console.error('HubSpot sync failed:', err)
+  );
+
+  // Send Slack notification (non-blocking)
+  notifyNewBooking(
+    {
+      id: booking.id,
+      attendee_name: `${first_name} ${last_name}`,
+      attendee_email: email,
+      response_text: question_responses?.question || question_responses?.response,
+    },
+    { name: slot.event.name, slug: slot.event.slug },
+    {
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      google_meet_link: slot.google_meet_link,
+    }
+  ).catch((err) => console.error('Slack notification failed:', err));
 
   return NextResponse.json({
     ...booking,

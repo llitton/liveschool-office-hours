@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     slug,
     description,
     duration_minutes = 30,
-    host_name = 'Hannah Kelly',
-    host_email = 'hannah@liveschoolinc.com',
+    host_name,
+    host_email,
     max_attendees = 30,
     buffer_minutes = 15,
   } = body;
@@ -47,6 +47,13 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // Get admin ID for the current session
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
   const { data: event, error } = await supabase
     .from('oh_events')
     .insert({
@@ -54,10 +61,11 @@ export async function POST(request: NextRequest) {
       slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
       description,
       duration_minutes,
-      host_name,
-      host_email,
+      host_name: host_name || session.name || 'Host',
+      host_email: host_email || session.email,
       max_attendees,
       buffer_minutes,
+      host_id: admin?.id || null,
     })
     .select()
     .single();
