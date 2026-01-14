@@ -66,7 +66,9 @@ export async function DELETE(
     .select(`
       *,
       event:oh_events(*),
-      bookings:oh_bookings(*)
+      bookings:oh_bookings(*,
+        assigned_host:oh_admins!assigned_host_id(id, name, email)
+      )
     `)
     .eq('id', id)
     .single();
@@ -100,11 +102,15 @@ export async function DELETE(
 
     if (admin?.google_access_token && admin?.google_refresh_token) {
       const cancellationResults = await Promise.allSettled(
-        activeBookings.map(async (booking: { first_name: string; last_name: string; email: string; id: string }) => {
+        activeBookings.map(async (booking: { first_name: string; last_name: string; email: string; id: string; attendee_timezone?: string; assigned_host?: { id: string; name: string | null; email: string } | null }) => {
+          const assignedHost = booking.assigned_host || null;
           const variables = createEmailVariables(
             booking,
-            slot.event,
-            slot
+            { ...slot.event, meeting_type: slot.event.meeting_type },
+            slot,
+            booking.attendee_timezone || slot.event.display_timezone || 'America/New_York',
+            undefined,
+            assignedHost
           );
 
           const subject = processTemplate(

@@ -14,6 +14,9 @@ export interface EmailTemplateVariables {
   timezone_abbr: string;
   meet_link: string;
   reminder_timing?: string;
+  assigned_host_name?: string;
+  assigned_host_email?: string;
+  is_round_robin?: string;
 }
 
 export const defaultTemplates = {
@@ -108,20 +111,27 @@ function getTimezoneName(tz: string): string {
 
 export function createEmailVariables(
   booking: { first_name: string; last_name: string; email: string },
-  event: { name: string; host_name: string },
+  event: { name: string; host_name: string; meeting_type?: string },
   slot: { start_time: string; end_time: string; google_meet_link: string | null },
   timezone: string = 'America/New_York',
-  reminderTiming?: string
+  reminderTiming?: string,
+  assignedHost?: { name: string | null; email: string } | null
 ): EmailTemplateVariables {
   const startDate = parseISO(slot.start_time);
   const timezoneAbbr = getTimezoneAbbr(timezone);
+  const isRoundRobin = event.meeting_type === 'round_robin';
+
+  // For round-robin events, use the assigned host name in the signature
+  const effectiveHostName = isRoundRobin && assignedHost
+    ? assignedHost.name || assignedHost.email.split('@')[0]
+    : event.host_name;
 
   return {
     first_name: booking.first_name,
     last_name: booking.last_name,
     email: booking.email,
     event_name: event.name,
-    host_name: event.host_name,
+    host_name: effectiveHostName,
     date: formatInTimeZone(startDate, timezone, 'EEEE, MMMM d, yyyy'),
     time: formatInTimeZone(startDate, timezone, 'h:mm a'),
     time_with_timezone: `${formatInTimeZone(startDate, timezone, 'h:mm a')} ${timezoneAbbr}`,
@@ -129,6 +139,9 @@ export function createEmailVariables(
     timezone_abbr: timezoneAbbr,
     meet_link: slot.google_meet_link || 'Link will be provided',
     reminder_timing: reminderTiming,
+    assigned_host_name: assignedHost ? (assignedHost.name || assignedHost.email.split('@')[0]) : undefined,
+    assigned_host_email: assignedHost?.email,
+    is_round_robin: isRoundRobin ? 'true' : undefined,
   };
 }
 

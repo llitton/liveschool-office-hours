@@ -89,7 +89,8 @@ export async function PUT(
       slot:oh_slots(
         *,
         event:oh_events(*)
-      )
+      ),
+      assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)
     .eq('manage_token', token)
     .is('cancelled_at', null)
@@ -139,10 +140,16 @@ export async function PUT(
 
   if (admin?.google_access_token && admin?.google_refresh_token) {
     try {
+      // Get assigned host for round-robin bookings
+      const assignedHost = booking.assigned_host as { id: string; name: string | null; email: string } | null;
+
       const variables = createEmailVariables(
         booking,
-        newSlot.event,
-        newSlot
+        { ...newSlot.event, meeting_type: newSlot.event.meeting_type },
+        newSlot,
+        booking.attendee_timezone || newSlot.event.display_timezone || 'America/New_York',
+        undefined,
+        assignedHost
       );
 
       const htmlBody = `
@@ -150,11 +157,11 @@ export async function PUT(
           <h2>Your booking has been rescheduled</h2>
           <p>Hi ${booking.first_name},</p>
           <p>Your ${newSlot.event.name} session has been rescheduled to:</p>
-          <p><strong>${variables.date} at ${variables.time}</strong></p>
+          <p><strong>${variables.date} at ${variables.time_with_timezone}</strong></p>
           ${newSlot.google_meet_link ? `
             <p>Join via Google Meet: <a href="${newSlot.google_meet_link}">${newSlot.google_meet_link}</a></p>
           ` : ''}
-          <p>See you there!<br>${newSlot.event.host_name}</p>
+          <p>See you there!<br>${variables.host_name}</p>
         </div>
       `;
 
@@ -192,7 +199,8 @@ export async function DELETE(
       slot:oh_slots(
         *,
         event:oh_events(*)
-      )
+      ),
+      assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)
     .eq('manage_token', token)
     .is('cancelled_at', null)
@@ -238,6 +246,12 @@ export async function DELETE(
 
     // Send cancellation confirmation email
     try {
+      // Get assigned host name for round-robin bookings
+      const assignedHost = booking.assigned_host as { id: string; name: string | null; email: string } | null;
+      const hostName = booking.slot.event.meeting_type === 'round_robin' && assignedHost
+        ? (assignedHost.name || assignedHost.email.split('@')[0])
+        : booking.slot.event.host_name;
+
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
           <h2>Booking Cancelled</h2>
@@ -245,7 +259,7 @@ export async function DELETE(
           <p>Your booking for <strong>${booking.slot.event.name}</strong> has been cancelled as requested.</p>
           <p>The calendar event has been removed from your calendar.</p>
           <p>If you'd like to book another time, please visit our booking page.</p>
-          <p>Best,<br>${booking.slot.event.host_name}</p>
+          <p>Best,<br>${hostName}</p>
         </div>
       `;
 

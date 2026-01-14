@@ -34,7 +34,9 @@ export async function GET(request: NextRequest) {
     .select(`
       *,
       event:oh_events(*),
-      bookings:oh_bookings(*)
+      bookings:oh_bookings(*,
+        assigned_host:oh_admins!assigned_host_id(id, name, email)
+      )
     `)
     .eq('is_cancelled', false)
     .gte('start_time', now.toISOString())
@@ -95,12 +97,16 @@ export async function GET(request: NextRequest) {
         // Use attendee's stored timezone, fall back to event's display timezone, then default
         const emailTimezone = booking.attendee_timezone || slot.event.display_timezone || 'America/New_York';
 
+        // Get assigned host for round-robin bookings
+        const assignedHost = booking.assigned_host as { id: string; name: string | null; email: string } | null;
+
         const variables = createEmailVariables(
           booking,
-          slot.event,
+          { ...slot.event, meeting_type: slot.event.meeting_type },
           slot,
           emailTimezone,
-          reminderTiming
+          reminderTiming,
+          assignedHost
         );
 
         const subject = processTemplate(

@@ -11,6 +11,8 @@ import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
 import { findOrCreateContact, logMeetingActivity } from '@/lib/hubspot';
 import { notifyNewBooking } from '@/lib/slack';
 import { matchPrepResources, formatResourcesForEmail } from '@/lib/prep-matcher';
+import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
+import type { OHAdmin } from '@/types';
 import { parseISO, format, addHours, addDays, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import crypto from 'crypto';
 
@@ -162,6 +164,58 @@ export async function POST(request: NextRequest) {
   }
   // === END CONSTRAINT VALIDATION ===
 
+  // === ROUND-ROBIN HOST ASSIGNMENT ===
+  let assignedHost: OHAdmin | null = null;
+  let assignedHostId: string | null = null;
+
+  if (event.meeting_type === 'round_robin') {
+    const hostIds = await getParticipatingHosts(event.id);
+
+    if (hostIds.length === 0) {
+      return NextResponse.json(
+        { error: 'No hosts available for this event' },
+        { status: 400 }
+      );
+    }
+
+    const config = {
+      strategy: event.round_robin_strategy || 'cycle',
+      period: event.round_robin_period || 'week',
+      hostIds,
+    };
+
+    const slotStartTime = parseISO(slot.start_time);
+    const slotEndTime = parseISO(slot.end_time);
+
+    const assignment = await selectNextHost(
+      event.id,
+      slotStartTime,
+      slotEndTime,
+      config as { strategy: 'cycle' | 'least_bookings' | 'availability_weighted'; period: 'day' | 'week' | 'month' | 'all_time'; hostIds: string[] }
+    );
+
+    if (!assignment) {
+      return NextResponse.json(
+        { error: 'All hosts are currently unavailable for this time slot' },
+        { status: 400 }
+      );
+    }
+
+    assignedHost = assignment.host;
+    assignedHostId = assignment.hostId;
+
+    // Update slot with assigned host if not already set
+    if (!slot.assigned_host_id) {
+      await supabase
+        .from('oh_slots')
+        .update({ assigned_host_id: assignedHostId })
+        .eq('id', slot_id);
+    }
+
+    console.log(`Round-robin assigned host ${assignedHost.email} to booking (${assignment.reason})`);
+  }
+  // === END ROUND-ROBIN ===
+
   // Check if slot is full
   const bookingCount = slot.bookings?.[0]?.count || 0;
   if (bookingCount >= slot.event.max_attendees) {
@@ -205,6 +259,7 @@ export async function POST(request: NextRequest) {
       question_responses: question_responses || {},
       status: bookingStatus,
       attendee_timezone: attendee_timezone || null,
+      assigned_host_id: assignedHostId,
     })
     .select()
     .single();
@@ -214,11 +269,17 @@ export async function POST(request: NextRequest) {
   }
 
   // Get admin with tokens to send emails and add to calendar
-  const { data: admin } = await supabase
-    .from('oh_admins')
-    .select('*')
-    .eq('email', slot.event.host_email)
-    .single();
+  // For round-robin events, use the assigned host; otherwise use the event's host
+  let admin: OHAdmin | null = assignedHost;
+
+  if (!admin) {
+    const { data: eventAdmin } = await supabase
+      .from('oh_admins')
+      .select('*')
+      .eq('email', slot.event.host_email)
+      .single();
+    admin = eventAdmin;
+  }
 
   if (admin?.google_access_token && admin?.google_refresh_token) {
     // Only add to calendar if booking is confirmed (not pending approval)
@@ -264,9 +325,11 @@ export async function POST(request: NextRequest) {
 
       const variables = createEmailVariables(
         { first_name, last_name, email },
-        slot.event,
+        { ...slot.event, meeting_type: event.meeting_type },
         slot,
-        emailTimezone
+        emailTimezone,
+        undefined,
+        assignedHost ? { name: assignedHost.name, email: assignedHost.email } : null
       );
 
       const subject = processTemplate(

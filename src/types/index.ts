@@ -63,6 +63,9 @@ export interface OHEvent {
   // Timezone settings
   display_timezone: string;
   lock_timezone: boolean;
+  // Round-robin configuration
+  round_robin_strategy: 'cycle' | 'least_bookings' | 'availability_weighted' | null;
+  round_robin_period: 'day' | 'week' | 'month' | 'all_time';
 }
 
 export interface OHSlot {
@@ -105,6 +108,8 @@ export interface OHBooking {
   feedback_submitted_at: string | null;
   // Recording
   recording_sent_at: string | null;
+  // Round-robin assignment
+  assigned_host_id: string | null;
 }
 
 export interface OHAttendeeNote {
@@ -308,4 +313,19 @@ export interface OHEffectivenessMetrics {
   follow_up_count: number;
   escalated_count: number;
   computed_at: string;
+}
+
+// ============================================
+// ROUND-ROBIN DISTRIBUTION
+// ============================================
+
+export type RoundRobinStrategy = 'cycle' | 'least_bookings' | 'availability_weighted';
+export type RoundRobinPeriod = 'day' | 'week' | 'month' | 'all_time';
+
+export interface OHRoundRobinState {
+  id: string;
+  event_id: string;
+  last_assigned_host_id: string | null;
+  last_assigned_at: string;
+  assignment_count: number;
 }

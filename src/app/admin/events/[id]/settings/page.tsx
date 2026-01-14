@@ -3,9 +3,11 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { OHEvent, CustomQuestion, MeetingType, MEETING_TYPE_LABELS, MEETING_TYPE_DESCRIPTIONS } from '@/types';
+import type { OHEvent, CustomQuestion, MeetingType, RoundRobinStrategy, RoundRobinPeriod } from '@/types';
 import Breadcrumb from '@/components/Breadcrumb';
 import TimezoneSelector from '@/components/TimezoneSelector';
+import RoundRobinHostSelector from '@/components/RoundRobinHostSelector';
+import HostSelector from '@/components/HostSelector';
 
 export default function EventSettingsPage({
   params,
@@ -40,6 +42,10 @@ export default function EventSettingsPage({
   const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
   const [lockTimezone, setLockTimezone] = useState(false);
 
+  // Round-robin settings
+  const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('cycle');
+  const [roundRobinPeriod, setRoundRobinPeriod] = useState<RoundRobinPeriod>('week');
+
   // Available preset banners
   const PRESET_BANNERS = [
     { label: 'Default Office Hours', value: '/banners/default-banner.png' },
@@ -71,6 +77,10 @@ export default function EventSettingsPage({
       // Set timezone settings
       setDisplayTimezone(eventData.display_timezone || 'America/New_York');
       setLockTimezone(eventData.lock_timezone ?? false);
+
+      // Set round-robin settings
+      setRoundRobinStrategy(eventData.round_robin_strategy || 'cycle');
+      setRoundRobinPeriod(eventData.round_robin_period || 'week');
 
       // Set banner state
       const currentBanner = eventData.banner_image || '';
@@ -122,6 +132,9 @@ export default function EventSettingsPage({
           // Timezone settings
           display_timezone: displayTimezone,
           lock_timezone: lockTimezone,
+          // Round-robin settings
+          round_robin_strategy: meetingType === 'round_robin' ? roundRobinStrategy : null,
+          round_robin_period: roundRobinPeriod,
         }),
       });
 
@@ -484,40 +497,168 @@ export default function EventSettingsPage({
           </p>
 
           <div className="grid gap-3">
-            {(['one_on_one', 'group'] as MeetingType[]).map((type) => (
-              <label
-                key={type}
-                className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
-                  meetingType === type
-                    ? 'border-[#6F71EE] bg-[#6F71EE]/5'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="meeting_type"
-                  value={type}
-                  checked={meetingType === type}
-                  onChange={() => setMeetingType(type)}
-                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
-                />
-                <div>
-                  <span className="font-medium text-[#101E57]">
-                    {type === 'one_on_one' ? 'One-on-One' : 'Group Session'}
-                  </span>
-                  <p className="text-sm text-[#667085] mt-0.5">
-                    {type === 'one_on_one'
-                      ? 'Single host meets with one attendee at a time'
-                      : 'Single host meets with multiple attendees (office hours style)'}
-                  </p>
-                </div>
-              </label>
-            ))}
+            {(['one_on_one', 'group', 'round_robin'] as MeetingType[]).map((type) => {
+              const labels: Record<string, string> = {
+                one_on_one: 'One-on-One',
+                group: 'Group Session',
+                round_robin: 'Round-Robin',
+              };
+              const descriptions: Record<string, string> = {
+                one_on_one: 'Single host meets with one attendee at a time',
+                group: 'Single host meets with multiple attendees (office hours style)',
+                round_robin: 'Bookings are automatically distributed across team members',
+              };
+              return (
+                <label
+                  key={type}
+                  className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                    meetingType === type
+                      ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="meeting_type"
+                    value={type}
+                    checked={meetingType === type}
+                    onChange={() => setMeetingType(type)}
+                    className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">
+                      {labels[type]}
+                    </span>
+                    <p className="text-sm text-[#667085] mt-0.5">
+                      {descriptions[type]}
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
           </div>
+        </div>
 
-          <p className="text-xs text-[#667085] mt-3">
-            More meeting types (round-robin, collective, panel) coming soon.
-          </p>
+        {/* Round-Robin Configuration - Show when round_robin is selected */}
+        {meetingType === 'round_robin' && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 className="text-lg font-semibold text-[#101E57] mb-2">Round-Robin Settings</h2>
+            <p className="text-sm text-[#667085] mb-6">
+              Configure how bookings are distributed across your team.
+            </p>
+
+            {/* Distribution Strategy */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-[#101E57] mb-3">
+                Distribution Strategy
+              </label>
+              <div className="grid gap-3">
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                    roundRobinStrategy === 'cycle'
+                      ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="round_robin_strategy"
+                    value="cycle"
+                    checked={roundRobinStrategy === 'cycle'}
+                    onChange={() => setRoundRobinStrategy('cycle')}
+                    className="mt-0.5 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">Simple Rotation</span>
+                    <p className="text-sm text-[#667085]">
+                      Rotate through hosts in order, skipping unavailable hosts
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                    roundRobinStrategy === 'least_bookings'
+                      ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="round_robin_strategy"
+                    value="least_bookings"
+                    checked={roundRobinStrategy === 'least_bookings'}
+                    onChange={() => setRoundRobinStrategy('least_bookings')}
+                    className="mt-0.5 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">Load Balanced</span>
+                    <p className="text-sm text-[#667085]">
+                      Assign to the host with the fewest bookings in the period
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                    roundRobinStrategy === 'availability_weighted'
+                      ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="round_robin_strategy"
+                    value="availability_weighted"
+                    checked={roundRobinStrategy === 'availability_weighted'}
+                    onChange={() => setRoundRobinStrategy('availability_weighted')}
+                    className="mt-0.5 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">Availability Weighted</span>
+                    <p className="text-sm text-[#667085]">
+                      Balance bookings relative to each host&apos;s available hours
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Balancing Period - Only show for load balancing strategies */}
+            {roundRobinStrategy !== 'cycle' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Balancing Period
+                </label>
+                <select
+                  value={roundRobinPeriod}
+                  onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                >
+                  <option value="day">Daily</option>
+                  <option value="week">Weekly</option>
+                  <option value="month">Monthly</option>
+                  <option value="all_time">All Time</option>
+                </select>
+                <p className="text-xs text-[#667085] mt-1">
+                  Bookings are balanced within this time period.
+                </p>
+              </div>
+            )}
+
+            {/* Participating Hosts */}
+            <div className="pt-4 border-t">
+              <label className="block text-sm font-medium text-[#101E57] mb-3">
+                Participating Hosts
+              </label>
+              <RoundRobinHostSelector eventId={id} />
+            </div>
+          </div>
+        )}
+
+        {/* Event Hosts - Show for all meeting types */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <HostSelector eventId={id} />
         </div>
 
         {/* Booking Constraints */}
