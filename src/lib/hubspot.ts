@@ -536,6 +536,64 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
 }
 
 /**
+ * Update HubSpot meeting outcome based on attendance
+ */
+export async function updateMeetingOutcome(
+  contactId: string,
+  meetingTitle: string,
+  outcome: 'COMPLETED' | 'NO_SHOW' | 'CANCELED',
+  notes?: string
+): Promise<boolean> {
+  try {
+    // Find meetings associated with this contact
+    const meetingsResponse = await hubspotFetch(
+      `/crm/v4/objects/contacts/${contactId}/associations/meetings`
+    );
+
+    if (!meetingsResponse.ok) {
+      return false;
+    }
+
+    const meetingsData = await meetingsResponse.json();
+    if (!meetingsData.results || meetingsData.results.length === 0) {
+      return false;
+    }
+
+    // Find the meeting with matching title (most recent first)
+    for (const assoc of meetingsData.results) {
+      const meetingResponse = await hubspotFetch(
+        `/crm/v3/objects/meetings/${assoc.toObjectId}?properties=hs_meeting_title,hs_meeting_outcome`
+      );
+
+      if (meetingResponse.ok) {
+        const meeting = await meetingResponse.json();
+        if (meeting.properties.hs_meeting_title?.includes(meetingTitle)) {
+          // Update this meeting's outcome
+          const updateResponse = await hubspotFetch(
+            `/crm/v3/objects/meetings/${assoc.toObjectId}`,
+            {
+              method: 'PATCH',
+              body: JSON.stringify({
+                properties: {
+                  hs_meeting_outcome: outcome,
+                  ...(notes ? { hs_internal_meeting_notes: notes } : {}),
+                },
+              }),
+            }
+          );
+          return updateResponse.ok;
+        }
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Failed to update HubSpot meeting outcome:', error);
+    return false;
+  }
+}
+
+/**
  * Check if HubSpot is configured and connected
  */
 export async function isHubSpotConnected(): Promise<boolean> {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
+import { updateMeetingOutcome } from '@/lib/hubspot';
 
 // PATCH update booking (attendance status, etc.)
 export async function PATCH(
@@ -112,6 +113,16 @@ export async function PATCH(
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  // Sync attendance outcome to HubSpot (in background)
+  if ((body.status === 'attended' || body.status === 'no_show') && booking.hubspot_contact_id) {
+    const hubspotOutcome = body.status === 'attended' ? 'COMPLETED' : 'NO_SHOW';
+    updateMeetingOutcome(
+      booking.hubspot_contact_id,
+      booking.slot.event.name,
+      hubspotOutcome
+    ).catch((err) => console.error('Failed to sync HubSpot outcome:', err));
   }
 
   return NextResponse.json(updated);
