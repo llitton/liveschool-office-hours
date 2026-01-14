@@ -36,6 +36,15 @@ export async function POST(request: NextRequest) {
     host_email,
     max_attendees = 30,
     buffer_minutes = 15,
+    // New fields for Sprint 1-2
+    meeting_type = 'group',
+    min_notice_hours = 24,
+    booking_window_days = 60,
+    max_daily_bookings = null,
+    max_weekly_bookings = null,
+    require_approval = false,
+    display_timezone = 'America/New_York',
+    lock_timezone = false,
   } = body;
 
   if (!name || !slug) {
@@ -66,6 +75,15 @@ export async function POST(request: NextRequest) {
       max_attendees,
       buffer_minutes,
       host_id: admin?.id || null,
+      // New fields
+      meeting_type,
+      min_notice_hours,
+      booking_window_days,
+      max_daily_bookings,
+      max_weekly_bookings,
+      require_approval,
+      display_timezone,
+      lock_timezone,
     })
     .select()
     .single();

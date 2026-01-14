@@ -92,11 +92,14 @@ export async function GET(request: NextRequest) {
       if (!reminderType) continue;
 
       try {
+        // Use attendee's stored timezone, fall back to event's display timezone, then default
+        const emailTimezone = booking.attendee_timezone || slot.event.display_timezone || 'America/New_York';
+
         const variables = createEmailVariables(
           booking,
           slot.event,
           slot,
-          'America/New_York',
+          emailTimezone,
           reminderTiming
         );
 

@@ -9,6 +9,9 @@ export interface EmailTemplateVariables {
   host_name: string;
   date: string;
   time: string;
+  time_with_timezone: string;
+  timezone: string;
+  timezone_abbr: string;
   meet_link: string;
   reminder_timing?: string;
 }
@@ -21,7 +24,7 @@ Great news - your spot is confirmed! I'm looking forward to connecting with you.
 
 Session details:
 {{event_name}}
-{{date}} at {{time}}
+{{date}} at {{time_with_timezone}}
 
 Come prepared with any questions or topics you'd like to discuss. This time is dedicated to you, so don't hesitate to bring up whatever's on your mind.
 
@@ -34,7 +37,7 @@ See you soon!
 Just a friendly reminder that we're meeting {{reminder_timing}}.
 
 {{event_name}}
-{{date}} at {{time}}
+{{date}} at {{time_with_timezone}}
 
 If something came up and you need to reschedule, no worries - just use the link at the bottom of this email.
 
@@ -44,7 +47,7 @@ Looking forward to our conversation!
   cancellation_subject: 'Your {{event_name}} session has been cancelled',
   cancellation_body: `Hi {{first_name}},
 
-Your {{event_name}} session scheduled for {{date}} at {{time}} has been cancelled.
+Your {{event_name}} session scheduled for {{date}} at {{time_with_timezone}} has been cancelled.
 
 If you'd like to book another time, I'd love to still connect with you. Just head back to the booking page to find a time that works.
 
@@ -66,6 +69,43 @@ export function processTemplate(
   return result;
 }
 
+// Common timezone abbreviations mapping
+const TIMEZONE_ABBR: Record<string, string> = {
+  'America/New_York': 'ET',
+  'America/Chicago': 'CT',
+  'America/Denver': 'MT',
+  'America/Los_Angeles': 'PT',
+  'America/Phoenix': 'MST',
+  'America/Anchorage': 'AKT',
+  'Pacific/Honolulu': 'HST',
+  'Europe/London': 'GMT',
+  'Europe/Paris': 'CET',
+  'Europe/Berlin': 'CET',
+  'Asia/Tokyo': 'JST',
+  'Asia/Shanghai': 'CST',
+  'Asia/Singapore': 'SGT',
+  'Australia/Sydney': 'AEST',
+  'UTC': 'UTC',
+};
+
+function getTimezoneAbbr(tz: string): string {
+  return TIMEZONE_ABBR[tz] || tz.split('/').pop()?.replace(/_/g, ' ') || tz;
+}
+
+function getTimezoneName(tz: string): string {
+  const names: Record<string, string> = {
+    'America/New_York': 'Eastern Time',
+    'America/Chicago': 'Central Time',
+    'America/Denver': 'Mountain Time',
+    'America/Los_Angeles': 'Pacific Time',
+    'America/Phoenix': 'Arizona Time',
+    'Europe/London': 'London Time',
+    'Europe/Paris': 'Paris Time',
+    'Asia/Tokyo': 'Tokyo Time',
+  };
+  return names[tz] || tz.split('/').pop()?.replace(/_/g, ' ') || tz;
+}
+
 export function createEmailVariables(
   booking: { first_name: string; last_name: string; email: string },
   event: { name: string; host_name: string },
@@ -74,6 +114,7 @@ export function createEmailVariables(
   reminderTiming?: string
 ): EmailTemplateVariables {
   const startDate = parseISO(slot.start_time);
+  const timezoneAbbr = getTimezoneAbbr(timezone);
 
   return {
     first_name: booking.first_name,
@@ -82,7 +123,10 @@ export function createEmailVariables(
     event_name: event.name,
     host_name: event.host_name,
     date: formatInTimeZone(startDate, timezone, 'EEEE, MMMM d, yyyy'),
-    time: formatInTimeZone(startDate, timezone, 'h:mm a z'),
+    time: formatInTimeZone(startDate, timezone, 'h:mm a'),
+    time_with_timezone: `${formatInTimeZone(startDate, timezone, 'h:mm a')} ${timezoneAbbr}`,
+    timezone: getTimezoneName(timezone),
+    timezone_abbr: timezoneAbbr,
     meet_link: slot.google_meet_link || 'Link will be provided',
     reminder_timing: reminderTiming,
   };

@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import type { MeetingType } from '@/types';
+import TimezoneSelector from '@/components/TimezoneSelector';
 
 export default function NewEventPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Basic info
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -17,9 +20,23 @@ export default function NewEventPage() {
     duration_minutes: 30,
     host_name: 'Hannah Kelly',
     host_email: 'hannah@liveschoolinc.com',
-    max_attendees: 30,
     buffer_minutes: 15,
   });
+
+  // Meeting type & capacity
+  const [meetingType, setMeetingType] = useState<MeetingType>('group');
+  const [maxAttendees, setMaxAttendees] = useState(30);
+
+  // Booking rules
+  const [minNoticeHours, setMinNoticeHours] = useState(24);
+  const [bookingWindowDays, setBookingWindowDays] = useState(60);
+  const [maxDailyBookings, setMaxDailyBookings] = useState<string>('');
+  const [maxWeeklyBookings, setMaxWeeklyBookings] = useState<string>('');
+  const [requireApproval, setRequireApproval] = useState(false);
+
+  // Timezone
+  const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
+  const [lockTimezone, setLockTimezone] = useState(false);
 
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
@@ -32,6 +49,16 @@ export default function NewEventPage() {
     }));
   };
 
+  const handleMeetingTypeChange = (type: MeetingType) => {
+    setMeetingType(type);
+    // Auto-set max attendees based on type
+    if (type === 'one_on_one') {
+      setMaxAttendees(1);
+    } else if (type === 'group' && maxAttendees === 1) {
+      setMaxAttendees(30);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -41,7 +68,18 @@ export default function NewEventPage() {
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          max_attendees: maxAttendees,
+          meeting_type: meetingType,
+          min_notice_hours: minNoticeHours,
+          booking_window_days: bookingWindowDays,
+          max_daily_bookings: maxDailyBookings ? parseInt(maxDailyBookings) : null,
+          max_weekly_bookings: maxWeeklyBookings ? parseInt(maxWeeklyBookings) : null,
+          require_approval: requireApproval,
+          display_timezone: displayTimezone,
+          lock_timezone: lockTimezone,
+        }),
       });
 
       const data = await response.json();
@@ -75,175 +113,391 @@ export default function NewEventPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-semibold text-[#101E57] mb-6">Create New Office Hours Event</h1>
+        <h1 className="text-2xl font-semibold text-[#101E57] mb-2">Create New Event</h1>
+        <p className="text-[#667085] mb-6">Set up a new booking event for your office hours or meetings.</p>
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 text-sm">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                Event Name *
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Step 1: Meeting Type */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">1</span>
+              <h2 className="text-lg font-semibold text-[#101E57]">Meeting Type</h2>
+            </div>
+            <p className="text-sm text-[#667085] mb-4">
+              Choose how attendees will be scheduled for this event.
+            </p>
+
+            <div className="grid gap-3">
+              <label
+                className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                  meetingType === 'one_on_one'
+                    ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="meeting_type"
+                  value="one_on_one"
+                  checked={meetingType === 'one_on_one'}
+                  onChange={() => handleMeetingTypeChange('one_on_one')}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                />
+                <div className="flex-1">
+                  <span className="font-medium text-[#101E57]">One-on-One</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Private meetings with one attendee at a time. Great for consultations, coaching, or support calls.
+                  </p>
+                </div>
               </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g., From Points to Prizes: Mastering LiveSchool Store Logistics"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-              />
+
+              <label
+                className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                  meetingType === 'group'
+                    ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="meeting_type"
+                  value="group"
+                  checked={meetingType === 'group'}
+                  onChange={() => handleMeetingTypeChange('group')}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                />
+                <div className="flex-1">
+                  <span className="font-medium text-[#101E57]">Group Session</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Multiple attendees can join the same time slot. Perfect for office hours, webinars, or group trainings.
+                  </p>
+                </div>
+              </label>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                URL Slug *
-              </label>
-              <div className="flex items-center">
-                <span className="text-[#667085] mr-1">/book/</span>
+            <p className="text-xs text-[#667085] mt-3">
+              More meeting types (round-robin, collective, panel) coming soon.
+            </p>
+          </div>
+
+          {/* Step 2: Basic Info */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">2</span>
+              <h2 className="text-lg font-semibold text-[#101E57]">Event Details</h2>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Event Name *
+                </label>
                 <input
                   type="text"
                   required
-                  value={formData.slug}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, slug: e.target.value }))
-                  }
-                  placeholder="e.g., liveschool-store"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, description: e.target.value }))
-                }
-                rows={4}
-                placeholder="Get hands-on help setting up your student store, from choosing rewards to managing inventory. Perfect for schools just getting started or looking to optimize their current setup."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-              />
-              <div className="mt-2 p-3 bg-[#F6F6F9] rounded-lg">
-                <p className="text-xs font-medium text-[#101E57] mb-1">Tips for a great description:</p>
-                <ul className="text-xs text-[#667085] space-y-0.5">
-                  <li>• <strong>Lead with the outcome:</strong> &quot;Get help with X&quot; or &quot;Learn how to Y&quot;</li>
-                  <li>• <strong>Be specific:</strong> What problems will this solve?</li>
-                  <li>• <strong>Say who it&apos;s for:</strong> &quot;Perfect for new users&quot; or &quot;Ideal if you&apos;re struggling with...&quot;</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Duration (minutes)
-                </label>
-                <select
-                  value={formData.duration_minutes}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      duration_minutes: parseInt(e.target.value),
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                >
-                  <option value={15}>15 minutes</option>
-                  <option value={30}>30 minutes</option>
-                  <option value={45}>45 minutes</option>
-                  <option value={60}>60 minutes</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Buffer Time (minutes)
-                </label>
-                <select
-                  value={formData.buffer_minutes}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      buffer_minutes: parseInt(e.target.value),
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                >
-                  <option value={0}>No buffer</option>
-                  <option value={5}>5 minutes</option>
-                  <option value={10}>10 minutes</option>
-                  <option value={15}>15 minutes</option>
-                  <option value={30}>30 minutes</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                Max Attendees per Session
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={formData.max_attendees}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    max_attendees: parseInt(e.target.value) || 1,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Host Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.host_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, host_name: e.target.value }))
-                  }
+                  value={formData.name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g., LiveSchool Store Setup Help"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Host Email
+                  URL Slug *
                 </label>
-                <input
-                  type="email"
-                  value={formData.host_email}
+                <div className="flex items-center">
+                  <span className="text-[#667085] mr-1">/book/</span>
+                  <input
+                    type="text"
+                    required
+                    value={formData.slug}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, slug: e.target.value }))
+                    }
+                    placeholder="e.g., liveschool-store"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, host_email: e.target.value }))
+                    setFormData((prev) => ({ ...prev, description: e.target.value }))
                   }
+                  rows={3}
+                  placeholder="Describe what attendees will get from this session..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Duration
+                  </label>
+                  <select
+                    value={formData.duration_minutes}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        duration_minutes: parseInt(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                    <option value={90}>90 minutes</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Buffer After
+                  </label>
+                  <select
+                    value={formData.buffer_minutes}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        buffer_minutes: parseInt(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={0}>No buffer</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
+                </div>
+              </div>
+
+              {meetingType === 'group' && (
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Max Attendees per Session
+                  </label>
+                  <input
+                    type="number"
+                    min={2}
+                    value={maxAttendees}
+                    onChange={(e) => setMaxAttendees(parseInt(e.target.value) || 2)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                  <p className="text-xs text-[#667085] mt-1">
+                    How many people can join each time slot.
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Host Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.host_name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, host_name: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Host Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.host_email}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, host_email: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 flex gap-4">
+          {/* Step 3: Booking Rules */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
+              <h2 className="text-lg font-semibold text-[#101E57]">Booking Rules</h2>
+            </div>
+            <p className="text-sm text-[#667085] mb-4">
+              Control when and how attendees can book sessions.
+            </p>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Minimum Notice
+                  </label>
+                  <select
+                    value={minNoticeHours}
+                    onChange={(e) => setMinNoticeHours(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={0}>No minimum</option>
+                    <option value={1}>1 hour</option>
+                    <option value={2}>2 hours</option>
+                    <option value={4}>4 hours</option>
+                    <option value={12}>12 hours</option>
+                    <option value={24}>24 hours (1 day)</option>
+                    <option value={48}>48 hours (2 days)</option>
+                    <option value={72}>72 hours (3 days)</option>
+                    <option value={168}>1 week</option>
+                  </select>
+                  <p className="text-xs text-[#667085] mt-1">
+                    How far in advance attendees must book.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Booking Window
+                  </label>
+                  <select
+                    value={bookingWindowDays}
+                    onChange={(e) => setBookingWindowDays(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={7}>1 week ahead</option>
+                    <option value={14}>2 weeks ahead</option>
+                    <option value={30}>30 days ahead</option>
+                    <option value={60}>60 days ahead</option>
+                    <option value={90}>90 days ahead</option>
+                    <option value={180}>6 months ahead</option>
+                    <option value={365}>1 year ahead</option>
+                  </select>
+                  <p className="text-xs text-[#667085] mt-1">
+                    How far into the future attendees can book.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Max Bookings Per Day
+                  </label>
+                  <input
+                    type="number"
+                    value={maxDailyBookings}
+                    onChange={(e) => setMaxDailyBookings(e.target.value)}
+                    placeholder="Unlimited"
+                    min={1}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Max Bookings Per Week
+                  </label>
+                  <input
+                    type="number"
+                    value={maxWeeklyBookings}
+                    onChange={(e) => setMaxWeeklyBookings(e.target.value)}
+                    placeholder="Unlimited"
+                    min={1}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-[#667085] -mt-4">
+                Leave empty for unlimited. Limits are for this event, not per attendee.
+              </p>
+
+              <label className="flex items-start gap-3 cursor-pointer pt-4 border-t">
+                <input
+                  type="checkbox"
+                  checked={requireApproval}
+                  onChange={(e) => setRequireApproval(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                />
+                <div>
+                  <span className="font-medium text-[#101E57]">Require Approval</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Bookings will be pending until you manually approve them.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Step 4: Timezone */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
+              <h2 className="text-lg font-semibold text-[#101E57]">Timezone</h2>
+            </div>
+            <p className="text-sm text-[#667085] mb-4">
+              Control how times are displayed on your booking page.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Display Timezone
+                </label>
+                <TimezoneSelector
+                  value={displayTimezone}
+                  onChange={setDisplayTimezone}
+                  className="max-w-md"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  Times will be shown in this timezone by default.
+                </p>
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={lockTimezone}
+                  onChange={(e) => setLockTimezone(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                />
+                <div>
+                  <span className="font-medium text-[#101E57]">Lock Timezone</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Always display times in the selected timezone. Don&apos;t auto-detect attendee&apos;s timezone.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-4">
             <button
               type="submit"
               disabled={loading}
-              className="bg-[#6F71EE] text-white px-6 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+              className="bg-[#6F71EE] text-white px-6 py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
             >
               {loading ? 'Creating...' : 'Create Event'}
             </button>
             <Link
               href="/admin"
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
             >
               Cancel
             </Link>

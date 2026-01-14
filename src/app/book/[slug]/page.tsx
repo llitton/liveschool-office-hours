@@ -166,6 +166,7 @@ export default function BookingPage({
           slot_id: selectedSlot.id,
           ...formData,
           question_responses: questionResponses,
+          attendee_timezone: timezone,
         }),
       });
 
@@ -658,11 +659,53 @@ export default function BookingPage({
                 </svg>
                 Google Meet
               </span>
+              {event.meeting_type === 'one_on_one' && (
+                <span className="flex items-center gap-1 text-[#6F71EE]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                  1-on-1 Session
+                </span>
+              )}
+              {event.meeting_type === 'group' && event.max_attendees > 1 && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Group Session
+                </span>
+              )}
             </div>
 
             {event.description && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-[#667085] whitespace-pre-wrap">{event.description}</p>
+              </div>
+            )}
+
+            {/* Booking Rules Info */}
+            {(event.min_notice_hours > 0 || event.require_approval) && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex flex-wrap gap-2">
+                  {event.min_notice_hours > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {event.min_notice_hours >= 24
+                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
+                        : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
+                    </span>
+                  )}
+                  {event.require_approval && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Requires approval
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -724,14 +767,26 @@ export default function BookingPage({
 
                   const renderSlots = (slotsGroup: SlotWithCount[], label: string, icon: string) => {
                     if (slotsGroup.length === 0) return null;
+
+                    // For one-on-one, filter out booked slots entirely
+                    const isOneOnOne = event.meeting_type === 'one_on_one';
+                    const availableSlots = isOneOnOne
+                      ? slotsGroup.filter(s => s.booking_count === 0)
+                      : slotsGroup;
+
+                    if (availableSlots.length === 0) return null;
+
                     return (
                       <div className="mb-3">
                         <p className="text-xs text-[#667085] mb-2 flex items-center gap-1">
                           <span>{icon}</span> {label}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {slotsGroup.map((slot) => {
+                          {availableSlots.map((slot) => {
                             const isFull = slot.booking_count >= event.max_attendees;
+                            const spotsLeft = event.max_attendees - slot.booking_count;
+                            const showSpotsLeft = !isOneOnOne && event.max_attendees > 1 && spotsLeft < event.max_attendees && spotsLeft > 0;
+
                             return (
                               <button
                                 key={slot.id}
@@ -743,8 +798,13 @@ export default function BookingPage({
                                     : 'border-[#6F71EE] text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white'
                                 }`}
                               >
-                                {formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}
+                                <span>{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
                                 {isFull && ' (Full)'}
+                                {showSpotsLeft && (
+                                  <span className="ml-1 text-xs opacity-75">
+                                    ({spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left)
+                                  </span>
+                                )}
                               </button>
                             );
                           })}

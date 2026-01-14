@@ -3,18 +3,40 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession, getHostWithTokens } from '@/lib/auth';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { checkTimeAvailability } from '@/lib/availability';
-import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping } from 'date-fns';
+import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping, addHours, addDays, isBefore, isAfter } from 'date-fns';
 
 // GET slots for an event
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const eventId = searchParams.get('eventId');
+  const includeAll = searchParams.get('includeAll') === 'true'; // Admin can see all slots
 
   if (!eventId) {
     return NextResponse.json({ error: 'eventId is required' }, { status: 400 });
   }
 
   const supabase = getServiceSupabase();
+
+  // First get the event to check constraints
+  const { data: event, error: eventError } = await supabase
+    .from('oh_events')
+    .select('*')
+    .eq('id', eventId)
+    .single();
+
+  if (eventError || !event) {
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+  }
+
+  // Calculate constraint boundaries
+  const now = new Date();
+  const minNoticeHours = event.min_notice_hours ?? 24;
+  const bookingWindowDays = event.booking_window_days ?? 60;
+
+  // Earliest bookable time (respecting minimum notice)
+  const earliestBookable = addHours(now, minNoticeHours);
+  // Latest bookable time (respecting booking window)
+  const latestBookable = addDays(now, bookingWindowDays);
 
   // Get slots with booking counts and assigned host info
   const { data: slots, error } = await supabase
@@ -26,18 +48,37 @@ export async function GET(request: NextRequest) {
     `)
     .eq('event_id', eventId)
     .eq('is_cancelled', false)
-    .gte('start_time', new Date().toISOString())
+    .gte('start_time', now.toISOString())
     .order('start_time', { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Transform to include booking count
-  const slotsWithCounts = slots.map((slot) => ({
-    ...slot,
-    booking_count: slot.bookings?.[0]?.count || 0,
-  }));
+  // Transform to include booking count and filter by constraints (unless admin)
+  const slotsWithCounts = slots
+    .map((slot) => ({
+      ...slot,
+      booking_count: slot.bookings?.[0]?.count || 0,
+    }))
+    .filter((slot) => {
+      // Admin can see all slots
+      if (includeAll) return true;
+
+      const slotStart = parseISO(slot.start_time);
+
+      // Filter out slots that don't meet minimum notice
+      if (isBefore(slotStart, earliestBookable)) {
+        return false;
+      }
+
+      // Filter out slots outside booking window
+      if (isAfter(slotStart, latestBookable)) {
+        return false;
+      }
+
+      return true;
+    });
 
   return NextResponse.json(slotsWithCounts);
 }

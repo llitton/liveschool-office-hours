@@ -11,7 +11,7 @@ import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
 import { findOrCreateContact, logMeetingActivity } from '@/lib/hubspot';
 import { notifyNewBooking } from '@/lib/slack';
 import { matchPrepResources, formatResourcesForEmail } from '@/lib/prep-matcher';
-import { parseISO, format } from 'date-fns';
+import { parseISO, format, addHours, addDays, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import crypto from 'crypto';
 
 function generateManageToken(): string {
@@ -61,7 +61,7 @@ async function syncBookingToHubSpot(
 // POST create booking (public)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { slot_id, first_name, last_name, email, question_responses } = body;
+  const { slot_id, first_name, last_name, email, question_responses, attendee_timezone } = body;
 
   if (!slot_id || !first_name || !last_name || !email) {
     return NextResponse.json(
@@ -94,6 +94,74 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // === BOOKING CONSTRAINT VALIDATION ===
+  const now = new Date();
+  const slotStart = parseISO(slot.start_time);
+  const event = slot.event;
+
+  // 1. Validate minimum notice
+  const minNoticeHours = event.min_notice_hours ?? 24;
+  const earliestBookable = addHours(now, minNoticeHours);
+  if (isBefore(slotStart, earliestBookable)) {
+    return NextResponse.json(
+      { error: `This slot requires ${minNoticeHours} hours advance notice.` },
+      { status: 400 }
+    );
+  }
+
+  // 2. Validate booking window
+  const bookingWindowDays = event.booking_window_days ?? 60;
+  const latestBookable = addDays(now, bookingWindowDays);
+  if (isAfter(slotStart, latestBookable)) {
+    return NextResponse.json(
+      { error: `Bookings can only be made up to ${bookingWindowDays} days in advance.` },
+      { status: 400 }
+    );
+  }
+
+  // 3. Validate daily booking limit
+  if (event.max_daily_bookings) {
+    const dayStart = startOfDay(slotStart);
+    const dayEnd = endOfDay(slotStart);
+
+    const { count: dailyCount } = await supabase
+      .from('oh_bookings')
+      .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
+      .eq('slot.event_id', event.id)
+      .gte('slot.start_time', dayStart.toISOString())
+      .lte('slot.start_time', dayEnd.toISOString())
+      .is('cancelled_at', null);
+
+    if ((dailyCount || 0) >= event.max_daily_bookings) {
+      return NextResponse.json(
+        { error: `This event has reached its daily booking limit of ${event.max_daily_bookings}.` },
+        { status: 400 }
+      );
+    }
+  }
+
+  // 4. Validate weekly booking limit
+  if (event.max_weekly_bookings) {
+    const weekStart = startOfWeek(slotStart, { weekStartsOn: 0 });
+    const weekEnd = endOfWeek(slotStart, { weekStartsOn: 0 });
+
+    const { count: weeklyCount } = await supabase
+      .from('oh_bookings')
+      .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
+      .eq('slot.event_id', event.id)
+      .gte('slot.start_time', weekStart.toISOString())
+      .lte('slot.start_time', weekEnd.toISOString())
+      .is('cancelled_at', null);
+
+    if ((weeklyCount || 0) >= event.max_weekly_bookings) {
+      return NextResponse.json(
+        { error: `This event has reached its weekly booking limit of ${event.max_weekly_bookings}.` },
+        { status: 400 }
+      );
+    }
+  }
+  // === END CONSTRAINT VALIDATION ===
+
   // Check if slot is full
   const bookingCount = slot.bookings?.[0]?.count || 0;
   if (bookingCount >= slot.event.max_attendees) {
@@ -122,6 +190,9 @@ export async function POST(request: NextRequest) {
   // Generate manage token for attendee self-service
   const manage_token = generateManageToken();
 
+  // Determine booking status based on require_approval setting
+  const bookingStatus = event.require_approval ? 'pending_approval' : 'confirmed';
+
   // Create the booking
   const { data: booking, error: bookingError } = await supabase
     .from('oh_bookings')
@@ -132,6 +203,8 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       manage_token,
       question_responses: question_responses || {},
+      status: bookingStatus,
+      attendee_timezone: attendee_timezone || null,
     })
     .select()
     .single();
@@ -148,8 +221,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (admin?.google_access_token && admin?.google_refresh_token) {
-    // Add to calendar event if it exists
-    if (slot.google_event_id) {
+    // Only add to calendar if booking is confirmed (not pending approval)
+    if (slot.google_event_id && bookingStatus === 'confirmed') {
       try {
         await addAttendeeToEvent(
           admin.google_access_token,
@@ -186,10 +259,14 @@ export async function POST(request: NextRequest) {
           .eq('id', booking.id);
       }
 
+      // Use attendee's timezone for email formatting, fall back to event's display timezone
+      const emailTimezone = attendee_timezone || slot.event.display_timezone || 'America/New_York';
+
       const variables = createEmailVariables(
         { first_name, last_name, email },
         slot.event,
-        slot
+        slot,
+        emailTimezone
       );
 
       const subject = processTemplate(
