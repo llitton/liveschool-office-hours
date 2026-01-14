@@ -87,6 +87,13 @@ export default function SlotCard({
   const [syncFollowupToHubspot, setSyncFollowupToHubspot] = useState(true);
   const [schedulingFollowup, setSchedulingFollowup] = useState(false);
 
+  // Bulk follow-up email state
+  const [showBulkFollowup, setShowBulkFollowup] = useState(false);
+  const [followupRecipients, setFollowupRecipients] = useState<'attended' | 'no_show'>('attended');
+  const [followupSubject, setFollowupSubject] = useState('');
+  const [followupBody, setFollowupBody] = useState('');
+  const [sendingBulkFollowup, setSendingBulkFollowup] = useState(false);
+
   const isPastSlot = isPast(parseISO(slot.end_time));
   const capacityPercent = Math.round((slot.booking_count / event.max_attendees) * 100);
 
@@ -342,6 +349,52 @@ export default function SlotCard({
     }
   };
 
+  const openBulkFollowup = (recipients: 'attended' | 'no_show') => {
+    setFollowupRecipients(recipients);
+    const defaultSubject = recipients === 'attended'
+      ? `Thanks for attending: ${event.name}`
+      : `We missed you at ${event.name}`;
+    const defaultBody = recipients === 'attended'
+      ? `Hi there,\n\nThank you for attending ${event.name}!${recordingLink ? `\n\nHere's the recording from our session:\n${recordingLink}` : ''}\n\nLet us know if you have any questions.\n\nBest,\n${event.host_name}`
+      : `Hi there,\n\nWe noticed you weren't able to make it to ${event.name}. No worries - life happens!\n\nIf you'd like to reschedule for another time, you can do so from your booking confirmation email.\n\nHope to see you soon!\n\n${event.host_name}`;
+    setFollowupSubject(defaultSubject);
+    setFollowupBody(defaultBody);
+    setShowBulkFollowup(true);
+  };
+
+  const handleSendBulkFollowup = async () => {
+    if (!followupSubject.trim() || !followupBody.trim()) return;
+    setSendingBulkFollowup(true);
+
+    try {
+      const response = await fetch(`/api/slots/${slot.id}/send-followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipients: followupRecipients,
+          subject: followupSubject,
+          body: followupBody,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Follow-up sent to ${result.sent} recipient(s)!`);
+        setShowBulkFollowup(false);
+        setFollowupSubject('');
+        setFollowupBody('');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to send follow-up');
+      }
+    } catch (err) {
+      console.error('Failed to send bulk follow-up:', err);
+      alert('Failed to send follow-up');
+    } finally {
+      setSendingBulkFollowup(false);
+    }
+  };
+
   const handleScheduleFollowup = async () => {
     if (!currentBookingId || !followupTitle.trim()) return;
     setSchedulingFollowup(true);
@@ -464,33 +517,69 @@ export default function SlotCard({
         </div>
       </div>
 
-      {/* Recording Link (for past slots) */}
+      {/* Post-Session Actions (for past slots) */}
       {isPastSlot && (
         <div className="px-4 pb-4">
-          <div className="pt-4 border-t border-gray-100">
-            <label className="block text-sm font-medium text-[#101E57] mb-2">
-              Session Recording
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={recordingLink}
-                onChange={(e) => setRecordingLink(e.target.value)}
-                placeholder="https://..."
-                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] bg-white"
-              />
-              <button
-                onClick={handleSaveRecording}
-                disabled={savingRecording}
-                className="px-3 py-1.5 text-sm bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
-              >
-                {savingRecording ? 'Saving...' : slot.recording_link ? 'Update' : 'Save'}
-              </button>
+          <div className="pt-4 border-t border-gray-100 space-y-4">
+            {/* Recording Link */}
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-2">
+                Recording Link (Fireflies, Loom, etc.)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={recordingLink}
+                  onChange={(e) => setRecordingLink(e.target.value)}
+                  placeholder="https://app.fireflies.ai/..."
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] bg-white"
+                />
+                <button
+                  onClick={handleSaveRecording}
+                  disabled={savingRecording}
+                  className="px-3 py-1.5 text-sm bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
+                >
+                  {savingRecording ? 'Saving...' : slot.recording_link ? 'Update' : 'Save'}
+                </button>
+              </div>
             </div>
-            {slot.recording_link && (
-              <p className="text-xs text-[#667085] mt-1">
-                Recording link saved. Attendees will be notified automatically.
-              </p>
+
+            {/* Follow-up Email Buttons */}
+            {bookings && bookings.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Send Follow-up Email
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {bookings.some(b => b.attended_at) && (
+                    <button
+                      onClick={() => openBulkFollowup('attended')}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-[#417762] text-white rounded-lg hover:bg-[#355f4f]"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Email Attendees ({bookings.filter(b => b.attended_at).length})
+                    </button>
+                  )}
+                  {bookings.some(b => b.no_show_at) && (
+                    <button
+                      onClick={() => openBulkFollowup('no_show')}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Email No-Shows ({bookings.filter(b => b.no_show_at).length})
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-[#667085] mt-1">
+                  {recordingLink
+                    ? 'Recording link will be included in attendee emails.'
+                    : 'Add a recording link above to include it in follow-up emails.'}
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -995,6 +1084,87 @@ export default function SlotCard({
                 className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
               >
                 {schedulingFollowup ? 'Scheduling...' : 'Schedule'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Follow-up Email Modal */}
+      {showBulkFollowup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="font-semibold text-[#101E57]">
+                {followupRecipients === 'attended'
+                  ? 'Email Attendees'
+                  : 'Email No-Shows'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowBulkFollowup(false);
+                  setFollowupSubject('');
+                  setFollowupBody('');
+                }}
+                className="text-[#667085] hover:text-[#101E57]"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+              <div className="p-3 rounded-lg bg-[#F6F6F9]">
+                <p className="text-sm text-[#667085]">
+                  Sending to {followupRecipients === 'attended'
+                    ? bookings?.filter(b => b.attended_at).length
+                    : bookings?.filter(b => b.no_show_at).length} recipient(s)
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={followupSubject}
+                  onChange={(e) => setFollowupSubject(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={followupBody}
+                  onChange={(e) => setFollowupBody(e.target.value)}
+                  rows={10}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  {followupRecipients === 'attended' && recordingLink && (
+                    <>Recording link included. </>
+                  )}
+                  Line breaks will be preserved in the email.
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowBulkFollowup(false);
+                  setFollowupSubject('');
+                  setFollowupBody('');
+                }}
+                className="px-4 py-2 text-sm text-[#667085] hover:text-[#101E57]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendBulkFollowup}
+                disabled={sendingBulkFollowup || !followupSubject.trim() || !followupBody.trim()}
+                className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
+              >
+                {sendingBulkFollowup ? 'Sending...' : 'Send Email'}
               </button>
             </div>
           </div>
