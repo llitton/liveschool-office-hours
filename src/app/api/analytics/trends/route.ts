@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       id,
       created_at,
       question_responses,
-      status,
+      attended_at,
+      no_show_at,
       slot:oh_slots!inner(
         start_time,
         event:oh_events!inner(id, name)
@@ -61,9 +62,9 @@ export async function GET(request: NextRequest) {
     const dateKey = format(new Date(booking.created_at), 'yyyy-MM-dd');
     if (dailyStats[dateKey]) {
       dailyStats[dateKey].bookings++;
-      if (booking.status === 'attended') {
+      if (booking.attended_at) {
         dailyStats[dateKey].attended++;
-      } else if (booking.status === 'no_show') {
+      } else if (booking.no_show_at) {
         dailyStats[dateKey].noShow++;
       }
     }
@@ -97,8 +98,8 @@ export async function GET(request: NextRequest) {
 
   // Calculate summary stats
   const totalBookings = bookings?.length || 0;
-  const attendedCount = bookings?.filter((b) => b.status === 'attended').length || 0;
-  const noShowCount = bookings?.filter((b) => b.status === 'no_show').length || 0;
+  const attendedCount = bookings?.filter((b) => b.attended_at).length || 0;
+  const noShowCount = bookings?.filter((b) => b.no_show_at).length || 0;
 
   return NextResponse.json({
     dateRange: {

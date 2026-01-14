@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
       event:oh_events!inner(id, name),
       bookings:oh_bookings(
         id,
-        status,
+        attended_at,
+        no_show_at,
         created_at,
         feedback_rating,
         question_responses
@@ -116,9 +117,9 @@ export async function GET(request: NextRequest) {
     slot.bookings?.forEach((booking) => {
       periodMetrics[periodKey].totalBookings++;
 
-      if (booking.status === 'attended') {
+      if (booking.attended_at) {
         periodMetrics[periodKey].attended++;
-      } else if (booking.status === 'no_show') {
+      } else if (booking.no_show_at) {
         periodMetrics[periodKey].noShows++;
       }
 
