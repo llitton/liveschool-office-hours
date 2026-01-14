@@ -110,7 +110,7 @@ export async function POST(
 
       <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
         <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-          Sent from LiveSchool Office Hours
+          Sent from Connect with LiveSchool
         </p>
       </div>
     </div>

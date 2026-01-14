@@ -92,7 +92,7 @@ export async function POST(
       if (contact?.id) {
         hubspotTaskId = await createTask({
           subject: title,
-          body: notes || `Follow-up for ${booking.first_name} ${booking.last_name} from ${event?.name || 'Office Hours'}`,
+          body: notes || `Follow-up for ${booking.first_name} ${booking.last_name} from ${event?.name || 'Session'}`,
           contactId: contact.id,
           dueDate: parsedDueDate || undefined,
           priority: 'MEDIUM',

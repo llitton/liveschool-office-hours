@@ -19,7 +19,7 @@ export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {
 
 export const MEETING_TYPE_DESCRIPTIONS: Record<MeetingType, string> = {
   one_on_one: 'Single host meets with one attendee at a time',
-  group: 'Single host meets with multiple attendees (office hours style)',
+  group: 'Single host meets with multiple attendees (group style)',
   collective: 'All selected hosts must be available for the meeting',
   round_robin: 'Meetings are distributed across team members',
   panel: 'Multiple hosts interview or meet with one attendee',

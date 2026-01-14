@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { MeetingType } from '@/types';
+import type { MeetingType, RoundRobinStrategy, RoundRobinPeriod } from '@/types';
 import TimezoneSelector from '@/components/TimezoneSelector';
+
+interface TeamMember {
+  id: string;
+  name: string | null;
+  email: string;
+}
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -38,6 +44,43 @@ export default function NewEventPage() {
   const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
   const [lockTimezone, setLockTimezone] = useState(false);
 
+  // Round-robin settings
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
+  const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('cycle');
+  const [roundRobinPeriod, setRoundRobinPeriod] = useState<RoundRobinPeriod>('week');
+  const [loadingTeam, setLoadingTeam] = useState(false);
+
+  // Fetch team members when round-robin is selected
+  useEffect(() => {
+    if (meetingType === 'round_robin' && teamMembers.length === 0) {
+      fetchTeamMembers();
+    }
+  }, [meetingType]);
+
+  const fetchTeamMembers = async () => {
+    setLoadingTeam(true);
+    try {
+      const response = await fetch('/api/admins');
+      if (response.ok) {
+        const data = await response.json();
+        setTeamMembers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch team members:', err);
+    } finally {
+      setLoadingTeam(false);
+    }
+  };
+
+  const toggleHost = (adminId: string) => {
+    setSelectedHosts((prev) =>
+      prev.includes(adminId)
+        ? prev.filter((id) => id !== adminId)
+        : [...prev, adminId]
+    );
+  };
+
   const handleNameChange = (name: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -64,6 +107,13 @@ export default function NewEventPage() {
     setLoading(true);
     setError('');
 
+    // Validate round-robin hosts
+    if (meetingType === 'round_robin' && selectedHosts.length < 2) {
+      setError('Please select at least 2 team members for round-robin distribution.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/events', {
         method: 'POST',
@@ -79,6 +129,10 @@ export default function NewEventPage() {
           require_approval: requireApproval,
           display_timezone: displayTimezone,
           lock_timezone: lockTimezone,
+          // Round-robin settings
+          round_robin_strategy: roundRobinStrategy,
+          round_robin_period: roundRobinPeriod,
+          round_robin_hosts: selectedHosts,
         }),
       });
 
@@ -114,7 +168,7 @@ export default function NewEventPage() {
 
       <main className="max-w-3xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-semibold text-[#101E57] mb-2">Create New Event</h1>
-        <p className="text-[#667085] mb-6">Set up a new booking event for your office hours or meetings.</p>
+        <p className="text-[#667085] mb-6">Set up a new booking event for your team.</p>
 
         {error && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 text-sm">{error}</div>
@@ -173,7 +227,7 @@ export default function NewEventPage() {
                 <div className="flex-1">
                   <span className="font-medium text-[#101E57]">Group Session</span>
                   <p className="text-sm text-[#667085] mt-0.5">
-                    Multiple attendees can join the same time slot. Perfect for office hours, webinars, or group trainings.
+                    Multiple attendees can join the same time slot. Perfect for webinars, group trainings, or Q&A sessions.
                   </p>
                 </div>
               </label>
@@ -205,6 +259,100 @@ export default function NewEventPage() {
             <p className="text-xs text-[#667085] mt-3">
               More meeting types (collective, panel) coming soon.
             </p>
+
+            {/* Round-robin team selection */}
+            {meetingType === 'round_robin' && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="font-medium text-[#101E57] mb-2">Select Team Members</h3>
+                <p className="text-sm text-[#667085] mb-4">
+                  Choose which team members will receive bookings. Select at least 2 people.
+                </p>
+
+                {loadingTeam ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-12 bg-gray-100 rounded-lg" />
+                    <div className="h-12 bg-gray-100 rounded-lg" />
+                  </div>
+                ) : teamMembers.length === 0 ? (
+                  <div className="text-center py-6 bg-gray-50 rounded-lg">
+                    <p className="text-[#667085]">No team members found.</p>
+                    <p className="text-sm text-[#667085] mt-1">
+                      Team members need to log in first to appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {teamMembers.map((member) => (
+                      <label
+                        key={member.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
+                          selectedHosts.includes(member.id)
+                            ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedHosts.includes(member.id)}
+                          onChange={() => toggleHost(member.id)}
+                          className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-[#6F71EE]/10 text-[#6F71EE] flex items-center justify-center text-sm font-medium">
+                            {member.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#101E57]">
+                              {member.name || member.email.split('@')[0]}
+                            </p>
+                            <p className="text-sm text-[#667085]">{member.email}</p>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {selectedHosts.length > 0 && (
+                  <p className="text-sm text-[#6F71EE] mt-2">
+                    {selectedHosts.length} team member{selectedHosts.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+
+                {/* Round-robin strategy */}
+                <div className="mt-6 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Distribution Strategy
+                    </label>
+                    <select
+                      value={roundRobinStrategy}
+                      onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    >
+                      <option value="cycle">Simple Rotation</option>
+                      <option value="least_bookings">Load Balanced</option>
+                      <option value="availability_weighted">Availability Weighted</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Balancing Period
+                    </label>
+                    <select
+                      value={roundRobinPeriod}
+                      onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    >
+                      <option value="day">Daily</option>
+                      <option value="week">Weekly</option>
+                      <option value="month">Monthly</option>
+                      <option value="all_time">All Time</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Step 2: Basic Info */}

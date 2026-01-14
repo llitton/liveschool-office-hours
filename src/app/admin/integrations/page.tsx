@@ -192,7 +192,7 @@ function IntegrationsContent() {
                 width={140}
                 height={36}
               />
-              <span className="text-[#667085] text-sm font-medium">Office Hours</span>
+              <span className="text-[#667085] text-sm font-medium">Connect</span>
             </div>
             <a
               href="/api/auth/logout"
@@ -209,7 +209,7 @@ function IntegrationsContent() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-[#101E57]">Integrations</h1>
           <p className="text-[#667085] mt-1">
-            Connect external services to enhance your office hours
+            Connect external services to enhance your scheduling
           </p>
         </div>
 

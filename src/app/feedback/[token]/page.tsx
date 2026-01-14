@@ -132,7 +132,7 @@ export default function FeedbackPage({
             Thank you for your feedback!
           </h1>
           <p className="text-[#667085]">
-            Your response helps us improve our office hours sessions.
+            Your response helps us improve our sessions.
           </p>
           <div className="mt-6">
             <Image

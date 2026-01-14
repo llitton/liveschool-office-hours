@@ -9,8 +9,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "LiveSchool Office Hours",
-  description: "Book office hours with the LiveSchool team",
+  title: "Connect with LiveSchool",
+  description: "Schedule meetings with the LiveSchool team",
 };
 
 export default function RootLayout({

@@ -248,7 +248,7 @@ export default function DayTimeline({
                   <span className={`text-xs font-medium ${
                     block.type === 'busy' ? 'text-gray-600' : 'text-[#6F71EE]'
                   }`}>
-                    {block.title || (block.type === 'busy' ? 'Busy' : 'Office Hours')}
+                    {block.title || (block.type === 'busy' ? 'Busy' : 'Session')}
                     <span className="font-normal ml-2 opacity-75">
                       {block.start} - {block.end}
                     </span>

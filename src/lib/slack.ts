@@ -155,7 +155,7 @@ export async function notifyNewBooking(booking: {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: 'New Office Hours Booking',
+          text: 'New Connect Booking',
           emoji: true,
         },
       },
@@ -222,7 +222,7 @@ export async function sendDailyDigest(sessions: Array<{
 
   if (sessions.length === 0) {
     return sendSlackMessage({
-      text: 'No office hours sessions scheduled for today.',
+      text: 'No sessions scheduled for today.',
     });
   }
 
@@ -247,7 +247,7 @@ export async function sendDailyDigest(sessions: Array<{
         type: 'header',
         text: {
           type: 'plain_text',
-          text: `Today's Office Hours (${sessions.length} session${sessions.length !== 1 ? 's' : ''})`,
+          text: `Today's Connect (${sessions.length} session${sessions.length !== 1 ? 's' : ''})`,
           emoji: true,
         },
       },
@@ -282,7 +282,7 @@ export async function sendSessionSummary(session: {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: 'Office Hours Session Complete',
+          text: 'Connect Session Complete',
           emoji: true,
         },
       },
@@ -326,7 +326,7 @@ export async function testSlackWebhook(webhookUrl: string): Promise<boolean> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: 'Test message from LiveSchool Office Hours - your Slack integration is working!',
+        text: 'Test message from LiveSchool Connect - your Slack integration is working!',
       }),
     });
 

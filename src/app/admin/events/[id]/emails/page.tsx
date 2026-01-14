@@ -30,7 +30,7 @@ export default function EmailTemplatesPage({
     first_name: 'Sarah',
     last_name: 'Johnson',
     email: 'sarah.johnson@example.com',
-    event_name: event?.name || 'Office Hours',
+    event_name: event?.name || 'Your Session',
     host_name: event?.host_name || 'The Team',
     date: 'Tuesday, January 21, 2025',
     time: '2:00 PM EST',

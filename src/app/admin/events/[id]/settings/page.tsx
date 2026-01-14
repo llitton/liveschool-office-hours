@@ -48,7 +48,7 @@ export default function EventSettingsPage({
 
   // Available preset banners
   const PRESET_BANNERS = [
-    { label: 'Default Office Hours', value: '/banners/default-banner.png' },
+    { label: 'Default Banner', value: '/banners/default-banner.png' },
   ];
 
   useEffect(() => {
@@ -505,7 +505,7 @@ export default function EventSettingsPage({
               };
               const descriptions: Record<string, string> = {
                 one_on_one: 'Single host meets with one attendee at a time',
-                group: 'Single host meets with multiple attendees (office hours style)',
+                group: 'Single host meets with multiple attendees (group style)',
                 round_robin: 'Bookings are automatically distributed across team members',
               };
               return (

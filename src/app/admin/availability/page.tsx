@@ -203,7 +203,7 @@ export default function AvailabilityPage() {
                 width={140}
                 height={36}
               />
-              <span className="text-[#667085] text-sm font-medium">Office Hours</span>
+              <span className="text-[#667085] text-sm font-medium">Connect</span>
             </div>
             <a
               href="/api/auth/logout"
@@ -309,7 +309,7 @@ export default function AvailabilityPage() {
             <div>
               <h2 className="text-lg font-semibold text-[#101E57]">Weekly Availability</h2>
               <p className="text-sm text-[#667085] mt-1">
-                Set your regular hours when you&apos;re available for office hours sessions
+                Set your regular hours when you&apos;re available for sessions
               </p>
             </div>
             {editPatterns.length > 0 && (

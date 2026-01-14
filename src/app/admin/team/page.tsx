@@ -120,7 +120,7 @@ export default function TeamPage() {
                 width={140}
                 height={36}
               />
-              <span className="text-[#667085] text-sm font-medium">Office Hours</span>
+              <span className="text-[#667085] text-sm font-medium">Connect</span>
             </div>
             <a
               href="/api/auth/logout"
@@ -137,7 +137,7 @@ export default function TeamPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-[#101E57]">Team Members</h1>
           <p className="text-[#667085] mt-1">
-            Manage who can access the Office Hours admin dashboard
+            Manage who can access the Connect admin dashboard
           </p>
         </div>
 
@@ -190,7 +190,7 @@ export default function TeamPage() {
                 <p className="font-medium text-[#101E57] mb-1">What they&apos;ll be able to do:</p>
                 <ul className="space-y-0.5">
                   <li>• Sign in with their Google account</li>
-                  <li>• Create and manage office hours events</li>
+                  <li>• Create and manage events</li>
                   <li>• View all bookings and analytics</li>
                   <li>• Configure integrations</li>
                 </ul>
@@ -222,7 +222,7 @@ export default function TeamPage() {
               </div>
               <h3 className="text-[#101E57] font-medium mb-1">No team members yet</h3>
               <p className="text-sm text-[#667085] max-w-xs mx-auto">
-                You&apos;re the only admin right now. Add team members above to give them access to manage Office Hours.
+                You&apos;re the only admin right now. Add team members above to give them access to manage Connect.
               </p>
             </div>
           ) : (

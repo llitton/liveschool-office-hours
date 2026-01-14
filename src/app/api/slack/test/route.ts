@@ -22,7 +22,7 @@ export async function POST() {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: 'LiveSchool Office Hours',
+          text: 'Connect with LiveSchool',
           emoji: true,
         },
       },
@@ -30,7 +30,7 @@ export async function POST() {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: 'Your Slack integration is working! You\'ll receive notifications here when someone books an office hours session.',
+          text: 'Your Slack integration is working! You\'ll receive notifications here when someone books a session.',
         },
       },
     ],

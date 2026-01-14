@@ -45,11 +45,23 @@ export async function POST(request: NextRequest) {
     require_approval = false,
     display_timezone = 'America/New_York',
     lock_timezone = false,
+    // Round-robin settings
+    round_robin_strategy = 'cycle',
+    round_robin_period = 'week',
+    round_robin_hosts = [],
   } = body;
 
   if (!name || !slug) {
     return NextResponse.json(
       { error: 'Name and slug are required' },
+      { status: 400 }
+    );
+  }
+
+  // Validate round-robin requires at least 2 hosts
+  if (meeting_type === 'round_robin' && round_robin_hosts.length < 2) {
+    return NextResponse.json(
+      { error: 'Round-robin events require at least 2 team members' },
       { status: 400 }
     );
   }
@@ -84,6 +96,9 @@ export async function POST(request: NextRequest) {
       require_approval,
       display_timezone,
       lock_timezone,
+      // Round-robin settings
+      round_robin_strategy: meeting_type === 'round_robin' ? round_robin_strategy : null,
+      round_robin_period: meeting_type === 'round_robin' ? round_robin_period : 'week',
     })
     .select()
     .single();
@@ -96,6 +111,25 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // For round-robin events, add the selected hosts
+  if (meeting_type === 'round_robin' && round_robin_hosts.length > 0) {
+    const hostEntries = round_robin_hosts.map((adminId: string) => ({
+      event_id: event.id,
+      admin_id: adminId,
+      role: 'host',
+      can_manage_slots: true,
+      can_view_bookings: true,
+    }));
+
+    const { error: hostsError } = await supabase
+      .from('oh_event_hosts')
+      .insert(hostEntries);
+
+    if (hostsError) {
+      console.error('Failed to add round-robin hosts:', hostsError);
+    }
   }
 
   return NextResponse.json(event);

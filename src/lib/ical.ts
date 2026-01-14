@@ -25,13 +25,13 @@ function escapeICalText(text: string): string {
 }
 
 export function generateICalFile(event: CalendarEventData): string {
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@liveschool-office-hours`;
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@liveschool-connect`;
   const now = new Date();
 
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//LiveSchool//Office Hours//EN',
+    'PRODID:-//LiveSchool//Connect//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',

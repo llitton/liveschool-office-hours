@@ -26,7 +26,7 @@ export default async function AdminPage({
             height={48}
             className="mx-auto mb-6"
           />
-          <h1 className="text-2xl font-semibold text-[#101E57] mb-2">Office Hours</h1>
+          <h1 className="text-2xl font-semibold text-[#101E57] mb-2">Connect with LiveSchool</h1>
           <p className="text-[#667085] mb-6">Admin Dashboard</p>
 
           {error === 'unauthorized' && (
@@ -94,7 +94,7 @@ export default async function AdminPage({
         <DashboardStats />
 
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-[#101E57]">Office Hours Events</h2>
+          <h2 className="text-2xl font-semibold text-[#101E57]">Events</h2>
           <Link
             href="/admin/events/new"
             className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
@@ -112,7 +112,7 @@ export default async function AdminPage({
             </div>
             <h3 className="text-lg font-semibold text-[#101E57] mb-2">No events yet</h3>
             <p className="text-[#667085] mb-6 max-w-sm mx-auto">
-              Create your first office hours event to start accepting bookings from attendees.
+              Create your first event to start accepting bookings from attendees.
             </p>
             <Link
               href="/admin/events/new"

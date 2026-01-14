@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       const endTime = new Date(slot.end_time);
       const eventName = slot.event && typeof slot.event === 'object' && 'name' in slot.event
         ? (slot.event as { name: string }).name
-        : 'Office Hours';
+        : 'Session';
 
       blocks.push({
         start: format(startTime, 'HH:mm'),

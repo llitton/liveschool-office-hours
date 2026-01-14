@@ -279,7 +279,7 @@ export async function logMeetingActivity(
     const durationMs = endTime.getTime() - startTime.getTime();
 
     const body = `
-Office Hours Session: ${event.name}
+Session: ${event.name}
 
 Attendee: ${booking.attendee_name} (${booking.attendee_email})
 Status: ${booking.status}
@@ -291,7 +291,7 @@ ${slot.google_meet_link ? `\nMeet Link: ${slot.google_meet_link}` : ''}
       method: 'POST',
       body: JSON.stringify({
         properties: {
-          hs_meeting_title: `Office Hours: ${event.name}`,
+          hs_meeting_title: `Connect: ${event.name}`,
           hs_meeting_body: body,
           hs_meeting_start_time: startTime.toISOString(),
           hs_meeting_end_time: endTime.toISOString(),

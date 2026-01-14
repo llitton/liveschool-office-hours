@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
         calendarAccessToken,
         calendarRefreshToken,
         {
-          summary: `[Office Hours] ${event.name}`,
+          summary: `[Connect] ${event.name}`,
           description: event.description || '',
           startTime: start_time,
           endTime: end_time,

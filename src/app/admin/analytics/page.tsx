@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
                 width={140}
                 height={36}
               />
-              <span className="text-[#667085] text-sm font-medium">Office Hours</span>
+              <span className="text-[#667085] text-sm font-medium">Connect</span>
             </div>
             <a
               href="/api/auth/logout"
