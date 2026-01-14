@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/status",
-      "destination": "https://liveschool-status.vercel.app/"
+      "destination": "https://liveschool-status.vercel.app/status"
     },
     {
       "source": "/status/:path*",
-      "destination": "https://liveschool-status.vercel.app/:path*"
+      "destination": "https://liveschool-status.vercel.app/status/:path*"
     }
   ],
   "crons": [
