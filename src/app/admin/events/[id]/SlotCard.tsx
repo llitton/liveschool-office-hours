@@ -98,6 +98,13 @@ export default function SlotCard({
   const [showWrapUp, setShowWrapUp] = useState(false);
   const [wrapUpStep, setWrapUpStep] = useState<'attendance' | 'recording' | 'followup'>('attendance');
   const [markingAllAttendance, setMarkingAllAttendance] = useState(false);
+  const [syncingFromMeet, setSyncingFromMeet] = useState(false);
+  const [syncResult, setSyncResult] = useState<{
+    success: boolean;
+    attended: number;
+    noShow: number;
+    error?: string;
+  } | null>(null);
 
   const isPastSlot = isPast(parseISO(slot.end_time));
   const capacityPercent = Math.round((slot.booking_count / event.max_attendees) * 100);
@@ -142,6 +149,52 @@ export default function SlotCard({
       console.error('Failed to mark all attendance:', err);
     } finally {
       setMarkingAllAttendance(false);
+    }
+  };
+
+  const handleSyncFromMeet = async () => {
+    if (!slot.google_meet_link) {
+      setSyncResult({ success: false, attended: 0, noShow: 0, error: 'No Google Meet link for this session' });
+      return;
+    }
+
+    setSyncingFromMeet(true);
+    setSyncResult(null);
+
+    try {
+      const response = await fetch(`/api/slots/${slot.id}/sync-attendance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minDuration: 5 }), // 5 min minimum to count as attended
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSyncResult({
+          success: true,
+          attended: data.attended,
+          noShow: data.noShow,
+        });
+        onRefresh();
+      } else {
+        setSyncResult({
+          success: false,
+          attended: 0,
+          noShow: 0,
+          error: data.error || 'Failed to sync attendance',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to sync from Meet:', err);
+      setSyncResult({
+        success: false,
+        attended: 0,
+        noShow: 0,
+        error: 'Network error syncing attendance',
+      });
+    } finally {
+      setSyncingFromMeet(false);
     }
   };
 
@@ -1233,10 +1286,66 @@ export default function SlotCard({
                     Mark who attended and who didn&apos;t show up. Attendance is synced to HubSpot automatically.
                   </p>
 
-                  {/* Bulk actions */}
+                  {/* Sync from Google Meet */}
+                  {slot.google_meet_link && bookings.some(b => !b.cancelled_at && !b.attended_at && !b.no_show_at) && (
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-[#101E57] mb-1">Auto-detect from Google Meet</h4>
+                          <p className="text-sm text-[#667085] mb-3">
+                            Automatically mark attendance based on who actually joined the Google Meet call (5+ min).
+                          </p>
+                          <button
+                            onClick={handleSyncFromMeet}
+                            disabled={syncingFromMeet}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {syncingFromMeet ? (
+                              <>
+                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                Syncing...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Sync from Google Meet
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Sync result */}
+                      {syncResult && (
+                        <div className={`mt-3 p-3 rounded-lg ${syncResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+                          {syncResult.success ? (
+                            <p className="text-sm text-green-700">
+                              Synced! {syncResult.attended} attended, {syncResult.noShow} no-shows marked.
+                            </p>
+                          ) : (
+                            <p className="text-sm text-red-700">
+                              {syncResult.error}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Manual bulk actions */}
                   {bookings.some(b => !b.cancelled_at && !b.attended_at && !b.no_show_at) && (
-                    <div className="flex gap-2 p-3 bg-[#F6F6F9] rounded-lg">
-                      <span className="text-sm text-[#667085]">Quick actions:</span>
+                    <div className="flex items-center gap-2 p-3 bg-[#F6F6F9] rounded-lg">
+                      <span className="text-sm text-[#667085]">Or mark manually:</span>
                       <button
                         onClick={() => handleMarkAllAttendance('attended')}
                         disabled={markingAllAttendance}
