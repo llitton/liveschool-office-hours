@@ -100,6 +100,15 @@ export default function NewEventPage() {
     } else if (type === 'group' && maxAttendees === 1) {
       setMaxAttendees(30);
     }
+    // Set sensible defaults for group sessions (hosts create slots manually)
+    if (type === 'group') {
+      setMinNoticeHours(0);
+      setBookingWindowDays(365);
+    } else {
+      // Restore defaults for other types
+      setMinNoticeHours(24);
+      setBookingWindowDays(60);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -507,154 +516,144 @@ export default function NewEventPage() {
             </div>
           </div>
 
-          {/* Step 3: Booking Rules */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
-              <h2 className="text-lg font-semibold text-[#101E57]">Booking Rules</h2>
-            </div>
-            <p className="text-sm text-[#667085] mb-4">
-              Control when and how attendees can book sessions.
-            </p>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Minimum Notice
-                  </label>
-                  <select
-                    value={minNoticeHours}
-                    onChange={(e) => setMinNoticeHours(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  >
-                    <option value={0}>No minimum</option>
-                    <option value={1}>1 hour</option>
-                    <option value={2}>2 hours</option>
-                    <option value={4}>4 hours</option>
-                    <option value={12}>12 hours</option>
-                    <option value={24}>24 hours (1 day)</option>
-                    <option value={48}>48 hours (2 days)</option>
-                    <option value={72}>72 hours (3 days)</option>
-                    <option value={168}>1 week</option>
-                  </select>
-                  <p className="text-xs text-[#667085] mt-1">
-                    How far in advance attendees must book.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Booking Window
-                  </label>
-                  <select
-                    value={bookingWindowDays}
-                    onChange={(e) => setBookingWindowDays(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  >
-                    <option value={7}>1 week ahead</option>
-                    <option value={14}>2 weeks ahead</option>
-                    <option value={30}>30 days ahead</option>
-                    <option value={60}>60 days ahead</option>
-                    <option value={90}>90 days ahead</option>
-                    <option value={180}>6 months ahead</option>
-                    <option value={365}>1 year ahead</option>
-                  </select>
-                  <p className="text-xs text-[#667085] mt-1">
-                    How far into the future attendees can book.
-                  </p>
-                </div>
+          {/* Step 3: Booking Rules - Only shown for one_on_one and round_robin */}
+          {(meetingType === 'one_on_one' || meetingType === 'round_robin') && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">3</span>
+                <h2 className="text-lg font-semibold text-[#101E57]">Booking Rules</h2>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Max Bookings Per Day
-                  </label>
-                  <input
-                    type="number"
-                    value={maxDailyBookings}
-                    onChange={(e) => setMaxDailyBookings(e.target.value)}
-                    placeholder="Unlimited"
-                    min={1}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Max Bookings Per Week
-                  </label>
-                  <input
-                    type="number"
-                    value={maxWeeklyBookings}
-                    onChange={(e) => setMaxWeeklyBookings(e.target.value)}
-                    placeholder="Unlimited"
-                    min={1}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-[#667085] -mt-4">
-                Leave empty for unlimited. Limits are for this event, not per attendee.
+              <p className="text-sm text-[#667085] mb-4">
+                Control when and how attendees can book sessions.
               </p>
 
-              <label className="flex items-start gap-3 cursor-pointer pt-4 border-t">
-                <input
-                  type="checkbox"
-                  checked={requireApproval}
-                  onChange={(e) => setRequireApproval(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
-                />
-                <div>
-                  <span className="font-medium text-[#101E57]">Require Approval</span>
-                  <p className="text-sm text-[#667085] mt-0.5">
-                    Bookings will be pending until you manually approve them.
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Minimum Notice
+                    </label>
+                    <select
+                      value={minNoticeHours}
+                      onChange={(e) => setMinNoticeHours(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    >
+                      <option value={0}>No minimum</option>
+                      <option value={1}>1 hour</option>
+                      <option value={2}>2 hours</option>
+                      <option value={4}>4 hours</option>
+                      <option value={12}>12 hours</option>
+                      <option value={24}>24 hours (1 day)</option>
+                      <option value={48}>48 hours (2 days)</option>
+                      <option value={72}>72 hours (3 days)</option>
+                      <option value={168}>1 week</option>
+                    </select>
+                    <p className="text-xs text-[#667085] mt-1">
+                      How far in advance attendees must book.
+                    </p>
+                  </div>
 
-          {/* Step 4: Timezone */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Booking Window
+                    </label>
+                    <select
+                      value={bookingWindowDays}
+                      onChange={(e) => setBookingWindowDays(parseInt(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    >
+                      <option value={7}>1 week ahead</option>
+                      <option value={14}>2 weeks ahead</option>
+                      <option value={30}>30 days ahead</option>
+                      <option value={60}>60 days ahead</option>
+                      <option value={90}>90 days ahead</option>
+                      <option value={180}>6 months ahead</option>
+                      <option value={365}>1 year ahead</option>
+                    </select>
+                    <p className="text-xs text-[#667085] mt-1">
+                      How far into the future attendees can book.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Max Bookings Per Day
+                    </label>
+                    <input
+                      type="number"
+                      value={maxDailyBookings}
+                      onChange={(e) => setMaxDailyBookings(e.target.value)}
+                      placeholder="Unlimited"
+                      min={1}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Max Bookings Per Week
+                    </label>
+                    <input
+                      type="number"
+                      value={maxWeeklyBookings}
+                      onChange={(e) => setMaxWeeklyBookings(e.target.value)}
+                      placeholder="Unlimited"
+                      min={1}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-[#667085] -mt-4">
+                  Leave empty for unlimited. Limits are for this event, not per attendee.
+                </p>
+
+                <label className="flex items-start gap-3 cursor-pointer pt-4 border-t">
+                  <input
+                    type="checkbox"
+                    checked={requireApproval}
+                    onChange={(e) => setRequireApproval(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">Require Approval</span>
+                    <p className="text-sm text-[#667085] mt-0.5">
+                      Bookings will be pending until you manually approve them.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Timezone - Simplified inline for group, or Step 3/4 for others */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
+              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                {meetingType === 'group' ? '3' : '4'}
+              </span>
               <h2 className="text-lg font-semibold text-[#101E57]">Timezone</h2>
             </div>
-            <p className="text-sm text-[#667085] mb-4">
-              Control how times are displayed on your booking page.
-            </p>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1">
-                  Display Timezone
-                </label>
-                <TimezoneSelector
-                  value={displayTimezone}
-                  onChange={setDisplayTimezone}
-                  className="max-w-md"
-                />
-                <p className="text-xs text-[#667085] mt-1">
-                  Times will be shown in this timezone by default.
-                </p>
-              </div>
-
-              <label className="flex items-start gap-3 cursor-pointer">
+            <div className="flex items-center gap-4">
+              <TimezoneSelector
+                value={displayTimezone}
+                onChange={setDisplayTimezone}
+                className="flex-1 max-w-sm"
+              />
+              <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
                   type="checkbox"
                   checked={lockTimezone}
                   onChange={(e) => setLockTimezone(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                  className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
                 />
-                <div>
-                  <span className="font-medium text-[#101E57]">Lock Timezone</span>
-                  <p className="text-sm text-[#667085] mt-0.5">
-                    Always display times in the selected timezone. Don&apos;t auto-detect attendee&apos;s timezone.
-                  </p>
-                </div>
+                <span className="text-[#667085]">Lock timezone</span>
               </label>
             </div>
+            <p className="text-xs text-[#667085] mt-2">
+              Times will be shown in this timezone. {lockTimezone ? 'Attendee timezone detection is disabled.' : 'Attendees can view in their own timezone.'}
+            </p>
           </div>
 
           {/* Submit */}
