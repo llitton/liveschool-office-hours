@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
+import { getAvailableSlots, syncGoogleCalendarBusy } from '@/lib/availability';
+import { addDays, format, parseISO, isToday, isTomorrow } from 'date-fns';
 
 interface AvailabilityPattern {
   id: string;
@@ -9,6 +11,14 @@ interface AvailabilityPattern {
   end_time: string;
   timezone: string;
   is_active: boolean;
+}
+
+interface AdminWithTokens {
+  id: string;
+  name: string | null;
+  email: string;
+  google_access_token?: string | null;
+  google_refresh_token?: string | null;
 }
 
 // GET all admins (team members) with optional availability
@@ -23,49 +33,126 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // If we need calendar data, fetch tokens too
+  const selectFields = includeAvailability
+    ? 'id, name, email, google_access_token, google_refresh_token'
+    : 'id, name, email';
+
   const { data: admins, error } = await supabase
     .from('oh_admins')
-    .select('id, name, email')
+    .select(selectFields)
     .order('name', { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // If availability requested, fetch patterns for all admins
+  // If availability requested, compute real availability from calendar
   if (includeAvailability && admins && admins.length > 0) {
-    const adminIds = admins.map((a) => a.id);
+    const now = new Date();
+    const lookAheadDays = 14; // Look 2 weeks ahead
+    const endDate = addDays(now, lookAheadDays);
 
-    const { data: patterns } = await supabase
-      .from('oh_availability_patterns')
-      .select('*')
-      .in('admin_id', adminIds)
-      .eq('is_active', true)
-      .order('day_of_week', { ascending: true });
+    const adminsWithAvailability = await Promise.all(
+      (admins as unknown as AdminWithTokens[]).map(async (admin) => {
+        const hasGoogleConnected = !!(admin.google_access_token && admin.google_refresh_token);
 
-    // Group patterns by admin_id
-    const patternsByAdmin: Record<string, AvailabilityPattern[]> = {};
-    (patterns || []).forEach((p: AvailabilityPattern & { admin_id: string }) => {
-      if (!patternsByAdmin[p.admin_id]) {
-        patternsByAdmin[p.admin_id] = [];
-      }
-      patternsByAdmin[p.admin_id].push(p);
-    });
+        // Base response without tokens
+        const baseAdmin = {
+          id: admin.id,
+          name: admin.name,
+          email: admin.email,
+        };
 
-    // Add availability summary to each admin
-    const adminsWithAvailability = admins.map((admin) => {
-      const adminPatterns = patternsByAdmin[admin.id] || [];
-      return {
-        ...admin,
-        availability_patterns: adminPatterns,
-        availability_summary: formatAvailabilitySummary(adminPatterns),
-      };
-    });
+        if (!hasGoogleConnected) {
+          return {
+            ...baseAdmin,
+            google_connected: false,
+            availability_summary: 'Google Calendar not connected',
+            next_available_slots: [],
+          };
+        }
+
+        try {
+          // Sync calendar busy data (in background, don't block)
+          syncGoogleCalendarBusy(
+            admin.id,
+            admin.google_access_token!,
+            admin.google_refresh_token!,
+            now,
+            endDate
+          ).catch((err) => console.error(`Failed to sync calendar for ${admin.email}:`, err));
+
+          // Get available slots (30-min duration, 15-min buffer as defaults)
+          const availableSlots = await getAvailableSlots(
+            admin.id,
+            30, // default duration
+            15, // default buffer
+            now,
+            endDate
+          );
+
+          // Format next available slots (show up to 5)
+          const nextSlots = availableSlots.slice(0, 5).map((slot) => ({
+            start: slot.start.toISOString(),
+            display: formatSlotDisplay(slot.start),
+          }));
+
+          return {
+            ...baseAdmin,
+            google_connected: true,
+            availability_summary: formatNextAvailableSummary(availableSlots),
+            next_available_slots: nextSlots,
+          };
+        } catch (err) {
+          console.error(`Failed to get availability for ${admin.email}:`, err);
+          return {
+            ...baseAdmin,
+            google_connected: true,
+            availability_summary: 'Unable to load calendar',
+            next_available_slots: [],
+          };
+        }
+      })
+    );
 
     return NextResponse.json(adminsWithAvailability);
   }
 
   return NextResponse.json(admins || []);
+}
+
+// Format a single slot for display (e.g., "Today 2pm", "Tomorrow 10am", "Mon 3pm")
+function formatSlotDisplay(date: Date): string {
+  const time = format(date, 'ha').toLowerCase(); // "2pm"
+
+  if (isToday(date)) {
+    return `Today ${time}`;
+  }
+  if (isTomorrow(date)) {
+    return `Tomorrow ${time}`;
+  }
+
+  // Within this week, show day name
+  const dayName = format(date, 'EEE'); // "Mon"
+  return `${dayName} ${time}`;
+}
+
+// Format summary of next available times
+function formatNextAvailableSummary(slots: { start: Date; end: Date }[]): string {
+  if (slots.length === 0) {
+    return 'No availability in next 2 weeks';
+  }
+
+  // Show first 3 available times
+  const summarySlots = slots.slice(0, 3);
+  const summaryText = summarySlots.map((s) => formatSlotDisplay(s.start)).join(', ');
+
+  if (slots.length > 3) {
+    return `Next: ${summaryText} +${slots.length - 3} more`;
+  }
+
+  return `Next: ${summaryText}`;
 }
 
 // Format availability patterns into a human-readable summary
