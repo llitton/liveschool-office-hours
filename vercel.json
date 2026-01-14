@@ -1,4 +1,14 @@
 {
+  "rewrites": [
+    {
+      "source": "/status",
+      "destination": "https://liveschool-status.vercel.app/"
+    },
+    {
+      "source": "/status/:path*",
+      "destination": "https://liveschool-status.vercel.app/:path*"
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/send-reminders",
@@ -11,6 +21,10 @@
     {
       "path": "/api/cron/sync-availability",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/session-prep",
+      "schedule": "0 12 * * *"
     }
   ]
 }

@@ -74,19 +74,13 @@ export async function POST(
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  // Build comment with topics suggestion if provided
-  let fullComment = comment || '';
-  if (topics_for_next_time) {
-    fullComment += fullComment ? '\n\n' : '';
-    fullComment += `Topics for next time: ${topics_for_next_time}`;
-  }
-
   // Update booking with feedback
   const { error: updateError } = await supabase
     .from('oh_bookings')
     .update({
       feedback_rating: rating,
-      feedback_comment: fullComment || null,
+      feedback_comment: comment || null,
+      feedback_topic_suggestion: topics_for_next_time || null,
       feedback_submitted_at: new Date().toISOString(),
     })
     .eq('id', booking.id);

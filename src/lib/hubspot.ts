@@ -407,6 +407,134 @@ export async function getContactDetails(contactId: string): Promise<{
   }
 }
 
+export interface HubSpotEnrichedContact {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  company: {
+    id: string;
+    name: string;
+  } | null;
+  deal: {
+    id: string;
+    name: string;
+    stage: string;
+    amount: number | null;
+  } | null;
+  meetingsCount: number;
+  lastContactedAt: string | null;
+}
+
+/**
+ * Get enriched contact data with company and deal info
+ */
+export async function getContactWithCompany(email: string): Promise<HubSpotEnrichedContact | null> {
+  try {
+    // First find the contact by email
+    const contact = await findContactByEmail(email);
+    if (!contact) {
+      return null;
+    }
+
+    const result: HubSpotEnrichedContact = {
+      id: contact.id,
+      email: contact.properties.email,
+      firstName: contact.properties.firstname || null,
+      lastName: contact.properties.lastname || null,
+      company: null,
+      deal: null,
+      meetingsCount: 0,
+      lastContactedAt: null,
+    };
+
+    // Get associated companies
+    try {
+      const companiesResponse = await hubspotFetch(
+        `/crm/v4/objects/contacts/${contact.id}/associations/companies`
+      );
+      if (companiesResponse.ok) {
+        const companiesData = await companiesResponse.json();
+        if (companiesData.results && companiesData.results.length > 0) {
+          const companyId = companiesData.results[0].toObjectId;
+          // Get company details
+          const companyResponse = await hubspotFetch(
+            `/crm/v3/objects/companies/${companyId}?properties=name,domain`
+          );
+          if (companyResponse.ok) {
+            const companyData = await companyResponse.json();
+            result.company = {
+              id: companyId,
+              name: companyData.properties.name || 'Unknown Company',
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch company association:', err);
+    }
+
+    // Get associated deals
+    try {
+      const dealsResponse = await hubspotFetch(
+        `/crm/v4/objects/contacts/${contact.id}/associations/deals`
+      );
+      if (dealsResponse.ok) {
+        const dealsData = await dealsResponse.json();
+        if (dealsData.results && dealsData.results.length > 0) {
+          const dealId = dealsData.results[0].toObjectId;
+          // Get deal details
+          const dealResponse = await hubspotFetch(
+            `/crm/v3/objects/deals/${dealId}?properties=dealname,dealstage,amount,hs_lastmodifieddate`
+          );
+          if (dealResponse.ok) {
+            const dealData = await dealResponse.json();
+            result.deal = {
+              id: dealId,
+              name: dealData.properties.dealname || 'Unknown Deal',
+              stage: dealData.properties.dealstage || 'unknown',
+              amount: dealData.properties.amount ? parseFloat(dealData.properties.amount) : null,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch deal association:', err);
+    }
+
+    // Get meetings count
+    try {
+      const meetingsResponse = await hubspotFetch(
+        `/crm/v4/objects/contacts/${contact.id}/associations/meetings`
+      );
+      if (meetingsResponse.ok) {
+        const meetingsData = await meetingsResponse.json();
+        result.meetingsCount = meetingsData.results?.length || 0;
+      }
+    } catch (err) {
+      console.error('Failed to fetch meetings:', err);
+    }
+
+    // Get last activity date
+    try {
+      const activityResponse = await hubspotFetch(
+        `/crm/v3/objects/contacts/${contact.id}?properties=notes_last_contacted`
+      );
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        result.lastContactedAt = activityData.properties.notes_last_contacted || null;
+      }
+    } catch (err) {
+      // Ignore - not critical
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Failed to get enriched contact:', error);
+    return null;
+  }
+}
+
 /**
  * Check if HubSpot is configured and connected
  */

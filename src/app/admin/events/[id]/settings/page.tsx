@@ -3,8 +3,9 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { OHEvent, CustomQuestion } from '@/types';
+import type { OHEvent, CustomQuestion, MeetingType, MEETING_TYPE_LABELS, MEETING_TYPE_DESCRIPTIONS } from '@/types';
 import Breadcrumb from '@/components/Breadcrumb';
+import TimezoneSelector from '@/components/TimezoneSelector';
 
 export default function EventSettingsPage({
   params,
@@ -25,6 +26,20 @@ export default function EventSettingsPage({
   const [bannerImage, setBannerImage] = useState('');
   const [customBannerUrl, setCustomBannerUrl] = useState('');
 
+  // Meeting type
+  const [meetingType, setMeetingType] = useState<MeetingType>('group');
+
+  // Booking constraints
+  const [minNoticeHours, setMinNoticeHours] = useState(24);
+  const [maxDailyBookings, setMaxDailyBookings] = useState<string>('');
+  const [maxWeeklyBookings, setMaxWeeklyBookings] = useState<string>('');
+  const [bookingWindowDays, setBookingWindowDays] = useState(60);
+  const [requireApproval, setRequireApproval] = useState(false);
+
+  // Timezone settings
+  const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
+  const [lockTimezone, setLockTimezone] = useState(false);
+
   // Available preset banners
   const PRESET_BANNERS = [
     { label: 'Default Office Hours', value: '/banners/default-banner.png' },
@@ -42,6 +57,20 @@ export default function EventSettingsPage({
       setEvent(eventData);
       setCustomQuestions(eventData.custom_questions || []);
       setPrepMaterials(eventData.prep_materials || '');
+
+      // Set meeting type
+      setMeetingType(eventData.meeting_type || 'group');
+
+      // Set booking constraints
+      setMinNoticeHours(eventData.min_notice_hours ?? 24);
+      setMaxDailyBookings(eventData.max_daily_bookings?.toString() || '');
+      setMaxWeeklyBookings(eventData.max_weekly_bookings?.toString() || '');
+      setBookingWindowDays(eventData.booking_window_days ?? 60);
+      setRequireApproval(eventData.require_approval ?? false);
+
+      // Set timezone settings
+      setDisplayTimezone(eventData.display_timezone || 'America/New_York');
+      setLockTimezone(eventData.lock_timezone ?? false);
 
       // Set banner state
       const currentBanner = eventData.banner_image || '';
@@ -82,6 +111,17 @@ export default function EventSettingsPage({
           custom_questions: customQuestions,
           prep_materials: prepMaterials,
           banner_image: finalBannerImage,
+          // Meeting type
+          meeting_type: meetingType,
+          // Booking constraints
+          min_notice_hours: minNoticeHours,
+          max_daily_bookings: maxDailyBookings ? parseInt(maxDailyBookings) : null,
+          max_weekly_bookings: maxWeeklyBookings ? parseInt(maxWeeklyBookings) : null,
+          booking_window_days: bookingWindowDays,
+          require_approval: requireApproval,
+          // Timezone settings
+          display_timezone: displayTimezone,
+          lock_timezone: lockTimezone,
         }),
       });
 
@@ -434,6 +474,206 @@ export default function EventSettingsPage({
               )}
             </div>
           )}
+        </div>
+
+        {/* Meeting Type */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Meeting Type</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Choose how attendees will be scheduled for this event.
+          </p>
+
+          <div className="grid gap-3">
+            {(['one_on_one', 'group'] as MeetingType[]).map((type) => (
+              <label
+                key={type}
+                className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                  meetingType === type
+                    ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="meeting_type"
+                  value={type}
+                  checked={meetingType === type}
+                  onChange={() => setMeetingType(type)}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                />
+                <div>
+                  <span className="font-medium text-[#101E57]">
+                    {type === 'one_on_one' ? 'One-on-One' : 'Group Session'}
+                  </span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    {type === 'one_on_one'
+                      ? 'Single host meets with one attendee at a time'
+                      : 'Single host meets with multiple attendees (office hours style)'}
+                  </p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <p className="text-xs text-[#667085] mt-3">
+            More meeting types (round-robin, collective, panel) coming soon.
+          </p>
+        </div>
+
+        {/* Booking Constraints */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Booking Rules</h2>
+          <p className="text-sm text-[#667085] mb-6">
+            Control when and how attendees can book sessions.
+          </p>
+
+          <div className="space-y-6">
+            {/* Minimum Notice */}
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-2">
+                Minimum Notice
+              </label>
+              <div className="flex items-center gap-3">
+                <select
+                  value={minNoticeHours}
+                  onChange={(e) => setMinNoticeHours(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                >
+                  <option value={0}>No minimum</option>
+                  <option value={1}>1 hour</option>
+                  <option value={2}>2 hours</option>
+                  <option value={4}>4 hours</option>
+                  <option value={12}>12 hours</option>
+                  <option value={24}>24 hours (1 day)</option>
+                  <option value={48}>48 hours (2 days)</option>
+                  <option value={72}>72 hours (3 days)</option>
+                  <option value={168}>1 week</option>
+                </select>
+                <span className="text-sm text-[#667085]">before the session</span>
+              </div>
+              <p className="text-xs text-[#667085] mt-1">
+                Prevents last-minute bookings. Attendees must book at least this far in advance.
+              </p>
+            </div>
+
+            {/* Booking Window */}
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-2">
+                Booking Window
+              </label>
+              <div className="flex items-center gap-3">
+                <select
+                  value={bookingWindowDays}
+                  onChange={(e) => setBookingWindowDays(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                >
+                  <option value={7}>1 week</option>
+                  <option value={14}>2 weeks</option>
+                  <option value={30}>30 days</option>
+                  <option value={60}>60 days</option>
+                  <option value={90}>90 days</option>
+                  <option value={180}>6 months</option>
+                  <option value={365}>1 year</option>
+                </select>
+                <span className="text-sm text-[#667085]">into the future</span>
+              </div>
+              <p className="text-xs text-[#667085] mt-1">
+                How far in advance attendees can book sessions.
+              </p>
+            </div>
+
+            {/* Daily/Weekly Limits */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Max Bookings Per Day
+                </label>
+                <input
+                  type="number"
+                  value={maxDailyBookings}
+                  onChange={(e) => setMaxDailyBookings(e.target.value)}
+                  placeholder="Unlimited"
+                  min={1}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Max Bookings Per Week
+                </label>
+                <input
+                  type="number"
+                  value={maxWeeklyBookings}
+                  onChange={(e) => setMaxWeeklyBookings(e.target.value)}
+                  placeholder="Unlimited"
+                  min={1}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-[#667085] -mt-4">
+              Leave empty for unlimited. Limits are per event, not per attendee.
+            </p>
+
+            {/* Require Approval */}
+            <div className="pt-4 border-t">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={requireApproval}
+                  onChange={(e) => setRequireApproval(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                />
+                <div>
+                  <span className="font-medium text-[#101E57]">Require Approval</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Bookings will be pending until you manually approve them.
+                    Attendees won&apos;t receive confirmation until approved.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Timezone Settings */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Timezone</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Control how times are displayed on your booking page.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-2">
+                Display Timezone
+              </label>
+              <TimezoneSelector
+                value={displayTimezone}
+                onChange={setDisplayTimezone}
+                className="max-w-md"
+              />
+              <p className="text-xs text-[#667085] mt-1">
+                Times will be shown in this timezone by default.
+              </p>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={lockTimezone}
+                onChange={(e) => setLockTimezone(e.target.checked)}
+                className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              />
+              <div>
+                <span className="font-medium text-[#101E57]">Lock Timezone</span>
+                <p className="text-sm text-[#667085] mt-0.5">
+                  Always display times in the selected timezone. Disable auto-detection
+                  of attendee&apos;s timezone.
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
 
         {/* Prep Materials */}

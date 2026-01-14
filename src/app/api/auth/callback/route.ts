@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokensFromCode, getUserInfo } from '@/lib/google';
 import { getServiceSupabase } from '@/lib/supabase';
-import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -65,16 +64,16 @@ export async function GET(request: NextRequest) {
       })
       .eq('id', admin.id);
 
-    // Set session cookie
-    const cookieStore = await cookies();
-    cookieStore.set('admin_session', admin.id, {
+    // Set session cookie on the redirect response
+    const response = NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/admin`);
+    response.cookies.set('admin_session', admin.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/admin`);
+    return response;
   } catch (err) {
     console.error('Auth callback error:', err);
     return NextResponse.redirect(

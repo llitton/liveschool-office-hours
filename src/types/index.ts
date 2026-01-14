@@ -6,6 +6,25 @@ export interface CustomQuestion {
   options?: string[]; // For select type
 }
 
+// Meeting type enum
+export type MeetingType = 'one_on_one' | 'group' | 'collective' | 'round_robin' | 'panel';
+
+export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {
+  one_on_one: 'One-on-One',
+  group: 'Group Session',
+  collective: 'Collective (All Hosts)',
+  round_robin: 'Round-Robin',
+  panel: 'Panel',
+};
+
+export const MEETING_TYPE_DESCRIPTIONS: Record<MeetingType, string> = {
+  one_on_one: 'Single host meets with one attendee at a time',
+  group: 'Single host meets with multiple attendees (office hours style)',
+  collective: 'All selected hosts must be available for the meeting',
+  round_robin: 'Meetings are distributed across team members',
+  panel: 'Multiple hosts interview or meet with one attendee',
+};
+
 export interface OHEvent {
   id: string;
   slug: string;
@@ -31,6 +50,19 @@ export interface OHEvent {
   prep_materials: string | null;
   // Banner image for public booking page
   banner_image: string | null;
+  // Meeting type
+  meeting_type: MeetingType;
+  allow_guests: boolean;
+  guest_limit: number;
+  // Booking constraints
+  min_notice_hours: number;
+  max_daily_bookings: number | null;
+  max_weekly_bookings: number | null;
+  booking_window_days: number;
+  require_approval: boolean;
+  // Timezone settings
+  display_timezone: string;
+  lock_timezone: boolean;
 }
 
 export interface OHSlot {
@@ -60,6 +92,8 @@ export interface OHBooking {
   reminder_1h_sent_at: string | null;
   manage_token: string | null;
   question_responses: Record<string, string> | null;
+  // Timezone
+  attendee_timezone: string | null;
   // No-show tracking
   attended_at: string | null;
   no_show_at: string | null;
@@ -91,6 +125,11 @@ export interface OHAdmin {
   token_expires_at: string | null;
   created_at: string;
   updated_at: string;
+  // Personal meeting limits
+  max_meetings_per_day: number;
+  max_meetings_per_week: number;
+  default_buffer_before: number;
+  default_buffer_after: number;
 }
 
 export interface SlotWithBookings extends OHSlot {

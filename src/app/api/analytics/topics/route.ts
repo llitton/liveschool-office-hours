@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
     .select(`
       question_responses,
       feedback_comment,
+      feedback_topic_suggestion,
       created_at,
       slot:oh_slots(
         event_id,
@@ -112,17 +113,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Also analyze feedback comments for topic suggestions
+  // Also analyze feedback topic suggestions
   const feedbackTopics: Record<string, number> = {};
-  for (const booking of filteredBookings) {
-    const comment = booking.feedback_comment;
-    if (!comment || typeof comment !== 'string') continue;
+  const topicSuggestions: string[] = [];
 
-    // Look for "topics for next time" section
-    const topicsMatch = comment.match(/topics for next time:\s*(.+)/i);
-    if (topicsMatch) {
-      const topicsText = topicsMatch[1];
-      const words = topicsText
+  for (const booking of filteredBookings) {
+    // Check the new dedicated topic suggestion field first
+    const topicSuggestion = booking.feedback_topic_suggestion;
+    if (topicSuggestion && typeof topicSuggestion === 'string') {
+      topicSuggestions.push(topicSuggestion);
+      const words = topicSuggestion
         .toLowerCase()
         .replace(/[^\w\s]/g, '')
         .split(/\s+/)
@@ -130,6 +130,25 @@ export async function GET(request: NextRequest) {
 
       for (const word of words) {
         feedbackTopics[word] = (feedbackTopics[word] || 0) + 1;
+      }
+    }
+
+    // Also check comments for legacy "topics for next time" format
+    const comment = booking.feedback_comment;
+    if (comment && typeof comment === 'string') {
+      const topicsMatch = comment.match(/topics for next time:\s*(.+)/i);
+      if (topicsMatch) {
+        const topicsText = topicsMatch[1];
+        topicSuggestions.push(topicsText);
+        const words = topicsText
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .split(/\s+/)
+          .filter((word) => word.length > 2 && !stopWords.has(word));
+
+        for (const word of words) {
+          feedbackTopics[word] = (feedbackTopics[word] || 0) + 1;
+        }
       }
     }
   }
@@ -156,6 +175,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     questionAnalytics: formattedAnalytics,
     suggestedTopics,
+    recentTopicSuggestions: topicSuggestions.slice(-10).reverse(),
     totalBookingsAnalyzed: filteredBookings.length,
   });
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO, isPast } from 'date-fns';
 import type { OHEvent, OHBooking, OHSlot } from '@/types';
+import HubSpotContactCard from '@/components/HubSpotContactCard';
 
 interface SlotWithBookings extends OHSlot {
   booking_count: number;
@@ -15,6 +16,28 @@ interface AttendeeStats {
   noShowRate: number;
   isRepeatAttendee: boolean;
   isFrequentAttendee: boolean;
+}
+
+interface SessionTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface QuickTask {
+  id: string;
+  title: string;
+  notes: string | null;
+  due_date: string | null;
+  completed_at: string | null;
+  hubspot_task_id: string | null;
+}
+
+interface PrepResource {
+  id: string;
+  title: string;
+  content: string;
+  link: string | null;
 }
 
 interface SlotCardProps {
@@ -36,10 +59,33 @@ export default function SlotCard({
   const [savingRecording, setSavingRecording] = useState(false);
   const [attendeeStats, setAttendeeStats] = useState<Record<string, AttendeeStats>>({});
   const [showNotes, setShowNotes] = useState<string | null>(null);
+  const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState<Record<string, { id: string; note: string; created_at: string }[]>>({});
   const [savingNote, setSavingNote] = useState(false);
   const [showAttendees, setShowAttendees] = useState(false);
+  const [expandedHubSpot, setExpandedHubSpot] = useState<string | null>(null);
+
+  // Tags and tasks state
+  const [allTags, setAllTags] = useState<SessionTag[]>([]);
+  const [bookingTags, setBookingTags] = useState<SessionTag[]>([]);
+  const [bookingTasks, setBookingTasks] = useState<QuickTask[]>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [savingTag, setSavingTag] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
+
+  // Quick actions state
+  const [prepResources, setPrepResources] = useState<PrepResource[]>([]);
+  const [showResourceModal, setShowResourceModal] = useState(false);
+  const [selectedResource, setSelectedResource] = useState<string | null>(null);
+  const [customMessage, setCustomMessage] = useState('');
+  const [sendingResource, setSendingResource] = useState(false);
+  const [showFollowupModal, setShowFollowupModal] = useState(false);
+  const [followupTitle, setFollowupTitle] = useState('');
+  const [followupDate, setFollowupDate] = useState('');
+  const [followupNotes, setFollowupNotes] = useState('');
+  const [syncFollowupToHubspot, setSyncFollowupToHubspot] = useState(true);
+  const [schedulingFollowup, setSchedulingFollowup] = useState(false);
 
   const isPastSlot = isPast(parseISO(slot.end_time));
   const capacityPercent = Math.round((slot.booking_count / event.max_attendees) * 100);
@@ -122,10 +168,213 @@ export default function SlotCard({
     }
   };
 
-  const openNotesPanel = (email: string) => {
+  const openNotesPanel = (email: string, bookingId: string) => {
     setShowNotes(email);
+    setCurrentBookingId(bookingId);
     fetchNotes(email);
     fetchAttendeeStats(email);
+    fetchBookingTags(bookingId);
+    fetchBookingTasks(bookingId);
+  };
+
+  // Fetch all available session tags on mount
+  useEffect(() => {
+    const fetchAllTags = async () => {
+      try {
+        const response = await fetch('/api/session-tags');
+        if (response.ok) {
+          const data = await response.json();
+          setAllTags(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tags:', err);
+      }
+    };
+    fetchAllTags();
+  }, []);
+
+  // Fetch prep resources for this event
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const response = await fetch(`/api/events/${event.id}/resources`);
+        if (response.ok) {
+          const data = await response.json();
+          setPrepResources(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch resources:', err);
+      }
+    };
+    if (event.id) {
+      fetchResources();
+    }
+  }, [event.id]);
+
+  const fetchBookingTags = async (bookingId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/tags`);
+      if (response.ok) {
+        const data = await response.json();
+        setBookingTags(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch booking tags:', err);
+    }
+  };
+
+  const fetchBookingTasks = async (bookingId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/tasks`);
+      if (response.ok) {
+        const data = await response.json();
+        setBookingTasks(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch booking tasks:', err);
+    }
+  };
+
+  const handleToggleTag = async (tagId: string) => {
+    if (!currentBookingId) return;
+    setSavingTag(true);
+
+    const isApplied = bookingTags.some((t) => t.id === tagId);
+
+    try {
+      if (isApplied) {
+        await fetch(`/api/bookings/${currentBookingId}/tags?tagId=${tagId}`, {
+          method: 'DELETE',
+        });
+        setBookingTags((prev) => prev.filter((t) => t.id !== tagId));
+      } else {
+        const response = await fetch(`/api/bookings/${currentBookingId}/tags`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tag_id: tagId }),
+        });
+        if (response.ok) {
+          const tag = await response.json();
+          setBookingTags((prev) => [...prev, tag]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to toggle tag:', err);
+    } finally {
+      setSavingTag(false);
+    }
+  };
+
+  const handleAddTask = async () => {
+    if (!currentBookingId || !newTaskTitle.trim()) return;
+    setSavingTask(true);
+
+    try {
+      const response = await fetch(`/api/bookings/${currentBookingId}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTaskTitle,
+          sync_to_hubspot: true,
+        }),
+      });
+      if (response.ok) {
+        const task = await response.json();
+        setBookingTasks((prev) => [task, ...prev]);
+        setNewTaskTitle('');
+      }
+    } catch (err) {
+      console.error('Failed to add task:', err);
+    } finally {
+      setSavingTask(false);
+    }
+  };
+
+  const handleToggleTaskComplete = async (taskId: string, completed: boolean) => {
+    if (!currentBookingId) return;
+
+    try {
+      await fetch(`/api/bookings/${currentBookingId}/tasks`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId, completed }),
+      });
+      setBookingTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? { ...t, completed_at: completed ? new Date().toISOString() : null }
+            : t
+        )
+      );
+    } catch (err) {
+      console.error('Failed to toggle task:', err);
+    }
+  };
+
+  const handleSendResource = async () => {
+    if (!currentBookingId || !selectedResource) return;
+    setSendingResource(true);
+
+    try {
+      const response = await fetch(`/api/bookings/${currentBookingId}/send-resource`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceId: selectedResource,
+          customMessage: customMessage.trim() || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        setShowResourceModal(false);
+        setSelectedResource(null);
+        setCustomMessage('');
+        alert('Resource sent successfully!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to send resource');
+      }
+    } catch (err) {
+      console.error('Failed to send resource:', err);
+      alert('Failed to send resource');
+    } finally {
+      setSendingResource(false);
+    }
+  };
+
+  const handleScheduleFollowup = async () => {
+    if (!currentBookingId || !followupTitle.trim()) return;
+    setSchedulingFollowup(true);
+
+    try {
+      const response = await fetch(`/api/bookings/${currentBookingId}/schedule-followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: followupTitle,
+          dueDate: followupDate || undefined,
+          notes: followupNotes.trim() || undefined,
+          syncToHubspot: syncFollowupToHubspot,
+        }),
+      });
+
+      if (response.ok) {
+        const { task } = await response.json();
+        setBookingTasks((prev) => [task, ...prev]);
+        setShowFollowupModal(false);
+        setFollowupTitle('');
+        setFollowupDate('');
+        setFollowupNotes('');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to schedule follow-up');
+      }
+    } catch (err) {
+      console.error('Failed to schedule follow-up:', err);
+      alert('Failed to schedule follow-up');
+    } finally {
+      setSchedulingFollowup(false);
+    }
   };
 
   return (
@@ -276,86 +525,107 @@ export default function SlotCard({
             <div className="px-4 pb-4 space-y-2">
               {bookings.map((booking) => {
               const stats = attendeeStats[booking.email];
+              const isHubSpotExpanded = expandedHubSpot === booking.email;
               return (
-                <div key={booking.id} className="flex items-center justify-between bg-[#F6F6F9] p-3 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <p className="text-sm text-[#101E57] font-medium">
-                        {booking.first_name} {booking.last_name}
-                        {stats?.isFrequentAttendee && (
-                          <span className="ml-2 px-2 py-0.5 bg-[#417762]/20 text-[#417762] text-xs rounded-full">
-                            Frequent
-                          </span>
-                        )}
-                        {stats?.isRepeatAttendee && !stats?.isFrequentAttendee && (
-                          <span className="ml-2 px-2 py-0.5 bg-[#6F71EE]/20 text-[#6F71EE] text-xs rounded-full">
-                            Returning
-                          </span>
-                        )}
-                        {stats && stats.noShowRate > 30 && (
-                          <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
-                            {stats.noShowRate}% no-show
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-[#667085]">{booking.email}</p>
+                <div key={booking.id} className="bg-[#F6F6F9] p-3 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="text-sm text-[#101E57] font-medium">
+                          {booking.first_name} {booking.last_name}
+                          {stats?.isFrequentAttendee && (
+                            <span className="ml-2 px-2 py-0.5 bg-[#417762]/20 text-[#417762] text-xs rounded-full">
+                              Frequent
+                            </span>
+                          )}
+                          {stats?.isRepeatAttendee && !stats?.isFrequentAttendee && (
+                            <span className="ml-2 px-2 py-0.5 bg-[#6F71EE]/20 text-[#6F71EE] text-xs rounded-full">
+                              Returning
+                            </span>
+                          )}
+                          {stats && stats.noShowRate > 30 && (
+                            <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
+                              {stats.noShowRate}% no-show
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-[#667085]">{booking.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Attendance status */}
+                      {isPastSlot && (
+                        <div className="flex gap-1">
+                          {booking.attended_at ? (
+                            <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium">
+                              Attended
+                            </span>
+                          ) : booking.no_show_at ? (
+                            <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded font-medium">
+                              No-show
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleMarkAttendance(booking.id, 'attended')}
+                                className="px-2 py-1 bg-[#417762] text-white text-xs rounded hover:bg-[#355f4f]"
+                              >
+                                Attended
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Mark as no-show and send "we missed you" email?')) {
+                                    handleMarkAttendance(booking.id, 'no_show', true);
+                                  } else {
+                                    handleMarkAttendance(booking.id, 'no_show', false);
+                                  }
+                                }}
+                                className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                              >
+                                No-show
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* HubSpot Context button */}
+                      <HubSpotContactCard
+                        email={booking.email}
+                        expanded={isHubSpotExpanded}
+                        onToggle={() =>
+                          setExpandedHubSpot(isHubSpotExpanded ? null : booking.email)
+                        }
+                      />
+
+                      {/* Notes button */}
+                      <button
+                        onClick={() => openNotesPanel(booking.email, booking.id)}
+                        onMouseEnter={() => fetchAttendeeStats(booking.email)}
+                        className="px-2 py-1 text-[#6F71EE] hover:text-[#5a5cd0] text-xs font-medium"
+                      >
+                        Session
+                      </button>
+
+                      {/* Feedback rating if submitted */}
+                      {booking.feedback_rating && (
+                        <span className="text-[#F4B03D] text-sm">
+                          {'★'.repeat(booking.feedback_rating)}
+                          {'☆'.repeat(5 - booking.feedback_rating)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Attendance status */}
-                    {isPastSlot && (
-                      <div className="flex gap-1">
-                        {booking.attended_at ? (
-                          <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium">
-                            Attended
-                          </span>
-                        ) : booking.no_show_at ? (
-                          <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded font-medium">
-                            No-show
-                          </span>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleMarkAttendance(booking.id, 'attended')}
-                              className="px-2 py-1 bg-[#417762] text-white text-xs rounded hover:bg-[#355f4f]"
-                            >
-                              Attended
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Mark as no-show and send "we missed you" email?')) {
-                                  handleMarkAttendance(booking.id, 'no_show', true);
-                                } else {
-                                  handleMarkAttendance(booking.id, 'no_show', false);
-                                }
-                              }}
-                              className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-                            >
-                              No-show
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Notes button */}
-                    <button
-                      onClick={() => openNotesPanel(booking.email)}
-                      onMouseEnter={() => fetchAttendeeStats(booking.email)}
-                      className="px-2 py-1 text-[#667085] hover:text-[#101E57] text-xs"
-                    >
-                      Notes
-                    </button>
-
-                    {/* Feedback rating if submitted */}
-                    {booking.feedback_rating && (
-                      <span className="text-[#F4B03D] text-sm">
-                        {'★'.repeat(booking.feedback_rating)}
-                        {'☆'.repeat(5 - booking.feedback_rating)}
-                      </span>
-                    )}
-                  </div>
+                  {/* Expandable HubSpot card (inside the row) */}
+                  {isHubSpotExpanded && (
+                    <HubSpotContactCard
+                      email={booking.email}
+                      expanded={true}
+                      onToggle={() => setExpandedHubSpot(null)}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -364,14 +634,19 @@ export default function SlotCard({
         </div>
       )}
 
-      {/* Notes Panel */}
+      {/* Session Panel - Notes, Tags, Tasks */}
       {showNotes && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="font-semibold text-[#101E57]">Notes for {showNotes}</h3>
+              <h3 className="font-semibold text-[#101E57]">Session Details - {showNotes}</h3>
               <button
-                onClick={() => setShowNotes(null)}
+                onClick={() => {
+                  setShowNotes(null);
+                  setCurrentBookingId(null);
+                  setBookingTags([]);
+                  setBookingTasks([]);
+                }}
                 className="text-[#667085] hover:text-[#101E57]"
               >
                 ✕
@@ -404,21 +679,147 @@ export default function SlotCard({
               </div>
             )}
 
-            <div className="p-4 overflow-y-auto max-h-60">
-              {notes[showNotes]?.length === 0 && (
-                <p className="text-[#667085] text-sm">No notes yet.</p>
-              )}
-              {notes[showNotes]?.map((note) => (
-                <div key={note.id} className="mb-3 p-3 bg-[#F6F6F9] rounded-lg">
-                  <p className="text-sm text-[#101E57]">{note.note}</p>
-                  <p className="text-xs text-[#667085] mt-1">
-                    {format(parseISO(note.created_at), 'MMM d, yyyy h:mm a')}
-                  </p>
+            <div className="flex-1 overflow-y-auto">
+              {/* Outcome Tags Section */}
+              <div className="p-4 border-b">
+                <h4 className="text-sm font-medium text-[#101E57] mb-3">Session Outcome</h4>
+                <div className="flex flex-wrap gap-2">
+                  {allTags.map((tag) => {
+                    const isApplied = bookingTags.some((t) => t.id === tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => handleToggleTag(tag.id)}
+                        disabled={savingTag}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                          isApplied
+                            ? 'ring-2 ring-offset-1'
+                            : 'opacity-60 hover:opacity-100'
+                        }`}
+                        style={{
+                          backgroundColor: `${tag.color}20`,
+                          color: tag.color,
+                          ...(isApplied ? { ringColor: tag.color } : {}),
+                        }}
+                      >
+                        {isApplied && '✓ '}
+                        {tag.name}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+
+              {/* Quick Tasks Section */}
+              <div className="p-4 border-b">
+                <h4 className="text-sm font-medium text-[#101E57] mb-3">Follow-up Tasks</h4>
+
+                {/* Add task input */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    placeholder="Add a task (syncs to HubSpot)..."
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !savingTask) {
+                        handleAddTask();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleAddTask}
+                    disabled={savingTask || !newTaskTitle.trim()}
+                    className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
+                  >
+                    {savingTask ? '...' : 'Add'}
+                  </button>
+                </div>
+
+                {/* Task list */}
+                {bookingTasks.length === 0 ? (
+                  <p className="text-sm text-[#667085]">No tasks yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bookingTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className={`flex items-center gap-3 p-2 rounded-lg ${
+                          task.completed_at ? 'bg-gray-50' : 'bg-[#F6F6F9]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!task.completed_at}
+                          onChange={(e) =>
+                            handleToggleTaskComplete(task.id, e.target.checked)
+                          }
+                          className="w-4 h-4 rounded border-gray-300 text-[#6F71EE] focus:ring-[#6F71EE]"
+                        />
+                        <span
+                          className={`flex-1 text-sm ${
+                            task.completed_at
+                              ? 'text-[#667085] line-through'
+                              : 'text-[#101E57]'
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                        {task.hubspot_task_id && (
+                          <span className="text-xs text-[#667085]">HubSpot</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions Section */}
+              <div className="p-4 border-b">
+                <h4 className="text-sm font-medium text-[#101E57] mb-3">Quick Actions</h4>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setShowResourceModal(true)}
+                    disabled={prepResources.length === 0}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-[#F6F6F9] hover:bg-gray-200 text-[#101E57] rounded-lg transition disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Send Help Article
+                  </button>
+                  <button
+                    onClick={() => setShowFollowupModal(true)}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-[#F6F6F9] hover:bg-gray-200 text-[#101E57] rounded-lg transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Schedule Follow-up
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes Section */}
+              <div className="p-4">
+                <h4 className="text-sm font-medium text-[#101E57] mb-3">Session Notes</h4>
+                {notes[showNotes]?.length === 0 && (
+                  <p className="text-[#667085] text-sm mb-3">No notes yet.</p>
+                )}
+                {notes[showNotes]?.map((note) => (
+                  <div key={note.id} className="mb-3 p-3 bg-[#F6F6F9] rounded-lg">
+                    <p className="text-sm text-[#101E57]">{note.note}</p>
+                    <p className="text-xs text-[#667085] mt-1">
+                      {format(parseISO(note.created_at), 'MMM d, yyyy h:mm a')}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="p-4 border-t">
+            {/* Add Note Input */}
+            <div className="p-4 border-t bg-white">
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
@@ -432,6 +833,168 @@ export default function SlotCard({
                 className="mt-2 px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
               >
                 {savingNote ? 'Saving...' : 'Add Note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Resource Modal */}
+      {showResourceModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="font-semibold text-[#101E57]">Send Help Article</h3>
+              <button
+                onClick={() => {
+                  setShowResourceModal(false);
+                  setSelectedResource(null);
+                  setCustomMessage('');
+                }}
+                className="text-[#667085] hover:text-[#101E57]"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Select Resource
+                </label>
+                <select
+                  value={selectedResource || ''}
+                  onChange={(e) => setSelectedResource(e.target.value || null)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                >
+                  <option value="">Choose a resource...</option>
+                  {prepResources.map((resource) => (
+                    <option key={resource.id} value={resource.id}>
+                      {resource.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Add a message (optional)
+                </label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  placeholder="Add a personal note..."
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowResourceModal(false);
+                  setSelectedResource(null);
+                  setCustomMessage('');
+                }}
+                className="px-4 py-2 text-sm text-[#667085] hover:text-[#101E57]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendResource}
+                disabled={sendingResource || !selectedResource}
+                className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
+              >
+                {sendingResource ? 'Sending...' : 'Send Resource'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Follow-up Modal */}
+      {showFollowupModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="font-semibold text-[#101E57]">Schedule Follow-up</h3>
+              <button
+                onClick={() => {
+                  setShowFollowupModal(false);
+                  setFollowupTitle('');
+                  setFollowupDate('');
+                  setFollowupNotes('');
+                }}
+                className="text-[#667085] hover:text-[#101E57]"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Follow-up Task
+                </label>
+                <input
+                  type="text"
+                  value={followupTitle}
+                  onChange={(e) => setFollowupTitle(e.target.value)}
+                  placeholder="e.g., Check in on store setup progress"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Due Date (optional)
+                </label>
+                <input
+                  type="date"
+                  value={followupDate}
+                  onChange={(e) => setFollowupDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Notes (optional)
+                </label>
+                <textarea
+                  value={followupNotes}
+                  onChange={(e) => setFollowupNotes(e.target.value)}
+                  placeholder="Any additional context..."
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="syncHubspot"
+                  checked={syncFollowupToHubspot}
+                  onChange={(e) => setSyncFollowupToHubspot(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#6F71EE] focus:ring-[#6F71EE]"
+                />
+                <label htmlFor="syncHubspot" className="text-sm text-[#667085]">
+                  Also create task in HubSpot
+                </label>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowFollowupModal(false);
+                  setFollowupTitle('');
+                  setFollowupDate('');
+                  setFollowupNotes('');
+                }}
+                className="px-4 py-2 text-sm text-[#667085] hover:text-[#101E57]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleScheduleFollowup}
+                disabled={schedulingFollowup || !followupTitle.trim()}
+                className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50"
+              >
+                {schedulingFollowup ? 'Scheduling...' : 'Schedule'}
               </button>
             </div>
           </div>
