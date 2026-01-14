@@ -11,6 +11,7 @@ interface TeamMember {
   id: string;
   name: string | null;
   email: string;
+  availability_summary?: string;
 }
 
 export default function NewEventPage() {
@@ -61,7 +62,7 @@ export default function NewEventPage() {
   const fetchTeamMembers = async () => {
     setLoadingTeam(true);
     try {
-      const response = await fetch('/api/admins');
+      const response = await fetch('/api/admins?includeAvailability=true');
       if (response.ok) {
         const data = await response.json();
         setTeamMembers(data);
@@ -290,11 +291,11 @@ export default function NewEventPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-2 max-h-80 overflow-y-auto">
                     {teamMembers.map((member) => (
                       <label
                         key={member.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
+                        className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
                           selectedHosts.includes(member.id)
                             ? 'border-[#6F71EE] bg-[#6F71EE]/5'
                             : 'border-gray-200 hover:border-gray-300'
@@ -304,17 +305,29 @@ export default function NewEventPage() {
                           type="checkbox"
                           checked={selectedHosts.includes(member.id)}
                           onChange={() => toggleHost(member.id)}
-                          className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                          className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
                         />
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-8 h-8 rounded-full bg-[#6F71EE]/10 text-[#6F71EE] flex items-center justify-center text-sm font-medium">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="w-8 h-8 rounded-full bg-[#6F71EE]/10 text-[#6F71EE] flex items-center justify-center text-sm font-medium flex-shrink-0">
                             {member.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
                           </div>
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <p className="font-medium text-[#101E57]">
                               {member.name || member.email.split('@')[0]}
                             </p>
                             <p className="text-sm text-[#667085]">{member.email}</p>
+                            {member.availability_summary && (
+                              <p className={`text-xs mt-1 ${
+                                member.availability_summary === 'No availability set'
+                                  ? 'text-amber-600'
+                                  : 'text-[#417762]'
+                              }`}>
+                                <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {member.availability_summary}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </label>
