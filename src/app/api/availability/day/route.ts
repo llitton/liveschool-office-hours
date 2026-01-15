@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth, getSession } from '@/lib/auth';
 import { getFreeBusy } from '@/lib/google';
-import { startOfDay, endOfDay, parseISO, format } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'America/New_York';
 
 interface TimeBlock {
   start: string; // HH:mm format
@@ -30,9 +33,11 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = getServiceSupabase();
-  const date = parseISO(dateStr);
-  const dayStart = startOfDay(date);
-  const dayEnd = endOfDay(date);
+
+  // Parse the date and calculate day boundaries
+  // dateStr is expected in YYYY-MM-DD format
+  const dayStart = new Date(`${dateStr}T00:00:00`);
+  const dayEnd = new Date(`${dateStr}T23:59:59`);
 
   const blocks: TimeBlock[] = [];
 
@@ -57,11 +62,12 @@ export async function GET(request: NextRequest) {
         const startTime = new Date(busy.start);
         const endTime = new Date(busy.end);
 
-        // Only include if it's on the requested day
-        if (startTime >= dayStart && startTime < dayEnd) {
+        // Only include if it's on the requested day (in the target timezone)
+        const startInTz = formatInTimeZone(startTime, TIMEZONE, 'yyyy-MM-dd');
+        if (startInTz === dateStr) {
           blocks.push({
-            start: format(startTime, 'HH:mm'),
-            end: format(endTime, 'HH:mm'),
+            start: formatInTimeZone(startTime, TIMEZONE, 'HH:mm'),
+            end: formatInTimeZone(endTime, TIMEZONE, 'HH:mm'),
             type: 'busy',
             title: 'Calendar event',
           });
@@ -96,8 +102,8 @@ export async function GET(request: NextRequest) {
         : 'Session';
 
       blocks.push({
-        start: format(startTime, 'HH:mm'),
-        end: format(endTime, 'HH:mm'),
+        start: formatInTimeZone(startTime, TIMEZONE, 'HH:mm'),
+        end: formatInTimeZone(endTime, TIMEZONE, 'HH:mm'),
         type: 'slot',
         title: eventName,
       });
@@ -105,7 +111,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Get availability patterns for this day of week
-  const dayOfWeek = date.getDay();
+  // Parse the date to get day of week in the target timezone
+  const dayOfWeek = toZonedTime(parseISO(dateStr), TIMEZONE).getDay();
   const { data: patterns } = await supabase
     .from('oh_availability_patterns')
     .select('start_time, end_time')

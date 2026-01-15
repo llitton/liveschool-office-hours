@@ -34,7 +34,7 @@ export default function NewEventPage() {
 
   // Meeting type & capacity
   const [meetingType, setMeetingType] = useState<MeetingType>('group');
-  const [maxAttendees, setMaxAttendees] = useState(30);
+  const [maxAttendeesInput, setMaxAttendeesInput] = useState('30');
 
   // Booking rules
   const [minNoticeHours, setMinNoticeHours] = useState(24);
@@ -99,9 +99,9 @@ export default function NewEventPage() {
     setMeetingType(type);
     // Auto-set max attendees based on type
     if (type === 'one_on_one' || type === 'round_robin') {
-      setMaxAttendees(1);
-    } else if (type === 'group' && maxAttendees === 1) {
-      setMaxAttendees(30);
+      setMaxAttendeesInput('1');
+    } else if (type === 'group' && parseInt(maxAttendeesInput) === 1) {
+      setMaxAttendeesInput('30');
     }
     // Set sensible defaults for group sessions (hosts create slots manually)
     if (type === 'group') {
@@ -132,7 +132,7 @@ export default function NewEventPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          max_attendees: maxAttendees,
+          max_attendees: parseInt(maxAttendeesInput) || 2,
           meeting_type: meetingType,
           min_notice_hours: minNoticeHours,
           booking_window_days: bookingWindowDays,
@@ -501,8 +501,14 @@ export default function NewEventPage() {
                   <input
                     type="number"
                     min={2}
-                    value={maxAttendees}
-                    onChange={(e) => setMaxAttendees(parseInt(e.target.value) || 2)}
+                    value={maxAttendeesInput}
+                    onChange={(e) => setMaxAttendeesInput(e.target.value)}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (isNaN(val) || val < 2) {
+                        setMaxAttendeesInput('2');
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                   />
                   <p className="text-xs text-[#667085] mt-1">

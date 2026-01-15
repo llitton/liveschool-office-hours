@@ -339,8 +339,71 @@ async function selectLeastBookingsHost(
 }
 
 /**
+ * Get total available hours per host for a given period
+ * Calculates from availability patterns
+ */
+async function getHostAvailableHours(
+  hostIds: string[],
+  period: RoundRobinPeriod,
+  referenceDate: Date
+): Promise<Record<string, number>> {
+  const supabase = getServiceSupabase();
+  const hours: Record<string, number> = {};
+
+  // Initialize all hosts with 0
+  for (const hostId of hostIds) {
+    hours[hostId] = 0;
+  }
+
+  // Get availability patterns for all hosts
+  const { data: patterns } = await supabase
+    .from('oh_availability_patterns')
+    .select('admin_id, day_of_week, start_time, end_time')
+    .in('admin_id', hostIds)
+    .eq('is_active', true);
+
+  if (!patterns) return hours;
+
+  // Calculate hours based on period
+  // For weekly periods, sum up all pattern hours
+  // For other periods, adjust accordingly
+  for (const pattern of patterns) {
+    const startParts = pattern.start_time.split(':').map(Number);
+    const endParts = pattern.end_time.split(':').map(Number);
+    const startMinutes = startParts[0] * 60 + startParts[1];
+    const endMinutes = endParts[0] * 60 + endParts[1];
+    const patternHours = (endMinutes - startMinutes) / 60;
+
+    // Count how many times this day appears in the period
+    let multiplier = 1;
+    switch (period) {
+      case 'week':
+        multiplier = 1; // Each day of week appears once per week
+        break;
+      case 'month':
+        multiplier = 4; // Approximately 4 weeks per month
+        break;
+      case 'all_time':
+        multiplier = 52; // Approximately 52 weeks per year
+        break;
+      case 'day':
+      default:
+        // For daily, only count if the pattern matches today
+        const today = referenceDate.getDay();
+        multiplier = pattern.day_of_week === today ? 1 : 0;
+        break;
+    }
+
+    hours[pattern.admin_id] = (hours[pattern.admin_id] || 0) + (patternHours * multiplier);
+  }
+
+  return hours;
+}
+
+/**
  * Select next host using availability_weighted strategy
  * This balances bookings relative to each host's available hours
+ * Hosts with more available hours get proportionally more bookings
  */
 async function selectAvailabilityWeightedHost(
   eventId: string,
@@ -349,10 +412,66 @@ async function selectAvailabilityWeightedHost(
   slotStart: Date,
   slotEnd: Date
 ): Promise<{ hostId: string; reason: string } | null> {
-  // For now, use least_bookings as the base
-  // A more sophisticated version would factor in availability hours per host
-  // TODO: Implement proper availability weighting
-  return selectLeastBookingsHost(eventId, hostIds, period, slotStart, slotEnd);
+  // Get booking counts and available hours for all hosts
+  const [counts, availableHours] = await Promise.all([
+    getHostBookingCounts(hostIds, period, slotStart),
+    getHostAvailableHours(hostIds, period, slotStart),
+  ]);
+
+  // Create candidates with availability check and utilization calculation
+  const candidates: {
+    hostId: string;
+    count: number;
+    availableHours: number;
+    utilization: number;
+  }[] = [];
+
+  for (const hostId of hostIds) {
+    // Check availability for this specific slot
+    const availability = await checkTimeAvailability(hostId, slotStart, slotEnd);
+    if (!availability.available) {
+      continue;
+    }
+
+    // Check meeting limits
+    const limits = await checkHostMeetingLimits(hostId, slotStart);
+    if (!limits.withinLimits) {
+      continue;
+    }
+
+    const hostHours = availableHours[hostId] || 0;
+    const hostCount = counts[hostId] || 0;
+
+    // Calculate utilization rate (bookings per available hour)
+    // If no availability patterns set, fall back to raw count
+    const utilization = hostHours > 0 ? hostCount / hostHours : hostCount;
+
+    candidates.push({
+      hostId,
+      count: hostCount,
+      availableHours: hostHours,
+      utilization,
+    });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  // Sort by utilization (ascending) - select host with lowest utilization
+  candidates.sort((a, b) => a.utilization - b.utilization);
+  const selected = candidates[0];
+
+  await updateRoundRobinState(eventId, selected.hostId);
+
+  const utilizationPct = selected.availableHours > 0
+    ? Math.round(selected.utilization * 100)
+    : selected.count;
+
+  return {
+    hostId: selected.hostId,
+    reason: `availability_weighted (${selected.count} bookings, ${selected.availableHours.toFixed(1)}h available, ${utilizationPct}% utilized)`,
+  };
 }
 
 /**
