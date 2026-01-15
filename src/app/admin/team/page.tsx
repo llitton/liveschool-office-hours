@@ -9,6 +9,29 @@ interface Admin {
   email: string;
   name: string | null;
   created_at: string;
+  google_connected: boolean;
+  timezone: string | null;
+  weekly_available_hours: number;
+  max_meetings_per_day: number;
+  max_meetings_per_week: number;
+  default_buffer_before: number;
+  default_buffer_after: number;
+}
+
+// Timezone display helper
+const TIMEZONE_LABELS: Record<string, string> = {
+  'America/New_York': 'Eastern (ET)',
+  'America/Chicago': 'Central (CT)',
+  'America/Denver': 'Mountain (MT)',
+  'America/Phoenix': 'Arizona (MST)',
+  'America/Los_Angeles': 'Pacific (PT)',
+  'America/Anchorage': 'Alaska (AKT)',
+  'Pacific/Honolulu': 'Hawaii (HST)',
+};
+
+function getTimezoneLabel(tz: string | null): string {
+  if (!tz) return 'Not set';
+  return TIMEZONE_LABELS[tz] || tz;
 }
 
 export default function TeamPage() {
@@ -230,36 +253,81 @@ export default function TeamPage() {
               {admins.map((admin, index) => (
                 <div
                   key={admin.id}
-                  className="px-6 py-4 flex items-center justify-between hover:bg-gray-50"
+                  className="px-6 py-4 hover:bg-gray-50"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-medium">
-                      {(admin.name || admin.email)[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[#101E57] font-medium">
-                          {admin.name || admin.email.split('@')[0]}
-                        </p>
-                        <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] text-xs font-medium rounded-full">
-                          {index === 0 ? 'Owner' : 'Admin'}
-                        </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-medium">
+                        {(admin.name || admin.email)[0].toUpperCase()}
                       </div>
-                      <p className="text-sm text-[#667085]">{admin.email}</p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[#101E57] font-medium">
+                            {admin.name || admin.email.split('@')[0]}
+                          </p>
+                          <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] text-xs font-medium rounded-full">
+                            {index === 0 ? 'Owner' : 'Admin'}
+                          </span>
+                          {admin.google_connected ? (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                              </svg>
+                              Connected
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                              Google not connected
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-[#667085]">{admin.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-[#667085]">
+                        Added {new Date(admin.created_at).toLocaleDateString()}
+                      </span>
+                      {index !== 0 && (
+                        <button
+                          onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                          className="text-red-600 hover:text-red-700 text-sm font-medium"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs text-[#667085]">
-                      Added {new Date(admin.created_at).toLocaleDateString()}
-                    </span>
-                    {index !== 0 && (
-                      <button
-                        onClick={() => handleRemoveAdmin(admin.id, admin.email)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Remove
-                      </button>
-                    )}
+
+                  {/* Settings Summary */}
+                  <div className="ml-13 pl-10 grid grid-cols-4 gap-4 text-xs">
+                    <div className="bg-[#F6F6F9] rounded-lg px-3 py-2">
+                      <p className="text-[#667085] mb-0.5">Timezone</p>
+                      <p className={`font-medium ${admin.timezone ? 'text-[#101E57]' : 'text-amber-600'}`}>
+                        {getTimezoneLabel(admin.timezone)}
+                      </p>
+                    </div>
+                    <div className="bg-[#F6F6F9] rounded-lg px-3 py-2">
+                      <p className="text-[#667085] mb-0.5">Weekly Availability</p>
+                      <p className={`font-medium ${admin.weekly_available_hours > 0 ? 'text-[#101E57]' : 'text-amber-600'}`}>
+                        {admin.weekly_available_hours > 0 ? `${admin.weekly_available_hours}h/week` : 'Not set'}
+                      </p>
+                    </div>
+                    <div className="bg-[#F6F6F9] rounded-lg px-3 py-2">
+                      <p className="text-[#667085] mb-0.5">Meeting Limits</p>
+                      <p className="font-medium text-[#101E57]">
+                        {admin.max_meetings_per_day}/day · {admin.max_meetings_per_week}/week
+                      </p>
+                    </div>
+                    <div className="bg-[#F6F6F9] rounded-lg px-3 py-2">
+                      <p className="text-[#667085] mb-0.5">Buffer Time</p>
+                      <p className="font-medium text-[#101E57]">
+                        {admin.default_buffer_before}m before · {admin.default_buffer_after}m after
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
