@@ -67,6 +67,8 @@ export interface OHEvent {
   // Round-robin configuration
   round_robin_strategy: 'cycle' | 'least_bookings' | 'availability_weighted' | null;
   round_robin_period: 'day' | 'week' | 'month' | 'all_time';
+  // Host profile image (joined from oh_admins)
+  host_profile_image?: string | null;
 }
 
 export interface OHSlot {

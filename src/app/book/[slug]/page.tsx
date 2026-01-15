@@ -410,9 +410,16 @@ export default function BookingPage({
                 className="mb-4 brightness-0 invert"
               />
               <h1 className="text-xl font-semibold">{event.name}</h1>
-              <p className="text-white/80 mt-1">
-                {event.duration_minutes} min · {event.host_name}
-              </p>
+              <div className="flex items-center gap-2 mt-2 text-white/80">
+                {event.host_profile_image ? (
+                  <img
+                    src={event.host_profile_image}
+                    alt={event.host_name}
+                    className="w-6 h-6 rounded-full object-cover border border-white/30"
+                  />
+                ) : null}
+                <span>{event.duration_minutes} min · {event.host_name}</span>
+              </div>
             </div>
 
             {/* Selected time */}
@@ -641,10 +648,18 @@ export default function BookingPage({
             <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
 
             <div className="flex flex-wrap gap-4 mt-3 text-[#667085]">
-              <span className="flex items-center gap-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <span className="flex items-center gap-2">
+                {event.host_profile_image ? (
+                  <img
+                    src={event.host_profile_image}
+                    alt={event.host_name}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
                 {event.host_name}
               </span>
               <span className="flex items-center gap-1">

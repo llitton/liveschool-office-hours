@@ -8,7 +8,10 @@ export async function GET() {
 
   const { data: events, error } = await supabase
     .from('oh_events')
-    .select('*')
+    .select(`
+      *,
+      host:oh_admins!host_id(profile_image)
+    `)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
@@ -16,7 +19,14 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(events);
+  // Flatten host profile_image into the event object
+  const eventsWithHostImage = events?.map(event => ({
+    ...event,
+    host_profile_image: event.host?.profile_image || null,
+    host: undefined, // Remove the nested host object
+  }));
+
+  return NextResponse.json(eventsWithHostImage);
 }
 
 // POST create new event (admin only)
