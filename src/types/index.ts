@@ -34,7 +34,8 @@ export interface OHEvent {
   host_name: string;
   host_email: string;
   max_attendees: number;
-  buffer_minutes: number;
+  buffer_before: number;
+  buffer_after: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { start_time, end_time, event_id, buffer_minutes } = body;
+  const { start_time, end_time, event_id, buffer_before, buffer_after } = body;
 
   if (!start_time || !end_time) {
     return NextResponse.json(
@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
       parseISO(start_time),
       parseISO(end_time),
       event_id,
-      buffer_minutes || 0
+      buffer_before || 0,
+      buffer_after || 0
     );
 
     return NextResponse.json(result);
@@ -65,7 +66,8 @@ export async function GET(request: NextRequest) {
   const endDate = searchParams.get('end_date');
   const eventId = searchParams.get('event_id');
   const durationMinutes = parseInt(searchParams.get('duration_minutes') || '30', 10);
-  const bufferMinutes = parseInt(searchParams.get('buffer_minutes') || '0', 10);
+  const bufferBefore = parseInt(searchParams.get('buffer_before') || '0', 10);
+  const bufferAfter = parseInt(searchParams.get('buffer_after') || '0', 10);
 
   const supabase = getServiceSupabase();
 
@@ -87,7 +89,8 @@ export async function GET(request: NextRequest) {
     const slots = await getAvailableSlots(
       admin.id,
       durationMinutes,
-      bufferMinutes,
+      bufferBefore,
+      bufferAfter,
       start,
       end,
       eventId || undefined

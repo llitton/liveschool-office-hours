@@ -29,7 +29,8 @@ export default function NewEventPage() {
     duration_minutes: 30,
     host_name: 'Hannah Kelly',
     host_email: 'hannah@liveschoolinc.com',
-    buffer_minutes: 15,
+    buffer_before: 15,
+    buffer_after: 15,
   });
 
   // Meeting type & capacity
@@ -472,14 +473,36 @@ export default function NewEventPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Buffer After
+                    Buffer Before
                   </label>
                   <select
-                    value={formData.buffer_minutes}
+                    value={formData.buffer_before}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        buffer_minutes: parseInt(e.target.value),
+                        buffer_before: parseInt(e.target.value),
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={0}>No buffer</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Buffer After
+                  </label>
+                  <select
+                    value={formData.buffer_after}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        buffer_after: parseInt(e.target.value),
                       }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"

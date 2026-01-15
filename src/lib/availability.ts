@@ -143,13 +143,14 @@ export async function checkTimeAvailability(
   startTime: Date,
   endTime: Date,
   eventId?: string,
-  bufferMinutes: number = 0
+  bufferBefore: number = 0,
+  bufferAfter: number = 0
 ): Promise<{ available: boolean; reason?: string }> {
   const supabase = getServiceSupabase();
 
   // Add buffer to the check window
-  const checkStart = bufferMinutes > 0 ? addMinutes(startTime, -bufferMinutes) : startTime;
-  const checkEnd = bufferMinutes > 0 ? addMinutes(endTime, bufferMinutes) : endTime;
+  const checkStart = bufferBefore > 0 ? addMinutes(startTime, -bufferBefore) : startTime;
+  const checkEnd = bufferAfter > 0 ? addMinutes(endTime, bufferAfter) : endTime;
 
   // Get admin's availability patterns for this day
   const dayOfWeek = getDay(startTime);
@@ -205,8 +206,9 @@ export async function checkTimeAvailability(
   );
 
   for (const slot of existingSlots) {
-    const slotStart = bufferMinutes > 0 ? addMinutes(slot.start, -bufferMinutes) : slot.start;
-    const slotEnd = bufferMinutes > 0 ? addMinutes(slot.end, bufferMinutes) : slot.end;
+    // Apply buffer around existing slots as well
+    const slotStart = bufferBefore > 0 ? addMinutes(slot.start, -bufferBefore) : slot.start;
+    const slotEnd = bufferAfter > 0 ? addMinutes(slot.end, bufferAfter) : slot.end;
 
     if (
       areIntervalsOverlapping(
@@ -230,7 +232,8 @@ export async function checkTimeAvailability(
 export async function getAvailableSlots(
   adminId: string,
   eventDurationMinutes: number,
-  bufferMinutes: number,
+  bufferBefore: number,
+  bufferAfter: number,
   startDate: Date,
   endDate: Date,
   eventId?: string
@@ -275,11 +278,11 @@ export async function getAvailableSlots(
 
         // Check if slot conflicts with existing slots (including buffer)
         const conflictsWithSlot = existingSlots.some((existing) => {
-          const existingStart = bufferMinutes > 0
-            ? addMinutes(existing.start, -bufferMinutes)
+          const existingStart = bufferBefore > 0
+            ? addMinutes(existing.start, -bufferBefore)
             : existing.start;
-          const existingEnd = bufferMinutes > 0
-            ? addMinutes(existing.end, bufferMinutes)
+          const existingEnd = bufferAfter > 0
+            ? addMinutes(existing.end, bufferAfter)
             : existing.end;
           return areIntervalsOverlapping(
             { start: slotStart, end: slotEnd },
@@ -307,14 +310,16 @@ export async function getAvailableSlots(
 export async function generateSlotsFromPatterns(
   adminId: string,
   eventDurationMinutes: number,
-  bufferMinutes: number,
+  bufferBefore: number,
+  bufferAfter: number,
   weekStartDate: Date
 ): Promise<TimeSlot[]> {
   const weekEndDate = addDays(weekStartDate, 7);
   return getAvailableSlots(
     adminId,
     eventDurationMinutes,
-    bufferMinutes,
+    bufferBefore,
+    bufferAfter,
     weekStartDate,
     weekEndDate
   );

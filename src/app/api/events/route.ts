@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
     host_name,
     host_email,
     max_attendees = 30,
-    buffer_minutes = 15,
+    buffer_before = 15,
+    buffer_after = 15,
     // New fields for Sprint 1-2
     meeting_type = 'group',
     min_notice_hours = 24,
@@ -85,7 +86,8 @@ export async function POST(request: NextRequest) {
       host_name: host_name || session.name || 'Host',
       host_email: host_email || session.email,
       max_attendees,
-      buffer_minutes,
+      buffer_before,
+      buffer_after,
       host_id: admin?.id || null,
       // New fields
       meeting_type,

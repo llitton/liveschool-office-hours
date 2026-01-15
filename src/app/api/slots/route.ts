@@ -114,14 +114,14 @@ export async function POST(request: NextRequest) {
   }
 
   // Check for buffer time conflicts with existing slots
-  if (event.buffer_minutes > 0) {
+  const bufferBefore = event.buffer_before || 0;
+  const bufferAfter = event.buffer_after || 0;
+
+  if (bufferBefore > 0 || bufferAfter > 0) {
     const slotStart = new Date(start_time);
     const slotEnd = new Date(end_time);
-    const bufferMs = event.buffer_minutes * 60 * 1000;
-
-    // Calculate buffer window
-    const bufferStart = new Date(slotStart.getTime() - bufferMs);
-    const bufferEnd = new Date(slotEnd.getTime() + bufferMs);
+    const bufferBeforeMs = bufferBefore * 60 * 1000;
+    const bufferAfterMs = bufferAfter * 60 * 1000;
 
     // Check for overlapping slots
     const { data: existingSlots } = await supabase
@@ -137,11 +137,11 @@ export async function POST(request: NextRequest) {
       // Check if new slot overlaps with existing slot (including buffer)
       if (
         (slotStart < existingEnd && slotEnd > existingStart) || // Direct overlap
-        (slotStart < new Date(existingEnd.getTime() + bufferMs) && slotEnd > existingStart) || // New slot starts during buffer after existing
-        (slotEnd > new Date(existingStart.getTime() - bufferMs) && slotStart < existingEnd) // New slot ends during buffer before existing
+        (slotStart < new Date(existingEnd.getTime() + bufferAfterMs) && slotEnd > existingStart) || // New slot starts during buffer after existing
+        (slotEnd > new Date(existingStart.getTime() - bufferBeforeMs) && slotStart < existingEnd) // New slot ends during buffer before existing
       ) {
         return NextResponse.json(
-          { error: `This slot conflicts with existing slots. Buffer time: ${event.buffer_minutes} minutes.` },
+          { error: `This slot conflicts with existing slots. Buffer: ${bufferBefore}m before, ${bufferAfter}m after.` },
           { status: 400 }
         );
       }
@@ -213,7 +213,8 @@ export async function POST(request: NextRequest) {
           parseISO(start_time),
           parseISO(end_time),
           event_id,
-          event.buffer_minutes || 0
+          bufferBefore,
+          bufferAfter
         );
 
         if (!availabilityCheck.available) {
@@ -234,7 +235,8 @@ export async function POST(request: NextRequest) {
         parseISO(start_time),
         parseISO(end_time),
         event_id,
-        event.buffer_minutes || 0
+        bufferBefore,
+        bufferAfter
       );
 
       if (!availabilityCheck.available) {

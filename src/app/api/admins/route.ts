@@ -87,7 +87,8 @@ export async function GET(request: NextRequest) {
           const availableSlots = await getAvailableSlots(
             admin.id,
             30, // default duration
-            15, // default buffer
+            15, // default buffer before
+            15, // default buffer after
             now,
             endDate
           );
