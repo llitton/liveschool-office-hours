@@ -212,11 +212,21 @@ export async function GET() {
     .eq('email', session.email)
     .single();
 
-  // Check for availability patterns
+  // Check for availability patterns and timezone for current user
+  const { data: adminRecord } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
   const { data: patterns } = await supabase
     .from('oh_availability_patterns')
-    .select('id')
-    .limit(1);
+    .select('id, timezone')
+    .eq('admin_id', adminRecord?.id || '')
+    .eq('is_active', true);
+
+  // Check if user has set their timezone (not null/empty)
+  const hasTimezoneSet = patterns?.some(p => p.timezone && p.timezone.length > 0) || false;
 
   // Check for custom questions on any event
   const { data: eventsWithQuestions } = await supabase
@@ -246,6 +256,12 @@ export async function GET() {
       id: 'availability',
       label: 'Set availability patterns',
       completed: (patterns?.length || 0) > 0,
+      link: '/admin/availability',
+    },
+    {
+      id: 'timezone',
+      label: 'Set your timezone',
+      completed: hasTimezoneSet,
       link: '/admin/availability',
     },
     {
