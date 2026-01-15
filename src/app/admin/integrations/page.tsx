@@ -512,7 +512,7 @@ function IntegrationsContent() {
               </div>
               <p className="text-xs text-[#667085] mt-2">
                 Manage availability settings in the{' '}
-                <a href="/admin/availability" className="text-[#6F71EE] hover:underline">
+                <a href="/admin/settings" className="text-[#6F71EE] hover:underline">
                   Availability page
                 </a>
               </p>

@@ -271,7 +271,7 @@ export default function DayTimeline({
       {!schedule.hasAvailabilityPatterns && (
         <p className="text-xs text-[#667085] mt-3">
           Tip:{' '}
-          <a href="/admin/availability" className="text-[#6F71EE] hover:underline">
+          <a href="/admin/settings" className="text-[#6F71EE] hover:underline">
             Set up availability patterns
           </a>{' '}
           to highlight your preferred hours.

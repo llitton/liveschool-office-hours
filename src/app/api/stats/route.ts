@@ -208,25 +208,24 @@ export async function GET() {
   // Get admin info for setup checklist
   const { data: admin } = await supabase
     .from('oh_admins')
-    .select('google_access_token, google_refresh_token')
+    .select('id, google_access_token, google_refresh_token, profile_image')
     .eq('email', session.email)
     .single();
 
   // Check for availability patterns and timezone for current user
-  const { data: adminRecord } = await supabase
-    .from('oh_admins')
-    .select('id')
-    .eq('email', session.email)
-    .single();
-
   const { data: patterns } = await supabase
     .from('oh_availability_patterns')
     .select('id, timezone')
-    .eq('admin_id', adminRecord?.id || '')
+    .eq('admin_id', admin?.id || '')
     .eq('is_active', true);
 
   // Check if user has set their timezone (not null/empty)
   const hasTimezoneSet = patterns?.some(p => p.timezone && p.timezone.length > 0) || false;
+  const hasGoogleConnected = !!(admin?.google_access_token && admin?.google_refresh_token);
+  const hasProfilePhoto = !!admin?.profile_image;
+
+  // Settings is complete if Google connected AND timezone set (photo is optional but nice)
+  const settingsComplete = hasGoogleConnected && hasTimezoneSet;
 
   // Check for custom questions on any event
   const { data: eventsWithQuestions } = await supabase
@@ -238,31 +237,19 @@ export async function GET() {
     e => e.custom_questions && Array.isArray(e.custom_questions) && e.custom_questions.length > 0
   );
 
-  // Build setup checklist
+  // Build setup checklist (consolidated)
   const setupItems: SetupItem[] = [
+    {
+      id: 'settings',
+      label: 'Update your settings',
+      completed: settingsComplete,
+      link: '/admin/settings',
+    },
     {
       id: 'event',
       label: 'Create your first event',
       completed: (events?.length || 0) > 0,
       link: '/admin/events/new',
-    },
-    {
-      id: 'calendar',
-      label: 'Connect Google Calendar',
-      completed: !!(admin?.google_access_token && admin?.google_refresh_token),
-      link: '/api/auth/login',
-    },
-    {
-      id: 'availability',
-      label: 'Set availability patterns',
-      completed: (patterns?.length || 0) > 0,
-      link: '/admin/availability',
-    },
-    {
-      id: 'timezone',
-      label: 'Set your timezone',
-      completed: hasTimezoneSet,
-      link: '/admin/availability',
     },
     {
       id: 'slots',
@@ -296,7 +283,7 @@ export async function GET() {
       title: 'No availability patterns set',
       impact: 'Setting your preferred hours helps you quickly create slots that work for you.',
       cta: 'Set availability',
-      link: '/admin/availability',
+      link: '/admin/settings',
       priority: 'low',
     });
   }

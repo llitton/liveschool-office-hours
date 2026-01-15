@@ -31,7 +31,7 @@ const TIMEZONES = [
   { value: 'Pacific/Honolulu', label: 'Hawaii Time (HST)' },
 ];
 
-export default function AvailabilityPage() {
+export default function SettingsPage() {
   const [patterns, setPatterns] = useState<OHAvailabilityPattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -302,31 +302,10 @@ export default function AvailabilityPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-[#101E57]">Availability Settings</h1>
+          <h1 className="text-2xl font-semibold text-[#101E57]">My Settings</h1>
           <p className="text-[#667085] mt-1">
-            Configure your timezone and recurring availability
+            Set up your profile, timezone, and availability
           </p>
-        </div>
-
-        {/* Explanation box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex gap-3">
-            <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="text-sm">
-              <p className="font-medium text-blue-800 mb-1">When do I need to set this up?</p>
-              <p className="text-blue-700">
-                <strong>Timezone</strong> is important so your calendar displays correctly.
-                <strong> Weekly availability</strong> is optional for basic use, but required when:
-              </p>
-              <ul className="text-blue-700 mt-1 ml-4 list-disc space-y-0.5">
-                <li>You&apos;re part of a <strong>round-robin event</strong> where bookings are distributed among hosts</li>
-                <li>Someone adds you as a <strong>co-host</strong> and needs to see when you&apos;re free</li>
-                <li>You want to <strong>highlight available times</strong> when creating event slots</li>
-              </ul>
-            </div>
-          </div>
         </div>
 
         {error && (
