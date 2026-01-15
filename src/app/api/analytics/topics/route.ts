@@ -14,13 +14,12 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // Build query
+  // Build query - note: feedback_topic_suggestion may not exist in all deployments
   let query = supabase
     .from('oh_bookings')
     .select(`
       question_responses,
       feedback_comment,
-      feedback_topic_suggestion,
       created_at,
       slot:oh_slots(
         event_id,
@@ -118,22 +117,7 @@ export async function GET(request: NextRequest) {
   const topicSuggestions: string[] = [];
 
   for (const booking of filteredBookings) {
-    // Check the new dedicated topic suggestion field first
-    const topicSuggestion = booking.feedback_topic_suggestion;
-    if (topicSuggestion && typeof topicSuggestion === 'string') {
-      topicSuggestions.push(topicSuggestion);
-      const words = topicSuggestion
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/)
-        .filter((word) => word.length > 2 && !stopWords.has(word));
-
-      for (const word of words) {
-        feedbackTopics[word] = (feedbackTopics[word] || 0) + 1;
-      }
-    }
-
-    // Also check comments for legacy "topics for next time" format
+    // Check comments for "topics for next time" patterns
     const comment = booking.feedback_comment;
     if (comment && typeof comment === 'string') {
       const topicsMatch = comment.match(/topics for next time:\s*(.+)/i);

@@ -57,9 +57,16 @@ export default function AnalyticsPage() {
         : '/api/analytics/topics';
       const response = await fetch(url);
       const data = await response.json();
-      setAnalytics(data);
+      // Check if response is an error or valid analytics data
+      if (data.error || !data.questionAnalytics) {
+        console.error('Analytics API error:', data.error);
+        setAnalytics(null);
+      } else {
+        setAnalytics(data);
+      }
     } catch (err) {
       console.error('Failed to load analytics:', err);
+      setAnalytics(null);
     } finally {
       setLoading(false);
     }
