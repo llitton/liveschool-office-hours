@@ -136,6 +136,8 @@ export interface OHAdmin {
   max_meetings_per_week: number;
   default_buffer_before: number;
   default_buffer_after: number;
+  // Profile image URL (stored in Supabase Storage)
+  profile_image: string | null;
 }
 
 export interface SlotWithBookings extends OHSlot {

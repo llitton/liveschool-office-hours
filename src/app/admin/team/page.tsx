@@ -16,6 +16,7 @@ interface Admin {
   max_meetings_per_week: number;
   default_buffer_before: number;
   default_buffer_after: number;
+  profile_image: string | null;
 }
 
 // Timezone display helper
@@ -257,9 +258,17 @@ export default function TeamPage() {
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-medium">
-                        {(admin.name || admin.email)[0].toUpperCase()}
-                      </div>
+                      {admin.profile_image ? (
+                        <img
+                          src={admin.profile_image}
+                          alt={admin.name || admin.email}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-medium">
+                          {(admin.name || admin.email)[0].toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="text-[#101E57] font-medium">

@@ -14,6 +14,12 @@ interface PatternInput {
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+interface AdminProfile {
+  name: string | null;
+  email: string;
+  profile_image: string | null;
+}
+
 // Common US timezones for the dropdown
 const TIMEZONES = [
   { value: 'America/New_York', label: 'Eastern Time (ET)' },
@@ -38,6 +44,10 @@ export default function AvailabilityPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Profile state
+  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // Editable patterns state
   const [editPatterns, setEditPatterns] = useState<PatternInput[]>([]);
   const [showInactiveDays, setShowInactiveDays] = useState(false);
@@ -58,9 +68,10 @@ export default function AvailabilityPage() {
 
   const fetchData = async () => {
     try {
-      const [patternsRes, syncRes] = await Promise.all([
+      const [patternsRes, syncRes, profileRes] = await Promise.all([
         fetch('/api/availability/patterns'),
         fetch('/api/availability/sync'),
+        fetch('/api/admin/me'),
       ]);
 
       if (patternsRes.ok) {
@@ -83,11 +94,84 @@ export default function AvailabilityPage() {
         const syncData = await syncRes.json();
         setSyncStatus(syncData);
       }
+
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        setProfile(profileData);
+      }
     } catch (err) {
       setError('Failed to load availability data');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type client-side
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please upload a JPEG, PNG, WebP, or GIF image.');
+      return;
+    }
+
+    // Validate file size client-side (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setUploadingImage(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/admin/profile-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to upload image');
+      }
+
+      const data = await response.json();
+      setProfile((prev) => (prev ? { ...prev, profile_image: data.url } : prev));
+      setSuccess('Profile photo updated!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    setUploadingImage(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/profile-image', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove image');
+      }
+
+      setProfile((prev) => (prev ? { ...prev, profile_image: null } : prev));
+      setSuccess('Profile photo removed');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to remove image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -302,6 +386,70 @@ export default function AvailabilityPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Profile Photo Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#101E57]">Profile Photo</h2>
+              <p className="text-sm text-[#667085] mt-1">
+                This photo appears on your booking pages so attendees know who they&apos;re meeting with
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 mt-4">
+            {/* Photo preview */}
+            <div className="relative">
+              {profile?.profile_image ? (
+                <img
+                  src={profile.profile_image}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-[#6F71EE] flex items-center justify-center text-white text-2xl font-medium">
+                  {profile?.name?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                  <svg className="animate-spin h-6 w-6 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            {/* Upload controls */}
+            <div className="flex flex-col gap-2">
+              <label className="cursor-pointer">
+                <span className="inline-block bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium text-sm">
+                  {profile?.profile_image ? 'Change Photo' : 'Upload Photo'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  className="hidden"
+                />
+              </label>
+              {profile?.profile_image && (
+                <button
+                  onClick={handleRemoveImage}
+                  disabled={uploadingImage}
+                  className="text-red-600 hover:text-red-700 text-sm font-medium"
+                >
+                  Remove photo
+                </button>
+              )}
+              <p className="text-xs text-[#667085] mt-1">
+                JPEG, PNG, WebP, or GIF. Max 5MB.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Timezone Section - Always important */}

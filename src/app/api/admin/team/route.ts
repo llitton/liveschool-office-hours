@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { sendEmail } from '@/lib/google';
 
 // GET all admins (for team selection)
 export async function GET() {
@@ -24,7 +25,8 @@ export async function GET() {
       max_meetings_per_day,
       max_meetings_per_week,
       default_buffer_before,
-      default_buffer_after
+      default_buffer_after,
+      profile_image
     `)
     .order('created_at', { ascending: true });
 
@@ -76,6 +78,7 @@ export async function GET() {
     default_buffer_after: admin.default_buffer_after,
     timezone: adminExtras[admin.id]?.timezone || null,
     weekly_available_hours: adminExtras[admin.id]?.weeklyHours || 0,
+    profile_image: admin.profile_image,
   }));
 
   return NextResponse.json(enrichedAdmins);
@@ -83,8 +86,9 @@ export async function GET() {
 
 // POST add new admin
 export async function POST(request: NextRequest) {
+  let inviter;
   try {
-    await requireAuth();
+    inviter = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -120,6 +124,62 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Send invite email if inviter has Google connected
+  if (inviter.google_access_token && inviter.google_refresh_token) {
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://connect.liveschool.io';
+      const inviterName = inviter.name || inviter.email;
+      const inviteeName = name || email.split('@')[0];
+
+      await sendEmail(
+        inviter.google_access_token,
+        inviter.google_refresh_token,
+        {
+          to: email,
+          subject: `${inviterName} invited you to LiveSchool Connect`,
+          htmlBody: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #1a1a1a; margin-bottom: 20px;">You've been invited to LiveSchool Connect!</h2>
+
+              <p style="color: #444; font-size: 16px; line-height: 1.6;">
+                Hi ${inviteeName},
+              </p>
+
+              <p style="color: #444; font-size: 16px; line-height: 1.6;">
+                ${inviterName} has invited you to join the team on <strong>LiveSchool Connect</strong> — a scheduling tool that makes it easy for customers and partners to book time with you.
+              </p>
+
+              <div style="margin: 30px 0;">
+                <a href="${appUrl}/admin"
+                   style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                  Get Started
+                </a>
+              </div>
+
+              <p style="color: #444; font-size: 16px; line-height: 1.6;">
+                Once you sign in with your Google account, you'll be able to:
+              </p>
+
+              <ul style="color: #444; font-size: 16px; line-height: 1.8;">
+                <li>Set your availability for office hours</li>
+                <li>Manage your calendar and bookings</li>
+                <li>Connect with customers via Google Meet</li>
+              </ul>
+
+              <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                Questions? Just reply to this email to reach ${inviterName}.
+              </p>
+            </div>
+          `,
+          replyTo: inviter.email,
+        }
+      );
+    } catch (emailError) {
+      // Log but don't fail the request if email sending fails
+      console.error('Failed to send invite email:', emailError);
+    }
   }
 
   return NextResponse.json(admin);
