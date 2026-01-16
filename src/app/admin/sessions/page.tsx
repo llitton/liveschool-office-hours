@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { format, formatDistanceToNow, parseISO, isWithinInterval, addMinutes } from 'date-fns';
+import AdminNav from '@/components/AdminNav';
 
 interface Attendee {
   id: string;
@@ -183,26 +185,42 @@ export default function SessionDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F9]">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-[#101E57]">
-                {format(new Date(), 'EEEE, MMM d')}
-              </h1>
-              <p className="text-sm text-[#667085]">
-                {sessions.length} session{sessions.length !== 1 ? 's' : ''}
-                {totalBooked > 0 && ` · ${totalBooked} booked · ${capacityUsed}% capacity`}
-              </p>
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-4">
+              <Image
+                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+                alt="LiveSchool"
+                width={140}
+                height={36}
+              />
+              <span className="text-[#667085] text-sm font-medium">Connect</span>
             </div>
-            <Link href="/admin" className="text-sm text-[#6F71EE] hover:underline">
-              Dashboard
-            </Link>
+            <a
+              href="/api/auth/logout"
+              className="text-red-600 hover:text-red-700 text-sm font-medium"
+            >
+              Sign out
+            </a>
           </div>
+          <AdminNav />
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-2xl mx-auto p-6 space-y-4">
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Today's date header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-[#101E57]">
+            {format(new Date(), 'EEEE, MMMM d')}
+          </h1>
+          <p className="text-sm text-[#667085]">
+            {sessions.length} session{sessions.length !== 1 ? 's' : ''} today
+            {totalBooked > 0 && ` · ${totalBooked} booked · ${capacityUsed}% capacity`}
+          </p>
+        </div>
+
+        <div className="space-y-4">
         {/* Live - always show first with prominence */}
         {liveSessions.length > 0 && (
           <div>
@@ -260,14 +278,15 @@ export default function SessionDashboardPage() {
 
         {/* Empty state */}
         {sessions.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-[#667085] mb-2">No sessions today</p>
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <p className="text-[#667085] mb-2">No sessions scheduled for today</p>
             <Link href="/admin" className="text-[#6F71EE] hover:underline text-sm">
-              Go to Dashboard
+              View all events
             </Link>
           </div>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
