@@ -29,7 +29,7 @@ export default function ManageEventPage({
   const [error, setError] = useState('');
 
   // Slot creation mode
-  const [creationMode, setCreationMode] = useState<SlotCreationMode>('single');
+  const [creationMode, setCreationMode] = useState<SlotCreationMode>('calendar');
 
   // Single slot form
   const [newSlotDate, setNewSlotDate] = useState('');
@@ -420,6 +420,16 @@ export default function ManageEventPage({
           {/* Mode Tabs */}
           <div className="flex gap-2 mb-2">
             <button
+              onClick={() => setCreationMode('calendar')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'calendar'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Calendar View
+            </button>
+            <button
               onClick={() => setCreationMode('single')}
               className={`px-4 py-2 rounded-lg font-medium transition ${
                 creationMode === 'single'
@@ -449,23 +459,13 @@ export default function ManageEventPage({
             >
               Weekly Recurring
             </button>
-            <button
-              onClick={() => setCreationMode('calendar')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'calendar'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Calendar View
-            </button>
           </div>
           {/* Tab Helper Text */}
           <p className="text-sm text-[#667085] mb-6">
+            {creationMode === 'calendar' && 'See your week at a glance and click to create slots'}
             {creationMode === 'single' && 'Add one specific date and time'}
             {creationMode === 'bulk' && 'Create multiple slots across a date range on selected days'}
             {creationMode === 'recurring' && 'Repeat on the same day each week'}
-            {creationMode === 'calendar' && 'See your week at a glance and click to create slots'}
           </p>
 
           {/* Single Slot Form */}
