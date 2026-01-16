@@ -335,3 +335,49 @@ export interface OHRoundRobinState {
   last_assigned_at: string;
   assignment_count: number;
 }
+
+// ============================================
+// ROUTING FORMS
+// ============================================
+
+export interface RoutingQuestion {
+  id: string;
+  question: string;
+  type: 'text' | 'select' | 'radio';
+  required: boolean;
+  options?: string[];
+}
+
+export interface OHRoutingForm {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  questions: RoutingQuestion[];
+  default_event_id: string | null;
+  is_active: boolean;
+  submission_count: number;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  default_event?: OHEvent;
+}
+
+export interface OHRoutingRule {
+  id: string;
+  routing_form_id: string;
+  question_id: string;
+  answer_value: string;
+  target_event_id: string;
+  target_host_id: string | null;
+  priority: number;
+  is_active: boolean;
+  created_at: string;
+  // Joined data
+  target_event?: OHEvent;
+  target_host?: OHAdmin;
+}
+
+export interface RoutingFormWithRules extends OHRoutingForm {
+  rules: OHRoutingRule[];
+}

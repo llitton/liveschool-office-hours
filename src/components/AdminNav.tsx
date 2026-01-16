@@ -8,6 +8,7 @@ const navItems = [
   { href: '/admin/settings', label: 'My Settings' },
   { href: '/admin/analytics', label: 'Analytics' },
   { href: '/admin/team-health', label: 'Team Health' },
+  { href: '/admin/routing', label: 'Routing' },
   { href: '/admin/integrations', label: 'Integrations' },
   { href: '/admin/team', label: 'Team' },
 ];

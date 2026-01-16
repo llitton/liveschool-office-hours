@@ -63,7 +63,7 @@ async function syncBookingToHubSpot(
 // POST create booking (public)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { slot_id, first_name, last_name, email, question_responses, attendee_timezone } = body;
+  const { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id } = body;
 
   if (!slot_id || !first_name || !last_name || !email) {
     return NextResponse.json(
@@ -178,31 +178,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const config = {
-      strategy: event.round_robin_strategy || 'cycle',
-      period: event.round_robin_period || 'week',
-      hostIds,
-    };
+    // Check if a preferred host was specified (e.g., from routing forms)
+    if (preferred_host_id && hostIds.includes(preferred_host_id)) {
+      // Use the preferred host if they're a valid host for this event
+      const { data: preferredHostData } = await supabase
+        .from('oh_admins')
+        .select('*')
+        .eq('id', preferred_host_id)
+        .single();
 
-    const slotStartTime = parseISO(slot.start_time);
-    const slotEndTime = parseISO(slot.end_time);
-
-    const assignment = await selectNextHost(
-      event.id,
-      slotStartTime,
-      slotEndTime,
-      config as { strategy: 'cycle' | 'least_bookings' | 'availability_weighted'; period: 'day' | 'week' | 'month' | 'all_time'; hostIds: string[] }
-    );
-
-    if (!assignment) {
-      return NextResponse.json(
-        { error: 'All hosts are currently unavailable for this time slot' },
-        { status: 400 }
-      );
+      if (preferredHostData) {
+        assignedHost = preferredHostData;
+        assignedHostId = preferred_host_id;
+        console.log(`Using preferred host ${preferredHostData.email} from routing form`);
+      }
     }
 
-    assignedHost = assignment.host;
-    assignedHostId = assignment.hostId;
+    // Fall back to round-robin selection if no preferred host was assigned
+    if (!assignedHost) {
+      const config = {
+        strategy: event.round_robin_strategy || 'cycle',
+        period: event.round_robin_period || 'week',
+        hostIds,
+      };
+
+      const slotStartTime = parseISO(slot.start_time);
+      const slotEndTime = parseISO(slot.end_time);
+
+      const assignment = await selectNextHost(
+        event.id,
+        slotStartTime,
+        slotEndTime,
+        config as { strategy: 'cycle' | 'least_bookings' | 'availability_weighted'; period: 'day' | 'week' | 'month' | 'all_time'; hostIds: string[] }
+      );
+
+      if (!assignment) {
+        return NextResponse.json(
+          { error: 'All hosts are currently unavailable for this time slot' },
+          { status: 400 }
+        );
+      }
+
+      assignedHost = assignment.host;
+      assignedHostId = assignment.hostId;
+      console.log(`Round-robin assigned host ${assignedHost.email} to booking (${assignment.reason})`);
+    }
 
     // Update slot with assigned host if not already set
     if (!slot.assigned_host_id) {
@@ -211,8 +231,6 @@ export async function POST(request: NextRequest) {
         .update({ assigned_host_id: assignedHostId })
         .eq('id', slot_id);
     }
-
-    console.log(`Round-robin assigned host ${assignedHost.email} to booking (${assignment.reason})`);
   }
   // === END ROUND-ROBIN ===
 

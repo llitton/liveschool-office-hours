@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
 import type { OHEvent, OHSlot, CustomQuestion } from '@/types';
 import SimpleMarkdown from '@/components/SimpleMarkdown';
+import { decodeResponses } from '@/lib/routing';
 
 interface SlotWithCount extends OHSlot {
   booking_count: number;
@@ -74,6 +76,10 @@ export default function BookingPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
+  const searchParams = useSearchParams();
+  const prefillParam = searchParams.get('prefill');
+  const preferredHostId = searchParams.get('host');
+
   const [event, setEvent] = useState<OHEvent | null>(null);
   const [slots, setSlots] = useState<SlotWithCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +120,37 @@ export default function BookingPage({
   useEffect(() => {
     fetchEventAndSlots();
   }, [slug]);
+
+  // Prefill question responses from routing form if available
+  useEffect(() => {
+    if (event && prefillParam) {
+      const prefillData = decodeResponses(prefillParam);
+      if (prefillData) {
+        // Match prefill data to custom questions by question text
+        const customQuestions = event.custom_questions || [];
+        const initialResponses: Record<string, string> = {};
+
+        customQuestions.forEach((q) => {
+          // Try to find matching prefill data by question ID or question text
+          if (prefillData[q.id]) {
+            initialResponses[q.id] = prefillData[q.id];
+          } else {
+            // Also check if the routing form used the question text as key
+            const matchingValue = Object.entries(prefillData).find(
+              ([key, value]) => key.toLowerCase() === q.question.toLowerCase()
+            );
+            if (matchingValue) {
+              initialResponses[q.id] = matchingValue[1];
+            }
+          }
+        });
+
+        if (Object.keys(initialResponses).length > 0) {
+          setQuestionResponses((prev) => ({ ...prev, ...initialResponses }));
+        }
+      }
+    }
+  }, [event, prefillParam]);
 
   const fetchEventAndSlots = async () => {
     try {
@@ -168,6 +205,7 @@ export default function BookingPage({
           ...formData,
           question_responses: questionResponses,
           attendee_timezone: timezone,
+          preferred_host_id: preferredHostId || undefined,
         }),
       });
 
