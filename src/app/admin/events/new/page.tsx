@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { MeetingType, RoundRobinStrategy, RoundRobinPeriod } from '@/types';
+import type { MeetingType, RoundRobinStrategy, RoundRobinPeriod, OHSessionTemplate } from '@/types';
 import TimezoneSelector from '@/components/TimezoneSelector';
 import { RichTextEditor } from '@/components/RichTextEditor';
 
@@ -56,6 +56,42 @@ export default function NewEventPage() {
   const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('cycle');
   const [roundRobinPeriod, setRoundRobinPeriod] = useState<RoundRobinPeriod>('week');
   const [loadingTeam, setLoadingTeam] = useState(false);
+
+  // Session templates
+  const [templates, setTemplates] = useState<OHSessionTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await fetch('/api/session-templates');
+      if (response.ok) {
+        const data = await response.json();
+        setTemplates(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const applyTemplate = (template: OHSessionTemplate) => {
+    setSelectedTemplate(template.id);
+    setMeetingType(template.meeting_type as MeetingType);
+    setFormData((prev) => ({
+      ...prev,
+      duration_minutes: template.duration_minutes,
+    }));
+    setMaxAttendeesInput(String(template.max_attendees));
+    setMinNoticeHours(template.min_notice_hours);
+    setBookingWindowDays(template.booking_window_days);
+  };
 
   // Fetch team members when round-robin is selected
   useEffect(() => {
@@ -190,6 +226,42 @@ export default function NewEventPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Quick Start: Templates */}
+          {!loadingTemplates && templates.length > 0 && (
+            <div className="bg-gradient-to-r from-[#6F71EE]/5 to-[#417762]/5 rounded-lg border border-[#6F71EE]/20 p-6">
+              <h2 className="text-lg font-semibold text-[#101E57] mb-2">Quick Start</h2>
+              <p className="text-sm text-[#667085] mb-4">
+                Choose a template to pre-fill settings, or start from scratch below.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyTemplate(template)}
+                    className={`p-4 rounded-lg border-2 text-left transition ${
+                      selectedTemplate === template.id
+                        ? 'border-[#6F71EE] bg-white shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-[#6F71EE]/50'
+                    }`}
+                  >
+                    <span className="text-2xl mb-2 block">{template.icon}</span>
+                    <p className="font-medium text-[#101E57] text-sm">{template.name}</p>
+                    <p className="text-xs text-[#667085] mt-1 line-clamp-2">{template.description}</p>
+                  </button>
+                ))}
+              </div>
+              {selectedTemplate && (
+                <p className="text-sm text-[#417762] mt-3 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Template applied! Customize settings below.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Step 1: Meeting Type */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center gap-2 mb-4">

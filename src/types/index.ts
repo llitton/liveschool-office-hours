@@ -171,6 +171,24 @@ export interface OHAdmin {
   profile_image: string | null;
 }
 
+// Session Templates for quick event creation
+export interface OHSessionTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  meeting_type: string;
+  duration_minutes: number;
+  max_attendees: number;
+  min_notice_hours: number;
+  booking_window_days: number;
+  custom_questions: CustomQuestion[];
+  prep_materials: string | null;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SlotWithBookings extends OHSlot {
   bookings: OHBooking[];
   booking_count: number;

@@ -108,12 +108,41 @@ export default function BookingPage({
   const [timezone, setTimezone] = useState('America/New_York');
   const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
 
+  // Countdown tick for real-time updates
+  const [, setCountdownTick] = useState(0);
+
   useEffect(() => {
     // Detect user's timezone
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimezone(userTimezone);
     setDetectedTimezone(userTimezone);
   }, []);
+
+  // Update countdown every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCountdownTick(t => t + 1);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get countdown text for slots within 7 days
+  const getCountdownText = (startTime: string): string | null => {
+    const now = new Date();
+    const start = parseISO(startTime);
+    const diffMs = start.getTime() - now.getTime();
+
+    if (diffMs <= 0) return null; // Already started
+
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 7) return null; // Too far out
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
 
   // Check if detected timezone is in our predefined list
   const isDetectedInList = TIMEZONE_OPTIONS.some(group =>
@@ -954,6 +983,14 @@ export default function BookingPage({
                                     ({spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left)
                                   </span>
                                 )}
+                                {(() => {
+                                  const countdown = getCountdownText(slot.start_time);
+                                  return countdown && !isFull ? (
+                                    <span className="ml-2 text-xs bg-[#6F71EE]/10 px-1.5 py-0.5 rounded">
+                                      {countdown}
+                                    </span>
+                                  ) : null;
+                                })()}
                               </button>
                             );
                           })}
