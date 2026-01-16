@@ -339,6 +339,12 @@ export default function ManageEventPage({
                   >
                     Email Templates
                   </Link>
+                  <Link
+                    href={`/admin/events/${id}/embed`}
+                    className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    Embed on Website
+                  </Link>
                   <a
                     href={`/api/events/${id}/export`}
                     className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
