@@ -256,10 +256,6 @@ export default function EventSettingsPage({
           <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
         )}
 
-        {success && (
-          <div className="bg-green-50 text-green-700 p-4 rounded mb-6 text-sm">{success}</div>
-        )}
-
         {/* Event Info */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Event Info</h2>
@@ -1002,7 +998,7 @@ export default function EventSettingsPage({
         </div>
 
         {/* Save Button */}
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -1016,6 +1012,14 @@ export default function EventSettingsPage({
           >
             Cancel
           </Link>
+          {success && (
+            <div className="flex items-center gap-2 bg-green-50 text-green-700 text-sm px-3 py-1.5 rounded-lg">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {success}
+            </div>
+          )}
         </div>
       </main>
     </div>

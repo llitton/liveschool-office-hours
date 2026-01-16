@@ -193,10 +193,6 @@ export default function EmailTemplatesPage({
           <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
         )}
 
-        {success && (
-          <div className="bg-green-50 text-green-700 p-4 rounded mb-6 text-sm">{success}</div>
-        )}
-
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-[#101E57]">Email Templates</h1>
           <p className="text-[#667085] mt-1">Customize the emails sent to attendees</p>
@@ -307,7 +303,7 @@ export default function EmailTemplatesPage({
                   </div>
                 </div>
 
-                <div className="flex gap-4 mt-6">
+                <div className="flex items-center gap-4 mt-6">
                   <button
                     onClick={handleSave}
                     disabled={saving}
@@ -321,6 +317,14 @@ export default function EmailTemplatesPage({
                   >
                     Reset to Default
                   </button>
+                  {success && (
+                    <div className="flex items-center gap-2 bg-green-50 text-green-700 text-sm px-3 py-1.5 rounded-lg">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {success}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
