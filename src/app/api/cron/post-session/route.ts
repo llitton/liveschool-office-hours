@@ -4,8 +4,9 @@ import { sendEmail } from '@/lib/google';
 
 // This cron job runs hourly to handle post-session tasks:
 // 1. Send follow-up emails 2 hours after session ends (to attended attendees)
-// 2. Send feedback requests 1 hour after session ends
-// 3. Send recording links when added
+// 2. Send no-show re-engagement emails (configurable delay, default 2 hours)
+// 3. Send feedback requests 1 hour after session ends
+// 4. Send recording links when added
 
 export async function GET() {
   const supabase = getServiceSupabase();
@@ -13,8 +14,10 @@ export async function GET() {
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
   const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   let followupSent = 0;
+  let noShowSent = 0;
   let feedbackSent = 0;
   let recordingsSent = 0;
 

@@ -52,6 +52,11 @@ export interface OHEvent {
   reminder_body: string | null;
   cancellation_subject: string | null;
   cancellation_body: string | null;
+  // No-show re-engagement emails
+  no_show_subject: string | null;
+  no_show_body: string | null;
+  no_show_emails_enabled: boolean;
+  no_show_email_delay_hours: number;
   // Custom questions and prep materials
   custom_questions: CustomQuestion[] | null;
   prep_materials: string | null;
