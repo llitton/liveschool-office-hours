@@ -778,7 +778,7 @@ export default function BookingPage({
     <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Banner Image */}
+          {/* 1. Banner Image */}
           {event.banner_image && (
             <div className="relative w-full">
               <Image
@@ -792,103 +792,7 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* Header */}
-          <div className="p-6 border-b">
-            <Image
-              src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-              alt="LiveSchool"
-              width={140}
-              height={36}
-              className="mb-4"
-            />
-
-            <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
-            {event.subtitle && (
-              <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
-            )}
-
-            <div className="flex flex-wrap gap-4 mt-3 text-[#667085]">
-              <span className="flex items-center gap-2">
-                {event.host_profile_image ? (
-                  <img
-                    src={event.host_profile_image}
-                    alt={event.host_name}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                )}
-                {event.host_name}
-              </span>
-              <span className="flex items-center gap-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {event.duration_minutes} min
-              </span>
-              <span className="flex items-center gap-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Google Meet
-              </span>
-              {event.meeting_type === 'one_on_one' && (
-                <span className="flex items-center gap-1 text-[#6F71EE]">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                  </svg>
-                  1-on-1 Session
-                </span>
-              )}
-              {event.meeting_type === 'group' && event.max_attendees > 1 && (
-                <span className="flex items-center gap-1">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  Group Session
-                </span>
-              )}
-            </div>
-
-            {event.description && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div
-                  className="prose prose-sm max-w-none text-[#667085] [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_p]:my-2 [&_strong]:text-[#101E57] [&_strong]:font-semibold"
-                  dangerouslySetInnerHTML={{ __html: event.description }}
-                />
-              </div>
-            )}
-
-            {/* Booking Rules Info */}
-            {(event.min_notice_hours > 0 || event.require_approval) && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex flex-wrap gap-2">
-                  {event.min_notice_hours > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {event.min_notice_hours >= 24
-                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
-                        : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
-                    </span>
-                  )}
-                  {event.require_approval && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Requires approval
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Time slots */}
+          {/* 2. Time slots / Scheduling buttons */}
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
               <h2 className="font-semibold text-[#101E57]">Select a date and time</h2>
@@ -1013,6 +917,103 @@ export default function BookingPage({
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Description */}
+          {event.description && (
+            <div className="p-6 border-t">
+              <div
+                className="prose prose-sm max-w-none text-[#667085] [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_p]:my-2 [&_strong]:text-[#101E57] [&_strong]:font-semibold"
+                dangerouslySetInnerHTML={{ __html: event.description }}
+              />
+            </div>
+          )}
+
+          {/* 4. Title and Event Details */}
+          <div className="p-6 border-t">
+            <Image
+              src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+              alt="LiveSchool"
+              width={140}
+              height={36}
+              className="mb-4"
+            />
+
+            <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
+            {event.subtitle && (
+              <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
+            )}
+
+            <div className="flex flex-wrap gap-4 mt-3 text-[#667085]">
+              <span className="flex items-center gap-2">
+                {event.host_profile_image ? (
+                  <img
+                    src={event.host_profile_image}
+                    alt={event.host_name}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+                {event.host_name}
+              </span>
+              <span className="flex items-center gap-1">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {event.duration_minutes} min
+              </span>
+              <span className="flex items-center gap-1">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Google Meet
+              </span>
+              {event.meeting_type === 'one_on_one' && (
+                <span className="flex items-center gap-1 text-[#6F71EE]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                  1-on-1 Session
+                </span>
+              )}
+              {event.meeting_type === 'group' && event.max_attendees > 1 && (
+                <span className="flex items-center gap-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Group Session
+                </span>
+              )}
+            </div>
+
+            {/* Booking Rules Info */}
+            {(event.min_notice_hours > 0 || event.require_approval) && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex flex-wrap gap-2">
+                  {event.min_notice_hours > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {event.min_notice_hours >= 24
+                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
+                        : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
+                    </span>
+                  )}
+                  {event.require_approval && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Requires approval
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </div>
