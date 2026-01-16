@@ -144,6 +144,7 @@ export default function ManageBookingPage({
 
   const { booking, slot, event } = data;
   const isCancelled = !!booking.cancelled_at;
+  const isWaitlisted = booking.is_waitlisted;
   const availableSlotsForReschedule = data.availableSlots.filter((s) => s.id !== slot.id);
 
   return (
@@ -151,7 +152,9 @@ export default function ManageBookingPage({
       <div className="max-w-lg mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header - changes color based on status */}
-          <div className={`p-6 text-center ${isCancelled ? 'bg-gray-500' : 'bg-[#101E57]'} text-white`}>
+          <div className={`p-6 text-center ${
+            isCancelled ? 'bg-gray-500' : isWaitlisted ? 'bg-amber-500' : 'bg-[#101E57]'
+          } text-white`}>
             <Image
               src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
               alt="LiveSchool"
@@ -161,8 +164,20 @@ export default function ManageBookingPage({
             />
             {isCancelled ? (
               <>
-                <h1 className="text-xl font-semibold">Booking Cancelled</h1>
-                <p className="text-white/80 mt-1">This session has been cancelled</p>
+                <h1 className="text-xl font-semibold">
+                  {isWaitlisted ? 'Removed from Waitlist' : 'Booking Cancelled'}
+                </h1>
+                <p className="text-white/80 mt-1">
+                  {isWaitlisted ? "You've left the waitlist" : 'This session has been cancelled'}
+                </p>
+              </>
+            ) : isWaitlisted ? (
+              <>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-xl font-bold">#{booking.waitlist_position}</span>
+                </div>
+                <h1 className="text-xl font-semibold">You&apos;re on the waitlist</h1>
+                <p className="text-white/80 mt-1">We&apos;ll email you if a spot opens up</p>
               </>
             ) : (
               <>
@@ -214,8 +229,8 @@ export default function ManageBookingPage({
                 </div>
               </div>
 
-              {/* Google Meet button */}
-              {slot.google_meet_link && !isCancelled && (
+              {/* Google Meet button - not for waitlisted */}
+              {slot.google_meet_link && !isCancelled && !isWaitlisted && (
                 <a
                   href={slot.google_meet_link}
                   target="_blank"
@@ -230,8 +245,8 @@ export default function ManageBookingPage({
               )}
             </div>
 
-            {/* Add to Calendar - with icons */}
-            {!isCancelled && !showReschedule && (
+            {/* Add to Calendar - only for confirmed bookings */}
+            {!isCancelled && !isWaitlisted && !showReschedule && (
               <div className="mb-6">
                 <p className="text-sm font-medium text-[#101E57] mb-2">Add to your calendar:</p>
                 <div className="flex flex-wrap gap-2">
@@ -259,8 +274,29 @@ export default function ManageBookingPage({
               </div>
             )}
 
-            {/* Reschedule Section */}
-            {!isCancelled && showReschedule && (
+            {/* Waitlist info section */}
+            {!isCancelled && isWaitlisted && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h3 className="font-medium text-amber-800 mb-2">How the waitlist works</h3>
+                <ul className="text-sm text-amber-700 space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span>
+                    You&apos;ll get an email immediately if a spot opens
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span>
+                    Your position may improve as others cancel
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-500 mt-0.5">•</span>
+                    First on the list gets the first available spot
+                  </li>
+                </ul>
+              </div>
+            )}
+
+            {/* Reschedule Section - only for confirmed bookings */}
+            {!isCancelled && !isWaitlisted && showReschedule && (
               <div className="mb-6 p-4 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg">
                 <h3 className="font-medium text-[#101E57] mb-1">Pick a new time</h3>
                 <p className="text-sm text-[#667085] mb-4">Your current slot will be released for others to book.</p>
@@ -323,8 +359,8 @@ export default function ManageBookingPage({
               </div>
             )}
 
-            {/* Action Buttons - redesigned */}
-            {!isCancelled && !showReschedule && (
+            {/* Action Buttons for confirmed bookings */}
+            {!isCancelled && !isWaitlisted && !showReschedule && (
               <div className="space-y-3">
                 <p className="text-sm font-medium text-[#101E57]">Need to make changes?</p>
                 <div className="flex gap-3">
@@ -354,6 +390,25 @@ export default function ManageBookingPage({
               </div>
             )}
 
+            {/* Action button for waitlisted users */}
+            {!isCancelled && isWaitlisted && (
+              <div className="text-center">
+                <button
+                  onClick={handleCancel}
+                  disabled={processing}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-300 text-[#667085] rounded-lg font-medium hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {processing ? 'Leaving...' : 'Leave Waitlist'}
+                </button>
+                <p className="text-xs text-[#667085] mt-2">
+                  You can always book again if more sessions become available
+                </p>
+              </div>
+            )}
+
             {/* Cancelled state - offer to rebook */}
             {isCancelled && (
               <div className="text-center py-4">
@@ -372,8 +427,8 @@ export default function ManageBookingPage({
               </div>
             )}
 
-            {/* Prep Materials */}
-            {event.prep_materials && !isCancelled && (
+            {/* Prep Materials - only for confirmed bookings */}
+            {event.prep_materials && !isCancelled && !isWaitlisted && (
               <div className="mt-6 pt-6 border-t">
                 <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

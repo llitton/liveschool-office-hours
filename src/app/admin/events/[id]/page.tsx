@@ -48,6 +48,7 @@ export default function ManageEventPage({
 
   const [addingSlot, setAddingSlot] = useState(false);
   const [slotsToCreate, setSlotsToCreate] = useState<Date[]>([]);
+  const [showWorkflowGuide, setShowWorkflowGuide] = useState(false);
 
   const slotsRef = useRef<HTMLDivElement>(null);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -411,6 +412,142 @@ export default function ManageEventPage({
               </a>
             </p>
           </div>
+        </div>
+
+        {/* Session Workflow Guide */}
+        <div className="bg-gradient-to-r from-[#6F71EE]/5 to-[#417762]/5 rounded-lg border border-[#6F71EE]/20 mb-8 overflow-hidden">
+          <button
+            onClick={() => setShowWorkflowGuide(!showWorkflowGuide)}
+            className="w-full px-5 py-3 flex items-center justify-between text-left hover:bg-white/50 transition"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🎯</span>
+              <span className="font-medium text-[#101E57]">Session Workflow Guide</span>
+              <span className="text-xs text-[#667085] bg-white/70 px-2 py-0.5 rounded-full">
+                Before · During · After
+              </span>
+            </div>
+            <svg
+              className={`w-5 h-5 text-[#667085] transition-transform ${showWorkflowGuide ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showWorkflowGuide && (
+            <div className="px-5 pb-5 pt-2">
+              <div className="grid md:grid-cols-3 gap-4">
+                {/* Before */}
+                <div className="bg-white rounded-lg p-4 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold">1</span>
+                    <h4 className="font-medium text-[#101E57]">Before Session</h4>
+                  </div>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        <Link href="/admin/analytics" className="text-[#6F71EE] hover:underline">Check Topics</Link> to see what attendees want to discuss
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Review attendee list below &mdash; look for new vs returning folks
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        <Link href={`/admin/events/${id}/settings`} className="text-[#6F71EE] hover:underline">Check Prep Resources</Link> you want to share
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Reminders auto-send 24h and 1h before
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* During */}
+                <div className="bg-white rounded-lg p-4 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-7 h-7 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-sm font-semibold">2</span>
+                    <h4 className="font-medium text-[#101E57]">During Session</h4>
+                  </div>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Click <span className="font-medium text-[#101E57]">Join Google Meet</span> on the slot card below
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Google Meet auto-records (check your settings)
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Use <span className="font-medium text-[#101E57]">Session</span> button on attendees to add notes in real-time
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* After */}
+                <div className="bg-white rounded-lg p-4 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-7 h-7 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-sm font-semibold">3</span>
+                    <h4 className="font-medium text-[#101E57]">After Session</h4>
+                  </div>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Click <span className="font-medium text-[#101E57]">Wrap Up Session</span> on the slot card
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Attendance auto-syncs from Google Meet
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Add recording link from Fireflies/Loom
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-amber-500 mt-0.5">•</span>
+                      <span className="text-[#667085]">
+                        Send follow-up emails or let automations handle it
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Quick tip */}
+              <div className="mt-4 p-3 bg-[#6F71EE]/5 rounded-lg flex items-start gap-3">
+                <span className="text-[#6F71EE]">💡</span>
+                <p className="text-sm text-[#667085]">
+                  <span className="font-medium text-[#101E57]">Pro tip:</span> Check{' '}
+                  <Link href="/admin/sessions" className="text-[#6F71EE] hover:underline">Today&apos;s Sessions</Link>{' '}
+                  for a quick view of everything happening today across all events.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Add Time Slots */}

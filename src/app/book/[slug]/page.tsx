@@ -100,6 +100,8 @@ export default function BookingPage({
     event: OHEvent;
     slot: { start_time: string; end_time: string; google_meet_link: string | null };
     manage_token?: string;
+    is_waitlisted?: boolean;
+    waitlist_position?: number | null;
   } | null>(null);
 
   // Timezone
@@ -267,32 +269,44 @@ export default function BookingPage({
 
   // Booking complete screen
   if (bookingComplete && bookingResult) {
+    const isWaitlisted = bookingResult.is_waitlisted;
+
     return (
       <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
         <div className="max-w-lg mx-auto">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Success header */}
-            <div className="bg-[#417762] text-white p-6 text-center">
+            {/* Header - different for waitlisted vs confirmed */}
+            <div className={`${isWaitlisted ? 'bg-amber-500' : 'bg-[#417762]'} text-white p-6 text-center`}>
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                {isWaitlisted ? (
+                  <span className="text-2xl font-bold">#{bookingResult.waitlist_position}</span>
+                ) : (
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
               </div>
               <h1 className="text-2xl font-semibold mb-1">
-                You&apos;re all set, {formData.first_name}!
+                {isWaitlisted
+                  ? `You're #${bookingResult.waitlist_position} on the waitlist`
+                  : `You're all set, ${formData.first_name}!`
+                }
               </h1>
               <p className="text-white/80">
-                We&apos;re looking forward to meeting with you
+                {isWaitlisted
+                  ? "We'll notify you if a spot opens up"
+                  : "We're looking forward to meeting with you"
+                }
               </p>
             </div>
 
@@ -333,7 +347,7 @@ export default function BookingPage({
                   </div>
                 </div>
 
-                {bookingResult.slot.google_meet_link && (
+                {bookingResult.slot.google_meet_link && !isWaitlisted && (
                   <a
                     href={bookingResult.slot.google_meet_link}
                     target="_blank"
@@ -350,34 +364,64 @@ export default function BookingPage({
 
               {/* What happens next */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-[#101E57] mb-3">Here&apos;s what happens next:</h3>
+                <h3 className="text-sm font-medium text-[#101E57] mb-3">
+                  {isWaitlisted ? "Here's how the waitlist works:" : "Here's what happens next:"}
+                </h3>
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</div>
-                    <div>
-                      <p className="text-sm text-[#101E57] font-medium">Check your inbox</p>
-                      <p className="text-sm text-[#667085]">Calendar invite sent to <strong>{formData.email}</strong></p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</div>
-                    <div>
-                      <p className="text-sm text-[#101E57] font-medium">Add to your calendar</p>
-                      <p className="text-sm text-[#667085]">Accept the invite to block the time</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</div>
-                    <div>
-                      <p className="text-sm text-[#101E57] font-medium">Join on time</p>
-                      <p className="text-sm text-[#667085]">Click the Google Meet link when it&apos;s time</p>
-                    </div>
-                  </div>
+                  {isWaitlisted ? (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</div>
+                        <div>
+                          <p className="text-sm text-[#101E57] font-medium">Check your inbox</p>
+                          <p className="text-sm text-[#667085]">Waitlist confirmation sent to <strong>{formData.email}</strong></p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</div>
+                        <div>
+                          <p className="text-sm text-[#101E57] font-medium">We&apos;ll notify you</p>
+                          <p className="text-sm text-[#667085]">You&apos;ll get an email immediately if a spot opens</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</div>
+                        <div>
+                          <p className="text-sm text-[#101E57] font-medium">Your position may improve</p>
+                          <p className="text-sm text-[#667085]">As others cancel, you&apos;ll move up the list</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</div>
+                        <div>
+                          <p className="text-sm text-[#101E57] font-medium">Check your inbox</p>
+                          <p className="text-sm text-[#667085]">Calendar invite sent to <strong>{formData.email}</strong></p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</div>
+                        <div>
+                          <p className="text-sm text-[#101E57] font-medium">Add to your calendar</p>
+                          <p className="text-sm text-[#667085]">Accept the invite to block the time</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</div>
+                        <div>
+                          <p className="text-sm text-[#101E57] font-medium">Join on time</p>
+                          <p className="text-sm text-[#667085]">Click the Google Meet link when it&apos;s time</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Prep Materials */}
-              {event?.prep_materials && (
+              {/* Prep Materials - only show for confirmed bookings */}
+              {event?.prep_materials && !isWaitlisted && (
                 <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mb-6">
                   <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
                     <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,7 +438,7 @@ export default function BookingPage({
               {/* Manage booking link */}
               <div className="text-center pt-4 border-t border-gray-100">
                 <p className="text-sm text-[#667085] mb-2">
-                  Plans change? No problem.
+                  {isWaitlisted ? "Changed your mind?" : "Plans change? No problem."}
                 </p>
                 {bookingResult.manage_token ? (
                   <a
@@ -404,10 +448,10 @@ export default function BookingPage({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    Reschedule or cancel your booking
+                    {isWaitlisted ? "Leave the waitlist" : "Reschedule or cancel your booking"}
                   </a>
                 ) : (
-                  <p className="text-sm text-[#667085]">Check your email for reschedule options</p>
+                  <p className="text-sm text-[#667085]">Check your email for options</p>
                 )}
               </div>
             </div>

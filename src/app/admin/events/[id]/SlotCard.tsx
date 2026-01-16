@@ -116,7 +116,9 @@ export default function SlotCard({
   const [templatesApplied, setTemplatesApplied] = useState(false);
 
   const isPastSlot = isPast(parseISO(slot.end_time));
-  const capacityPercent = Math.round((slot.booking_count / event.max_attendees) * 100);
+  const confirmedBookings = bookings.filter((b) => !b.is_waitlisted && !b.cancelled_at);
+  const waitlistedBookings = bookings.filter((b) => b.is_waitlisted && !b.cancelled_at);
+  const capacityPercent = Math.round((confirmedBookings.length / event.max_attendees) * 100);
 
   // Auto-sync from Google Meet when wrap-up modal opens
   useEffect(() => {
@@ -679,7 +681,12 @@ export default function SlotCard({
             <div className="mt-3 max-w-xs">
               <div className="flex justify-between text-xs mb-1">
                 <span className="text-[#667085]">
-                  {slot.booking_count} / {event.max_attendees} booked
+                  {confirmedBookings.length} / {event.max_attendees} booked
+                  {waitlistedBookings.length > 0 && (
+                    <span className="ml-1 text-amber-600">
+                      (+{waitlistedBookings.length} waitlisted)
+                    </span>
+                  )}
                 </span>
                 <span className={`font-medium ${
                   capacityPercent >= 100 ? 'text-red-600' :
@@ -822,17 +829,22 @@ export default function SlotCard({
                       <div>
                         <p className="text-sm text-[#101E57] font-medium">
                           {booking.first_name} {booking.last_name}
-                          {stats?.isFrequentAttendee && (
+                          {booking.is_waitlisted && (
+                            <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">
+                              #{booking.waitlist_position} Waitlist
+                            </span>
+                          )}
+                          {!booking.is_waitlisted && stats?.isFrequentAttendee && (
                             <span className="ml-2 px-2 py-0.5 bg-[#417762]/20 text-[#417762] text-xs rounded-full">
                               Frequent
                             </span>
                           )}
-                          {stats?.isRepeatAttendee && !stats?.isFrequentAttendee && (
+                          {!booking.is_waitlisted && stats?.isRepeatAttendee && !stats?.isFrequentAttendee && (
                             <span className="ml-2 px-2 py-0.5 bg-[#6F71EE]/20 text-[#6F71EE] text-xs rounded-full">
                               Returning
                             </span>
                           )}
-                          {stats && stats.noShowRate > 30 && (
+                          {!booking.is_waitlisted && stats && stats.noShowRate > 30 && (
                             <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
                               {stats.noShowRate}% no-show
                             </span>
