@@ -541,9 +541,9 @@ export default function ManageEventPage({
               <div className="mt-4 p-3 bg-[#6F71EE]/5 rounded-lg flex items-start gap-3">
                 <span className="text-[#6F71EE]">💡</span>
                 <p className="text-sm text-[#667085]">
-                  <span className="font-medium text-[#101E57]">Pro tip:</span> Check{' '}
-                  <Link href="/admin/sessions" className="text-[#6F71EE] hover:underline">Today&apos;s Sessions</Link>{' '}
-                  for a quick view of everything happening today across all events.
+                  <span className="font-medium text-[#101E57]">Pro tip:</span> The{' '}
+                  <Link href="/admin" className="text-[#6F71EE] hover:underline">Events page</Link>{' '}
+                  shows today&apos;s sessions at the top for a quick operational view.
                 </p>
               </div>
             </div>

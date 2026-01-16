@@ -7,7 +7,6 @@ import { usePathname } from 'next/navigation';
 // Daily ops (Hannah's main workflow) -> Insights -> Setup/Config
 const navItems = [
   { href: '/admin', label: 'Events', exact: true },
-  { href: '/admin/sessions', label: 'Today' },
   { href: '/admin/analytics', label: 'Topics' },
   { href: '/admin/routing', label: 'Routing' },
   { href: '/admin/team', label: 'Team' },
