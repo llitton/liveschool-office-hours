@@ -169,6 +169,8 @@ export interface OHAdmin {
   default_buffer_after: number;
   // Profile image URL (stored in Supabase Storage)
   profile_image: string | null;
+  // Onboarding progress
+  onboarding_progress: OnboardingState | null;
 }
 
 // Session Templates for quick event creation
@@ -467,3 +469,27 @@ export interface OHRoutingRule {
 export interface RoutingFormWithRules extends OHRoutingForm {
   rules: OHRoutingRule[];
 }
+
+// ============================================
+// USER ONBOARDING
+// ============================================
+
+export type OnboardingStep = 'google' | 'event' | 'slots' | 'share';
+
+export interface OnboardingState {
+  welcomeSeen: boolean;
+  tourCompleted: boolean;
+  tourStep: number | null;  // null = not active, number = current step
+  checklistDismissed: boolean;
+  tooltipsDismissed: string[];  // Array of tooltip IDs
+  completedSteps: OnboardingStep[];
+}
+
+export const DEFAULT_ONBOARDING_STATE: OnboardingState = {
+  welcomeSeen: false,
+  tourCompleted: false,
+  tourStep: null,
+  checklistDismissed: false,
+  tooltipsDismissed: [],
+  completedSteps: [],
+};

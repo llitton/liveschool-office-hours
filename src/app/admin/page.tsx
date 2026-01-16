@@ -6,6 +6,7 @@ import EventActions from './EventActions';
 import DashboardStats from './DashboardStats';
 import TodaysSessions from '@/components/TodaysSessions';
 import AdminHeader from '@/components/AdminHeader';
+import OnboardingWrapper from './OnboardingWrapper';
 
 export default async function AdminPage({
   searchParams,
@@ -71,29 +72,56 @@ export default async function AdminPage({
     );
   }
 
-  // Fetch events
+  // Fetch events and admin data
   const supabase = getServiceSupabase();
-  const { data: events } = await supabase
-    .from('oh_events')
-    .select(`
-      *,
-      slots:oh_slots(
-        id,
-        start_time,
-        end_time,
-        is_cancelled,
-        bookings:oh_bookings(count)
-      )
-    `)
-    .order('created_at', { ascending: false });
+
+  const [eventsResult, adminResult] = await Promise.all([
+    supabase
+      .from('oh_events')
+      .select(`
+        *,
+        slots:oh_slots(
+          id,
+          start_time,
+          end_time,
+          is_cancelled,
+          bookings:oh_bookings(count)
+        )
+      `)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('oh_admins')
+      .select('id, google_access_token, onboarding_progress')
+      .eq('email', session.email)
+      .single()
+  ]);
+
+  const events = eventsResult.data;
+  const admin = adminResult.data;
+
+  // Determine onboarding status
+  const hasGoogleConnected = !!admin?.google_access_token;
+  const hasEvents = (events?.length || 0) > 0;
+  const hasSlots = events?.some(e => e.slots?.some(
+    (s: { is_cancelled: boolean }) => !s.is_cancelled
+  )) || false;
+  const firstEventSlug = events?.[0]?.slug;
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminHeader email={session.email} />
+    <OnboardingWrapper
+      adminId={admin?.id}
+      initialState={admin?.onboarding_progress}
+      hasGoogleConnected={hasGoogleConnected}
+      hasEvents={hasEvents}
+      hasSlots={hasSlots}
+      firstEventSlug={firstEventSlug}
+    >
+      <div className="min-h-screen bg-[#F6F6F9]">
+        <AdminHeader email={session.email} />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <DashboardStats />
-        <TodaysSessions />
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          <DashboardStats />
+          <TodaysSessions />
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-[#101E57]">Events</h2>
@@ -212,6 +240,7 @@ export default async function AdminPage({
           </div>
         )}
       </main>
-    </div>
+      </div>
+    </OnboardingWrapper>
   );
 }
