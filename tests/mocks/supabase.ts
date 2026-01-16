@@ -300,8 +300,8 @@ class MockQueryBuilder<T> {
     if (this.orderField) {
       const field = this.orderField;
       result.sort((a, b) => {
-        const aVal = (a as Record<string, unknown>)[field];
-        const bVal = (b as Record<string, unknown>)[field];
+        const aVal = (a as Record<string, unknown>)[field] as number | string;
+        const bVal = (b as Record<string, unknown>)[field] as number | string;
         if (aVal < bVal) return this.orderAscending ? -1 : 1;
         if (aVal > bVal) return this.orderAscending ? 1 : -1;
         return 0;
@@ -324,10 +324,9 @@ class MockQueryBuilder<T> {
     return { data: result, error: null, count: result.length };
   }
 
-  then<TResult1 = QueryResult<T[]>>(
-    onfulfilled?: ((value: QueryResult<T[]>) => TResult1 | PromiseLike<TResult1>) | null
-  ): Promise<TResult1> {
-    return this.execute().then(onfulfilled as Parameters<Promise<QueryResult<T[]>>['then']>[0]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  then(onfulfilled?: ((value: any) => any) | null): Promise<any> {
+    return this.execute().then(onfulfilled);
   }
 }
 
@@ -410,10 +409,9 @@ class MockUpdateBuilder<T> {
     return { data: updated, error: null };
   }
 
-  then<TResult1 = QueryResult<T>>(
-    onfulfilled?: ((value: QueryResult<T>) => TResult1 | PromiseLike<TResult1>) | null
-  ): Promise<TResult1> {
-    return this.execute().then(onfulfilled as Parameters<Promise<QueryResult<T>>['then']>[0]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  then(onfulfilled?: ((value: any) => any) | null): Promise<any> {
+    return this.execute().then(onfulfilled);
   }
 }
 
