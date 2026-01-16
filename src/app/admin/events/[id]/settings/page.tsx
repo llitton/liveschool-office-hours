@@ -8,6 +8,7 @@ import Breadcrumb from '@/components/Breadcrumb';
 import TimezoneSelector from '@/components/TimezoneSelector';
 import RoundRobinHostSelector from '@/components/RoundRobinHostSelector';
 import HostSelector from '@/components/HostSelector';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 export default function EventSettingsPage({
   params,
@@ -299,16 +300,11 @@ export default function EventSettingsPage({
               <label className="block text-sm font-medium text-[#101E57] mb-1">
                 Description
               </label>
-              <textarea
-                value={eventDescription}
-                onChange={(e) => setEventDescription(e.target.value)}
-                rows={4}
+              <RichTextEditor
+                content={eventDescription}
+                onChange={setEventDescription}
                 placeholder="Describe what attendees will get from this session..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
               />
-              <p className="text-xs text-[#667085] mt-1">
-                Supports basic formatting: **bold**, *italic*, and bullet lists (start lines with - or •)
-              </p>
             </div>
           </div>
         </div>

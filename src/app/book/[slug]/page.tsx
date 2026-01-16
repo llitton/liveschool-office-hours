@@ -6,7 +6,6 @@ import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
 import type { OHEvent, OHSlot, CustomQuestion } from '@/types';
-import SimpleMarkdown from '@/components/SimpleMarkdown';
 import { decodeResponses } from '@/lib/routing';
 
 interface SlotWithCount extends OHSlot {
@@ -782,7 +781,10 @@ export default function BookingPage({
 
             {event.description && (
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <SimpleMarkdown content={event.description} className="text-[#667085]" />
+                <div
+                  className="prose prose-sm max-w-none text-[#667085] [&_a]:text-[#6F71EE] [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: event.description }}
+                />
               </div>
             )}
 
