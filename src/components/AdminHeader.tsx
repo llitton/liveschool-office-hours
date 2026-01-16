@@ -7,30 +7,34 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({ email }: AdminHeaderProps) {
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-4">
+    <header className="bg-white">
+      {/* Top bar with logo and user */}
+      <div className="border-b border-[#E0E0E0]">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <Image
               src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
               alt="LiveSchool"
-              width={140}
-              height={36}
+              width={120}
+              height={32}
             />
-            <span className="text-[#667085] text-sm font-medium">Connect</span>
+            <div className="w-px h-6 bg-[#E0E0E0]" />
+            <span className="text-[#101E57] text-sm font-semibold">Sessions</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-[#667085] text-sm">{email}</span>
+            <span className="text-sm text-[#667085]">{email}</span>
             <a
               href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
+              className="text-sm text-[#667085] hover:text-red-600 transition"
             >
               Sign out
             </a>
           </div>
         </div>
-        <AdminNav />
       </div>
+
+      {/* Navigation */}
+      <AdminNav showSubNav={true} />
     </header>
   );
 }
