@@ -38,6 +38,7 @@ interface PrepResource {
   title: string;
   content: string;
   link: string | null;
+  keywords?: string[];
 }
 
 interface SlotCardProps {
@@ -80,6 +81,8 @@ export default function SlotCard({
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
   const [customMessage, setCustomMessage] = useState('');
   const [sendingResource, setSendingResource] = useState(false);
+  const [sentResourceIds, setSentResourceIds] = useState<Set<string>>(new Set());
+  const [suggestedResourceIds, setSuggestedResourceIds] = useState<Set<string>>(new Set());
   const [showFollowupModal, setShowFollowupModal] = useState(false);
   const [followupTitle, setFollowupTitle] = useState('');
   const [followupDate, setFollowupDate] = useState('');
@@ -307,6 +310,44 @@ export default function SlotCard({
     }
   };
 
+  const fetchSentResources = async (bookingId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/sent-resources`);
+      if (response.ok) {
+        const data = await response.json();
+        setSentResourceIds(new Set(data.map((r: { resource_id: string }) => r.resource_id)));
+      }
+    } catch (err) {
+      console.error('Failed to fetch sent resources:', err);
+    }
+  };
+
+  const calculateSuggestedResources = (bookingId: string) => {
+    // Find the booking to get question_responses
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking?.question_responses || prepResources.length === 0) {
+      setSuggestedResourceIds(new Set());
+      return;
+    }
+
+    // Combine all question responses into searchable text
+    const responseText = Object.values(booking.question_responses)
+      .join(' ')
+      .toLowerCase();
+
+    // Find resources with matching keywords
+    const matchingIds = prepResources
+      .filter((resource) => {
+        if (!resource.keywords || resource.keywords.length === 0) return false;
+        return resource.keywords.some((keyword) =>
+          responseText.includes(keyword.toLowerCase())
+        );
+      })
+      .map((r) => r.id);
+
+    setSuggestedResourceIds(new Set(matchingIds));
+  };
+
   const openNotesPanel = (email: string, bookingId: string) => {
     setShowNotes(email);
     setCurrentBookingId(bookingId);
@@ -314,6 +355,8 @@ export default function SlotCard({
     fetchAttendeeStats(email);
     fetchBookingTags(bookingId);
     fetchBookingTasks(bookingId);
+    fetchSentResources(bookingId);
+    calculateSuggestedResources(bookingId);
   };
 
   // Fetch all available session tags on mount
@@ -465,6 +508,8 @@ export default function SlotCard({
       });
 
       if (response.ok) {
+        // Add to sent resources set
+        setSentResourceIds((prev) => new Set([...prev, selectedResource]));
         setShowResourceModal(false);
         setSelectedResource(null);
         setCustomMessage('');
@@ -1083,10 +1128,10 @@ export default function SlotCard({
         </div>
       )}
 
-      {/* Send Resource Modal */}
+      {/* Send Resource Modal - Smart Suggestions */}
       {showResourceModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="font-semibold text-[#101E57]">Send Help Article</h3>
               <button
@@ -1100,24 +1145,92 @@ export default function SlotCard({
                 ✕
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+              {/* Suggested Resources Section */}
+              {suggestedResourceIds.size > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-2 flex items-center gap-2">
+                    <span className="text-[#6F71EE]">✨</span>
+                    Suggested Based on Responses
+                  </label>
+                  <div className="space-y-2">
+                    {prepResources
+                      .filter((r) => suggestedResourceIds.has(r.id))
+                      .map((resource) => {
+                        const isSent = sentResourceIds.has(resource.id);
+                        const isSelected = selectedResource === resource.id;
+                        return (
+                          <button
+                            key={resource.id}
+                            onClick={() => setSelectedResource(resource.id)}
+                            className={`w-full text-left p-3 rounded-lg border-2 transition ${
+                              isSelected
+                                ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                                : 'border-[#6F71EE]/30 bg-[#6F71EE]/5 hover:border-[#6F71EE]/50'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-[#101E57] text-sm">{resource.title}</p>
+                                <p className="text-xs text-[#667085] line-clamp-1 mt-0.5">{resource.content}</p>
+                              </div>
+                              {isSent && (
+                                <span className="shrink-0 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                  Sent
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              {/* All Resources Section */}
               <div>
                 <label className="block text-sm font-medium text-[#101E57] mb-2">
-                  Select Resource
+                  {suggestedResourceIds.size > 0 ? 'All Resources' : 'Select Resource'}
                 </label>
-                <select
-                  value={selectedResource || ''}
-                  onChange={(e) => setSelectedResource(e.target.value || null)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                >
-                  <option value="">Choose a resource...</option>
-                  {prepResources.map((resource) => (
-                    <option key={resource.id} value={resource.id}>
-                      {resource.title}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  {prepResources
+                    .filter((r) => !suggestedResourceIds.has(r.id))
+                    .map((resource) => {
+                      const isSent = sentResourceIds.has(resource.id);
+                      const isSelected = selectedResource === resource.id;
+                      return (
+                        <button
+                          key={resource.id}
+                          onClick={() => setSelectedResource(resource.id)}
+                          className={`w-full text-left p-3 rounded-lg border transition ${
+                            isSelected
+                              ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-[#101E57] text-sm">{resource.title}</p>
+                              <p className="text-xs text-[#667085] line-clamp-1 mt-0.5">{resource.content}</p>
+                            </div>
+                            {isSent && (
+                              <span className="shrink-0 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                                Sent
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  {prepResources.length === 0 && (
+                    <p className="text-sm text-[#667085] text-center py-4">
+                      No resources created yet. Add resources in Event Settings.
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {/* Custom Message */}
               <div>
                 <label className="block text-sm font-medium text-[#101E57] mb-2">
                   Add a message (optional)

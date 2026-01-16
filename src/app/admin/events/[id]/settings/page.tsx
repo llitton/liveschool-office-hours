@@ -11,6 +11,7 @@ import RoundRobinHostSelector from '@/components/RoundRobinHostSelector';
 import HostSelector from '@/components/HostSelector';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import TaskTemplatesManager from '@/components/TaskTemplatesManager';
+import PrepResourcesManager from '@/components/PrepResourcesManager';
 
 export default function EventSettingsPage({
   params,
@@ -1001,6 +1002,11 @@ export default function EventSettingsPage({
         {/* Task Templates */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <TaskTemplatesManager eventId={id} />
+        </div>
+
+        {/* Prep Resources */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <PrepResourcesManager eventId={id} />
         </div>
 
         {/* Save Button */}
