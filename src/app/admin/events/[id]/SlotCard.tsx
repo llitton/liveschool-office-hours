@@ -96,8 +96,8 @@ export default function SlotCard({
 
   // Wrap-up session workflow state
   const [showWrapUp, setShowWrapUp] = useState(false);
-  const [wrapUpStep, setWrapUpStep] = useState<'attendance' | 'recording' | 'followup'>('attendance');
   const [markingAllAttendance, setMarkingAllAttendance] = useState(false);
+  const [wrapUpAutoSynced, setWrapUpAutoSynced] = useState(false);
   const [syncingFromMeet, setSyncingFromMeet] = useState(false);
   const [syncResult, setSyncResult] = useState<{
     success: boolean;
@@ -108,6 +108,27 @@ export default function SlotCard({
 
   const isPastSlot = isPast(parseISO(slot.end_time));
   const capacityPercent = Math.round((slot.booking_count / event.max_attendees) * 100);
+
+  // Auto-sync from Google Meet when wrap-up modal opens
+  useEffect(() => {
+    if (showWrapUp && !wrapUpAutoSynced && slot.google_meet_link) {
+      const hasUnmarkedBookings = bookings.some(
+        (b) => !b.cancelled_at && !b.attended_at && !b.no_show_at
+      );
+      if (hasUnmarkedBookings) {
+        setWrapUpAutoSynced(true);
+        handleSyncFromMeet();
+      }
+    }
+  }, [showWrapUp]);
+
+  // Reset auto-sync flag when modal closes
+  useEffect(() => {
+    if (!showWrapUp) {
+      setWrapUpAutoSynced(false);
+      setSyncResult(null);
+    }
+  }, [showWrapUp]);
 
   const handleMarkAttendance = async (
     bookingId: string,
@@ -631,7 +652,6 @@ export default function SlotCard({
             <button
               onClick={() => {
                 setShowWrapUp(true);
-                setWrapUpStep('attendance');
               }}
               className="w-full py-3 px-4 bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] font-medium flex items-center justify-center gap-2"
             >
@@ -1233,344 +1253,238 @@ export default function SlotCard({
         </div>
       )}
 
-      {/* Wrap Up Session Modal */}
+      {/* Wrap Up Session Modal - Streamlined Single View */}
       {showWrapUp && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            {/* Header with steps */}
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-4">
+            {/* Header */}
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
                 <h3 className="font-semibold text-[#101E57] text-lg">Wrap Up Session</h3>
-                <button
-                  onClick={() => setShowWrapUp(false)}
-                  className="text-[#667085] hover:text-[#101E57]"
-                >
-                  ✕
-                </button>
+                <p className="text-sm text-[#667085]">
+                  {format(parseISO(slot.start_time), 'MMM d, h:mm a')} · {event.name}
+                </p>
               </div>
-              {/* Progress steps */}
-              <div className="flex items-center gap-2">
-                {['attendance', 'recording', 'followup'].map((step, idx) => (
-                  <div key={step} className="flex items-center">
-                    <button
-                      onClick={() => setWrapUpStep(step as typeof wrapUpStep)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                        wrapUpStep === step
-                          ? 'bg-[#6F71EE] text-white'
-                          : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-                      }`}
-                    >
-                      <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs">
-                        {idx + 1}
-                      </span>
-                      {step === 'attendance' && 'Attendance'}
-                      {step === 'recording' && 'Recording'}
-                      {step === 'followup' && 'Follow-up'}
-                    </button>
-                    {idx < 2 && (
-                      <svg className="w-4 h-4 mx-1 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <button
+                onClick={() => setShowWrapUp(false)}
+                className="text-[#667085] hover:text-[#101E57] p-1"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            {/* Step content */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {/* Step 1: Attendance */}
-              {wrapUpStep === 'attendance' && (
-                <div className="space-y-4">
-                  <p className="text-sm text-[#667085]">
-                    Mark who attended and who didn&apos;t show up. Attendance is synced to HubSpot automatically.
-                  </p>
-
-                  {/* Sync from Google Meet */}
-                  {slot.google_meet_link && bookings.some(b => !b.cancelled_at && !b.attended_at && !b.no_show_at) && (
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                          </svg>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-[#101E57] mb-1">Auto-detect from Google Meet</h4>
-                          <p className="text-sm text-[#667085] mb-3">
-                            Automatically mark attendance based on who actually joined the Google Meet call (5+ min).
-                          </p>
-                          <button
-                            onClick={handleSyncFromMeet}
-                            disabled={syncingFromMeet}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            {syncingFromMeet ? (
-                              <>
-                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                                Syncing...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Sync from Google Meet
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Sync result */}
-                      {syncResult && (
-                        <div className={`mt-3 p-3 rounded-lg ${syncResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
-                          {syncResult.success ? (
-                            <p className="text-sm text-green-700">
-                              Synced! {syncResult.attended} attended, {syncResult.noShow} no-shows marked.
-                            </p>
-                          ) : (
-                            <p className="text-sm text-red-700">
-                              {syncResult.error}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Manual bulk actions */}
-                  {bookings.some(b => !b.cancelled_at && !b.attended_at && !b.no_show_at) && (
-                    <div className="flex items-center gap-2 p-3 bg-[#F6F6F9] rounded-lg">
-                      <span className="text-sm text-[#667085]">Or mark manually:</span>
-                      <button
-                        onClick={() => handleMarkAllAttendance('attended')}
-                        disabled={markingAllAttendance}
-                        className="text-sm text-[#417762] font-medium hover:underline disabled:opacity-50"
-                      >
-                        Mark all attended
-                      </button>
-                      <span className="text-gray-300">|</span>
-                      <button
-                        onClick={() => handleMarkAllAttendance('no_show')}
-                        disabled={markingAllAttendance}
-                        className="text-sm text-amber-600 font-medium hover:underline disabled:opacity-50"
-                      >
-                        Mark all no-show
-                      </button>
-                    </div>
-                  )}
-
+            {/* All sections in single view */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Section 1: Attendance */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📋</span>
+                    <span className="font-medium text-[#101E57]">Attendance</span>
+                  </div>
+                  {syncingFromMeet ? (
+                    <span className="text-xs text-blue-600 flex items-center gap-1">
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Syncing from Meet...
+                    </span>
+                  ) : syncResult?.success ? (
+                    <span className="text-xs text-green-600 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Synced from Meet
+                    </span>
+                  ) : syncResult?.error ? (
+                    <span className="text-xs text-red-600">{syncResult.error}</span>
+                  ) : null}
+                </div>
+                <div className="p-4 space-y-3">
                   {/* Attendee list */}
-                  <div className="space-y-2">
-                    {bookings.filter(b => !b.cancelled_at).map((booking) => (
-                      <div
-                        key={booking.id}
-                        className="flex items-center justify-between p-3 bg-[#F6F6F9] rounded-lg"
-                      >
+                  {bookings.filter(b => !b.cancelled_at).map((booking) => (
+                    <div
+                      key={booking.id}
+                      className="flex items-center justify-between p-2 bg-[#F6F6F9] rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                          booking.attended_at
+                            ? 'bg-[#417762] text-white'
+                            : booking.no_show_at
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {booking.attended_at ? '✓' : booking.no_show_at ? '✗' : '?'}
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-[#101E57]">
                             {booking.first_name} {booking.last_name}
                           </p>
                           <p className="text-xs text-[#667085]">{booking.email}</p>
                         </div>
-                        <div className="flex gap-1">
-                          {booking.attended_at ? (
-                            <span className="px-3 py-1.5 bg-[#417762]/20 text-[#417762] text-sm rounded-lg font-medium">
-                              Attended
-                            </span>
-                          ) : booking.no_show_at ? (
-                            <span className="px-3 py-1.5 bg-amber-100 text-amber-700 text-sm rounded-lg font-medium">
-                              No-show
-                            </span>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleMarkAttendance(booking.id, 'attended')}
-                                className="px-3 py-1.5 bg-[#417762] text-white text-sm rounded-lg hover:bg-[#355f4f]"
-                              >
-                                Attended
-                              </button>
-                              <button
-                                onClick={() => handleMarkAttendance(booking.id, 'no_show')}
-                                className="px-3 py-1.5 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600"
-                              >
-                                No-show
-                              </button>
-                            </>
-                          )}
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex gap-1">
+                        {booking.attended_at ? (
+                          <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium">
+                            Attended
+                          </span>
+                        ) : booking.no_show_at ? (
+                          <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">
+                            No-show
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleMarkAttendance(booking.id, 'attended')}
+                              className="px-2 py-1 bg-[#417762] text-white text-xs rounded hover:bg-[#355f4f]"
+                            >
+                              Attended
+                            </button>
+                            <button
+                              onClick={() => handleMarkAttendance(booking.id, 'no_show')}
+                              className="px-2 py-1 bg-amber-500 text-white text-xs rounded hover:bg-amber-600"
+                            >
+                              No-show
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
 
-                  {/* Summary */}
-                  <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-[#667085]">Attended:</span>
-                      <span className="text-[#417762] font-medium">
-                        {bookings.filter(b => b.attended_at).length}
-                      </span>
+                  {/* Summary and actions row */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <div className="text-xs text-[#667085]">
+                      <span className="text-[#417762] font-medium">{bookings.filter(b => b.attended_at).length}</span> attended ·
+                      <span className="text-amber-600 font-medium ml-1">{bookings.filter(b => b.no_show_at).length}</span> no-show ·
+                      <span className="text-[#101E57] font-medium ml-1">{bookings.filter(b => !b.cancelled_at && !b.attended_at && !b.no_show_at).length}</span> unmarked
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#667085]">No-shows:</span>
-                      <span className="text-amber-600 font-medium">
-                        {bookings.filter(b => b.no_show_at).length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#667085]">Unmarked:</span>
-                      <span className="text-[#101E57] font-medium">
-                        {bookings.filter(b => !b.cancelled_at && !b.attended_at && !b.no_show_at).length}
-                      </span>
-                    </div>
+                    {slot.google_meet_link && (
+                      <button
+                        onClick={handleSyncFromMeet}
+                        disabled={syncingFromMeet}
+                        className="text-xs text-blue-600 hover:underline disabled:opacity-50"
+                      >
+                        Re-sync from Meet
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Step 2: Recording */}
-              {wrapUpStep === 'recording' && (
-                <div className="space-y-4">
-                  <p className="text-sm text-[#667085]">
-                    Add the recording link from Fireflies, Loom, or other recording service.
-                    This will be included in follow-up emails to attendees.
-                  </p>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-2">
-                      Recording Link
-                    </label>
+              {/* Section 2: Recording */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🎬</span>
+                    <span className="font-medium text-[#101E57]">Recording</span>
+                  </div>
+                  {slot.recording_link ? (
+                    <span className="text-xs text-green-600 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Saved
+                    </span>
+                  ) : (
+                    <span className="text-xs text-amber-600">Not added yet</span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="flex gap-2">
                     <input
                       type="url"
                       value={recordingLink}
                       onChange={(e) => setRecordingLink(e.target.value)}
                       placeholder="https://app.fireflies.ai/view/..."
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                     />
+                    <button
+                      onClick={handleSaveRecording}
+                      disabled={savingRecording || !recordingLink || recordingLink === slot.recording_link}
+                      className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingRecording ? 'Saving...' : 'Save'}
+                    </button>
                   </div>
-
-                  {recordingLink && (
-                    <div className="p-3 bg-[#417762]/10 rounded-lg">
-                      <p className="text-sm text-[#417762]">
-                        Recording link will be included in follow-up emails to attendees.
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleSaveRecording}
-                    disabled={savingRecording || !recordingLink}
-                    className="w-full py-2 bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    {savingRecording ? 'Saving...' : 'Save Recording Link'}
-                  </button>
-                </div>
-              )}
-
-              {/* Step 3: Follow-up */}
-              {wrapUpStep === 'followup' && (
-                <div className="space-y-4">
-                  <p className="text-sm text-[#667085]">
-                    Send follow-up emails to attendees and no-shows with personalized messages.
+                  <p className="text-xs text-[#667085] mt-2">
+                    Paste link from Fireflies, Loom, or other recording service. Will be included in follow-up emails.
                   </p>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Email Attendees */}
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-[#417762]/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              {/* Section 3: Follow-ups */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📧</span>
+                    <span className="font-medium text-[#101E57]">Follow-ups</span>
+                  </div>
+                  <span className="text-xs text-[#667085]">Optional</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        openBulkFollowup('attended');
+                        setShowWrapUp(false);
+                      }}
+                      disabled={!bookings.some(b => b.attended_at)}
+                      className="p-3 border border-gray-200 rounded-lg hover:border-[#417762] hover:bg-[#417762]/5 disabled:opacity-50 disabled:cursor-not-allowed text-left transition"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-full bg-[#417762]/20 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
-                        <div>
-                          <p className="font-medium text-[#101E57]">Attendees</p>
-                          <p className="text-xs text-[#667085]">
-                            {bookings.filter(b => b.attended_at).length} people
-                          </p>
-                        </div>
+                        <span className="text-sm font-medium text-[#101E57]">Thank You Email</span>
                       </div>
-                      <button
-                        onClick={() => {
-                          openBulkFollowup('attended');
-                          setShowWrapUp(false);
-                        }}
-                        disabled={!bookings.some(b => b.attended_at)}
-                        className="w-full py-2 bg-[#417762] text-white text-sm rounded-lg hover:bg-[#355f4f] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Send Thank You Email
-                      </button>
-                    </div>
+                      <p className="text-xs text-[#667085]">
+                        {bookings.filter(b => b.attended_at).length} attendees
+                      </p>
+                    </button>
 
-                    {/* Email No-Shows */}
-                    <div className="p-4 border border-gray-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <button
+                      onClick={() => {
+                        openBulkFollowup('no_show');
+                        setShowWrapUp(false);
+                      }}
+                      disabled={!bookings.some(b => b.no_show_at)}
+                      className="p-3 border border-gray-200 rounded-lg hover:border-amber-500 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed text-left transition"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
                           </svg>
                         </div>
-                        <div>
-                          <p className="font-medium text-[#101E57]">No-Shows</p>
-                          <p className="text-xs text-[#667085]">
-                            {bookings.filter(b => b.no_show_at).length} people
-                          </p>
-                        </div>
+                        <span className="text-sm font-medium text-[#101E57]">We Missed You</span>
                       </div>
-                      <button
-                        onClick={() => {
-                          openBulkFollowup('no_show');
-                          setShowWrapUp(false);
-                        }}
-                        disabled={!bookings.some(b => b.no_show_at)}
-                        className="w-full py-2 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Send We Missed You Email
-                      </button>
-                    </div>
+                      <p className="text-xs text-[#667085]">
+                        {bookings.filter(b => b.no_show_at).length} no-shows
+                      </p>
+                    </button>
                   </div>
 
-                  {recordingLink && (
-                    <p className="text-xs text-[#667085] text-center">
-                      The recording link will be automatically included in attendee emails.
-                    </p>
-                  )}
+                  <p className="text-xs text-[#667085] text-center">
+                    Auto follow-up emails will be sent in ~2 hours if not sent manually.
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Footer with navigation */}
-            <div className="p-4 border-t flex justify-between">
+            {/* Simple footer */}
+            <div className="p-4 border-t">
               <button
-                onClick={() => {
-                  if (wrapUpStep === 'attendance') {
-                    setShowWrapUp(false);
-                  } else if (wrapUpStep === 'recording') {
-                    setWrapUpStep('attendance');
-                  } else {
-                    setWrapUpStep('recording');
-                  }
-                }}
-                className="px-4 py-2 text-sm text-[#667085] hover:text-[#101E57]"
+                onClick={() => setShowWrapUp(false)}
+                className="w-full py-2 bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] font-medium"
               >
-                {wrapUpStep === 'attendance' ? 'Cancel' : 'Back'}
-              </button>
-              <button
-                onClick={() => {
-                  if (wrapUpStep === 'attendance') {
-                    setWrapUpStep('recording');
-                  } else if (wrapUpStep === 'recording') {
-                    setWrapUpStep('followup');
-                  } else {
-                    setShowWrapUp(false);
-                  }
-                }}
-                className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0]"
-              >
-                {wrapUpStep === 'followup' ? 'Done' : 'Next'}
+                Done
               </button>
             </div>
           </div>
