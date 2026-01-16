@@ -21,6 +21,7 @@ export default function TaskTemplatesManager({ eventId }: TaskTemplatesManagerPr
     timing: 'after_session' as TaskTiming,
     default_due_offset_hours: '',
     auto_create: false,
+    sync_to_hubspot: false,
   });
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function TaskTemplatesManager({ eventId }: TaskTemplatesManagerPr
       timing: 'after_session',
       default_due_offset_hours: '',
       auto_create: false,
+      sync_to_hubspot: false,
     });
     setEditingId(null);
   };
@@ -60,6 +62,7 @@ export default function TaskTemplatesManager({ eventId }: TaskTemplatesManagerPr
       timing: template.timing,
       default_due_offset_hours: template.default_due_offset_hours?.toString() || '',
       auto_create: template.auto_create,
+      sync_to_hubspot: template.sync_to_hubspot,
     });
   };
 
@@ -76,6 +79,7 @@ export default function TaskTemplatesManager({ eventId }: TaskTemplatesManagerPr
           ? parseInt(formData.default_due_offset_hours)
           : null,
         auto_create: formData.auto_create,
+        sync_to_hubspot: formData.sync_to_hubspot,
       };
 
       if (editingId) {
@@ -171,6 +175,11 @@ export default function TaskTemplatesManager({ eventId }: TaskTemplatesManagerPr
                   {template.auto_create && (
                     <span className="text-xs bg-[#6F71EE]/10 text-[#6F71EE] px-2 py-0.5 rounded">
                       Auto
+                    </span>
+                  )}
+                  {template.sync_to_hubspot && (
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">
+                      HubSpot
                     </span>
                   )}
                 </div>
@@ -275,6 +284,18 @@ export default function TaskTemplatesManager({ eventId }: TaskTemplatesManagerPr
             />
             <span className="text-sm text-[#101E57]">
               Auto-create for every booking
+            </span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.sync_to_hubspot}
+              onChange={(e) => setFormData({ ...formData, sync_to_hubspot: e.target.checked })}
+              className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+            />
+            <span className="text-sm text-[#101E57]">
+              Sync to HubSpot
             </span>
           </label>
 

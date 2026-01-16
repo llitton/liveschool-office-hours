@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { addHours } from 'date-fns';
+import { findOrCreateContact, createTask as createHubSpotTask } from '@/lib/hubspot';
 
 // POST apply task templates to a booking
 export async function POST(
@@ -45,8 +46,42 @@ export async function POST(
     return NextResponse.json({ tasks: [] });
   }
 
+  // Check if any templates need HubSpot sync
+  const needsHubSpot = templates.some((t) => t.sync_to_hubspot);
+  let hubspotContact: { id: string } | null = null;
+
+  // Get booking details if we need HubSpot sync
+  if (needsHubSpot) {
+    const { data: booking } = await supabase
+      .from('oh_bookings')
+      .select('*')
+      .eq('id', booking_id)
+      .single();
+
+    if (booking) {
+      try {
+        const firstName = booking.first_name || '';
+        const lastName = booking.last_name || '';
+        hubspotContact = await findOrCreateContact(booking.email, firstName, lastName);
+
+        // Update booking with contact ID if not set
+        if (hubspotContact && !booking.hubspot_contact_id) {
+          await supabase
+            .from('oh_bookings')
+            .update({ hubspot_contact_id: hubspotContact.id })
+            .eq('id', booking_id);
+        }
+      } catch (err) {
+        console.error('Failed to find/create HubSpot contact:', err);
+      }
+    }
+  }
+
   // Create tasks from templates
-  const tasksToCreate = templates.map((template) => {
+  const tasksToCreate = [];
+  const hubspotTaskPromises: Promise<{ templateId: string; hubspotTaskId: string | null }>[] = [];
+
+  for (const template of templates) {
     let due_date = null;
 
     // Calculate due date if offset is set
@@ -55,18 +90,47 @@ export async function POST(
       due_date = addHours(baseTime, template.default_due_offset_hours).toISOString();
     }
 
-    return {
+    // Create HubSpot task if sync is enabled and we have a contact
+    if (template.sync_to_hubspot && hubspotContact) {
+      hubspotTaskPromises.push(
+        createHubSpotTask({
+          subject: template.title,
+          body: template.description || undefined,
+          dueDate: due_date ? new Date(due_date) : undefined,
+          contactId: hubspotContact.id,
+        })
+          .then((taskId) => ({ templateId: template.id, hubspotTaskId: taskId }))
+          .catch((err) => {
+            console.error('Failed to create HubSpot task:', err);
+            return { templateId: template.id, hubspotTaskId: null };
+          })
+      );
+    }
+
+    tasksToCreate.push({
       booking_id,
       title: template.title,
       notes: template.description,
       due_date,
       template_id: template.id,
-    };
-  });
+    });
+  }
+
+  // Wait for HubSpot tasks to be created
+  const hubspotResults = await Promise.all(hubspotTaskPromises);
+  const hubspotTaskMap = new Map(
+    hubspotResults.map((r) => [r.templateId, r.hubspotTaskId])
+  );
+
+  // Add HubSpot task IDs to local tasks
+  const tasksWithHubSpot = tasksToCreate.map((task) => ({
+    ...task,
+    hubspot_task_id: hubspotTaskMap.get(task.template_id) || null,
+  }));
 
   const { data: tasks, error: insertError } = await supabase
     .from('oh_quick_tasks')
-    .insert(tasksToCreate)
+    .insert(tasksWithHubSpot)
     .select();
 
   if (insertError) {

@@ -262,6 +262,7 @@ export interface OHTaskTemplate {
   timing: TaskTiming;
   default_due_offset_hours: number | null;
   auto_create: boolean;
+  sync_to_hubspot: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
