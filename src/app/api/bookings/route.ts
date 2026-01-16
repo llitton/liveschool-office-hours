@@ -12,6 +12,7 @@ import { findOrCreateContact, logMeetingActivity } from '@/lib/hubspot';
 import { notifyNewBooking } from '@/lib/slack';
 import { matchPrepResources, formatResourcesForEmail } from '@/lib/prep-matcher';
 import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
+import { formatPhoneE164 } from '@/lib/sms';
 import type { OHAdmin } from '@/types';
 import { parseISO, format, addHours, addDays, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import crypto from 'crypto';
@@ -63,7 +64,7 @@ async function syncBookingToHubSpot(
 // POST create booking (public)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id } = body;
+  const { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent } = body;
 
   if (!slot_id || !first_name || !last_name || !email) {
     return NextResponse.json(
@@ -95,6 +96,31 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  // === PHONE VALIDATION ===
+  let formattedPhone: string | null = null;
+
+  // Check if phone is required for this event
+  if (slot.event.sms_phone_required && slot.event.sms_reminders_enabled) {
+    if (!phone) {
+      return NextResponse.json(
+        { error: 'Phone number is required for this event' },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Validate and format phone if provided
+  if (phone) {
+    formattedPhone = formatPhoneE164(phone);
+    if (!formattedPhone) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format. Please enter a valid phone number.' },
+        { status: 400 }
+      );
+    }
+  }
+  // === END PHONE VALIDATION ===
 
   // === BOOKING CONSTRAINT VALIDATION ===
   const now = new Date();
@@ -278,6 +304,8 @@ export async function POST(request: NextRequest) {
       status: bookingStatus,
       attendee_timezone: attendee_timezone || null,
       assigned_host_id: assignedHostId,
+      phone: formattedPhone,
+      sms_consent: sms_consent || false,
     })
     .select()
     .single();

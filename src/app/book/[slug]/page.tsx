@@ -91,6 +91,8 @@ export default function BookingPage({
     first_name: '',
     last_name: '',
     email: '',
+    phone: '',
+    sms_consent: false,
   });
   const [questionResponses, setQuestionResponses] = useState<Record<string, string>>({});
   const [booking, setBooking] = useState(false);
@@ -549,6 +551,47 @@ export default function BookingPage({
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                   />
                 </div>
+
+                {/* Phone Number and SMS Consent - only show if SMS enabled for this event */}
+                {event.sms_reminders_enabled && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Phone Number {event.sms_phone_required && '*'}
+                      </label>
+                      <input
+                        type="tel"
+                        required={event.sms_phone_required}
+                        value={formData.phone}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                        }
+                        placeholder="+1 (555) 123-4567"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      <p className="text-xs text-[#667085] mt-1">
+                        For SMS reminders before your session
+                      </p>
+                    </div>
+
+                    {formData.phone && (
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.sms_consent}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, sms_consent: e.target.checked }))
+                          }
+                          className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                        />
+                        <span className="text-sm text-[#667085]">
+                          I agree to receive SMS reminders about this booking.
+                          Message & data rates may apply. Reply STOP to opt out.
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                )}
 
                 {/* Custom Questions */}
                 {event.custom_questions && event.custom_questions.length > 0 && (

@@ -7,6 +7,7 @@ import {
   defaultTemplates,
   htmlifyEmailBody,
 } from '@/lib/email-templates';
+import { getSMSConfig, sendSMS, processSMSTemplate, defaultSMSTemplates } from '@/lib/sms';
 import { addHours, isAfter, isBefore } from 'date-fns';
 
 // This endpoint is designed to be called by Vercel Cron
@@ -25,8 +26,12 @@ export async function GET(request: NextRequest) {
   const in24Hours = addHours(now, 24);
   const in25Hours = addHours(now, 25);
 
-  let remindersSent = 0;
+  let emailRemindersSent = 0;
+  let smsRemindersSent = 0;
   const errors: string[] = [];
+
+  // Check if SMS is configured globally
+  const smsConfig = await getSMSConfig();
 
   // Get all upcoming slots within the next 25 hours
   const { data: slots, error: slotsError } = await supabase
@@ -144,17 +149,63 @@ export async function GET(request: NextRequest) {
           }
         );
 
-        // Update the booking to mark reminder as sent
-        const updateField =
+        // Update the booking to mark email reminder as sent
+        const emailUpdateField =
           reminderType === '24h' ? 'reminder_24h_sent_at' : 'reminder_1h_sent_at';
 
         await supabase
           .from('oh_bookings')
-          .update({ [updateField]: new Date().toISOString() })
+          .update({ [emailUpdateField]: new Date().toISOString() })
           .eq('id', booking.id);
 
-        remindersSent++;
-        console.log(`Sent ${reminderType} reminder to ${booking.email} for slot ${slot.id}`);
+        emailRemindersSent++;
+        console.log(`Sent ${reminderType} email reminder to ${booking.email} for slot ${slot.id}`);
+
+        // === SMS REMINDER ===
+        // Check if SMS should be sent for this booking
+        const shouldSendSMS =
+          smsConfig?.is_active &&
+          slot.event.sms_reminders_enabled &&
+          booking.sms_consent &&
+          booking.phone;
+
+        if (shouldSendSMS) {
+          // Check if SMS reminder not already sent
+          const smsFieldToCheck = reminderType === '24h' ? 'sms_reminder_24h_sent_at' : 'sms_reminder_1h_sent_at';
+          const smsSentAt = booking[smsFieldToCheck];
+
+          if (!smsSentAt) {
+            try {
+              // Get the SMS template
+              const smsTemplate = reminderType === '24h'
+                ? (slot.event.sms_reminder_24h_template || defaultSMSTemplates.reminder_24h)
+                : (slot.event.sms_reminder_1h_template || defaultSMSTemplates.reminder_1h);
+
+              // Process the template with variables (cast to Record type for SMS)
+              const smsMessage = processSMSTemplate(smsTemplate, variables as unknown as Record<string, string | undefined>);
+
+              // Send the SMS
+              const smsSent = await sendSMS(booking.phone, smsMessage);
+
+              if (smsSent) {
+                // Update the booking to mark SMS reminder as sent
+                const smsUpdateField = reminderType === '24h' ? 'sms_reminder_24h_sent_at' : 'sms_reminder_1h_sent_at';
+
+                await supabase
+                  .from('oh_bookings')
+                  .update({ [smsUpdateField]: new Date().toISOString() })
+                  .eq('id', booking.id);
+
+                smsRemindersSent++;
+                console.log(`Sent ${reminderType} SMS reminder to ${booking.phone} for slot ${slot.id}`);
+              }
+            } catch (smsErr) {
+              console.error(`Failed to send SMS reminder to ${booking.phone}:`, smsErr);
+              // Don't fail the whole job for SMS errors
+            }
+          }
+        }
+        // === END SMS REMINDER ===
       } catch (err) {
         const errorMsg = `Failed to send reminder to ${booking.email}: ${err}`;
         console.error(errorMsg);
@@ -165,7 +216,8 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    remindersSent,
+    emailRemindersSent,
+    smsRemindersSent,
     errors: errors.length > 0 ? errors : undefined,
   });
 }

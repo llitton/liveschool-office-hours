@@ -49,6 +49,12 @@ export default function EventSettingsPage({
   const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('cycle');
   const [roundRobinPeriod, setRoundRobinPeriod] = useState<RoundRobinPeriod>('week');
 
+  // SMS settings
+  const [smsRemindersEnabled, setSmsRemindersEnabled] = useState(false);
+  const [smsPhoneRequired, setSmsPhoneRequired] = useState(false);
+  const [smsReminder24hTemplate, setSmsReminder24hTemplate] = useState('');
+  const [smsReminder1hTemplate, setSmsReminder1hTemplate] = useState('');
+
   // Available preset banners
   const PRESET_BANNERS = [
     { label: 'Default Banner', value: '/banners/default-banner.png' },
@@ -87,6 +93,12 @@ export default function EventSettingsPage({
       // Set round-robin settings
       setRoundRobinStrategy(eventData.round_robin_strategy || 'cycle');
       setRoundRobinPeriod(eventData.round_robin_period || 'week');
+
+      // Set SMS settings
+      setSmsRemindersEnabled(eventData.sms_reminders_enabled ?? false);
+      setSmsPhoneRequired(eventData.sms_phone_required ?? false);
+      setSmsReminder24hTemplate(eventData.sms_reminder_24h_template || '');
+      setSmsReminder1hTemplate(eventData.sms_reminder_1h_template || '');
 
       // Set banner state
       const currentBanner = eventData.banner_image || '';
@@ -144,6 +156,11 @@ export default function EventSettingsPage({
           // Round-robin settings
           round_robin_strategy: meetingType === 'round_robin' ? roundRobinStrategy : null,
           round_robin_period: roundRobinPeriod,
+          // SMS settings
+          sms_reminders_enabled: smsRemindersEnabled,
+          sms_phone_required: smsPhoneRequired,
+          sms_reminder_24h_template: smsReminder24hTemplate || null,
+          sms_reminder_1h_template: smsReminder1hTemplate || null,
         }),
       });
 
@@ -878,6 +895,91 @@ export default function EventSettingsPage({
                 </p>
               </div>
             </label>
+          </div>
+        </div>
+
+        {/* SMS Reminders */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">SMS Reminders</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Send text message reminders to attendees before their session.
+          </p>
+
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={smsRemindersEnabled}
+                onChange={(e) => setSmsRemindersEnabled(e.target.checked)}
+                className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              />
+              <div>
+                <span className="font-medium text-[#101E57]">Enable SMS Reminders</span>
+                <p className="text-sm text-[#667085] mt-0.5">
+                  Attendees can opt-in to receive text message reminders
+                </p>
+              </div>
+            </label>
+
+            {smsRemindersEnabled && (
+              <div className="ml-7 space-y-4 pt-2">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={smsPhoneRequired}
+                    onChange={(e) => setSmsPhoneRequired(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">Require Phone Number</span>
+                    <p className="text-sm text-[#667085] mt-0.5">
+                      Make phone number a required field on the booking form
+                    </p>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    24-Hour Reminder Message
+                  </label>
+                  <textarea
+                    value={smsReminder24hTemplate}
+                    onChange={(e) => setSmsReminder24hTemplate(e.target.value)}
+                    rows={2}
+                    maxLength={160}
+                    placeholder="Hi {{first_name}}, reminder: {{event_name}} tomorrow at {{time_with_timezone}}. Reply STOP to opt out."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                  <p className="text-xs text-[#667085] mt-1">
+                    {smsReminder24hTemplate.length}/160 characters. Leave empty to use default.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    1-Hour Reminder Message
+                  </label>
+                  <textarea
+                    value={smsReminder1hTemplate}
+                    onChange={(e) => setSmsReminder1hTemplate(e.target.value)}
+                    rows={2}
+                    maxLength={160}
+                    placeholder="Hi {{first_name}}, your {{event_name}} session starts in 1 hour at {{time_with_timezone}}."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                  <p className="text-xs text-[#667085] mt-1">
+                    {smsReminder1hTemplate.length}/160 characters. Leave empty to use default.
+                  </p>
+                </div>
+
+                <div className="bg-[#F6F6F9] rounded-lg p-3">
+                  <p className="text-xs font-medium text-[#101E57] mb-1">Available template variables:</p>
+                  <p className="text-xs text-[#667085]">
+                    {'{{first_name}}'}, {'{{last_name}}'}, {'{{event_name}}'}, {'{{time_with_timezone}}'}, {'{{date}}'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

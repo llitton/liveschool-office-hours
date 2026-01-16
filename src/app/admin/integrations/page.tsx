@@ -16,6 +16,12 @@ interface SlackStatus {
   webhookConfigured?: boolean;
 }
 
+interface SMSStatus {
+  connected: boolean;
+  provider?: string;
+  sender_phone?: string;
+}
+
 function IntegrationsContent() {
   const searchParams = useSearchParams();
   const [hubspotStatus, setHubspotStatus] = useState<HubSpotStatus | null>(null);
@@ -34,6 +40,17 @@ function IntegrationsContent() {
   const [savingSlack, setSavingSlack] = useState(false);
   const [showSlackSetup, setShowSlackSetup] = useState(false);
   const [testingSlack, setTestingSlack] = useState(false);
+
+  // SMS config
+  const [smsStatus, setSmsStatus] = useState<SMSStatus | null>(null);
+  const [smsProvider, setSmsProvider] = useState<'aircall' | 'twilio'>('aircall');
+  const [smsApiKey, setSmsApiKey] = useState('');
+  const [smsApiSecret, setSmsApiSecret] = useState('');
+  const [smsSenderPhone, setSmsSenderPhone] = useState('');
+  const [savingSms, setSavingSms] = useState(false);
+  const [showSmsSetup, setShowSmsSetup] = useState(false);
+  const [testingSms, setTestingSms] = useState(false);
+  const [testSmsPhone, setTestSmsPhone] = useState('');
 
   useEffect(() => {
     fetchStatuses();
@@ -57,9 +74,10 @@ function IntegrationsContent() {
 
   const fetchStatuses = async () => {
     try {
-      const [hubspotRes, slackRes] = await Promise.all([
+      const [hubspotRes, slackRes, smsRes] = await Promise.all([
         fetch('/api/hubspot/auth', { method: 'POST' }),
         fetch('/api/slack/status'),
+        fetch('/api/sms/status'),
       ]);
 
       if (hubspotRes.ok) {
@@ -78,6 +96,13 @@ function IntegrationsContent() {
         }
       } else {
         setSlackStatus({ connected: false });
+      }
+
+      if (smsRes.ok) {
+        const data = await smsRes.json();
+        setSmsStatus(data);
+      } else {
+        setSmsStatus({ connected: false });
       }
     } catch (err) {
       console.error('Failed to fetch integration statuses:', err);
@@ -169,6 +194,79 @@ function IntegrationsContent() {
       setMessage({ type: 'error', text: 'Failed to send test message' });
     } finally {
       setTestingSlack(false);
+    }
+  };
+
+  const saveSmsConfig = async () => {
+    if (!smsApiKey.trim()) return;
+
+    setSavingSms(true);
+    try {
+      const response = await fetch('/api/sms/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: smsProvider,
+          api_key: smsApiKey,
+          api_secret: smsApiSecret || undefined,
+          sender_phone: smsSenderPhone || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        setSmsStatus({ connected: true, provider: smsProvider, sender_phone: smsSenderPhone });
+        setSmsApiKey('');
+        setSmsApiSecret('');
+        setMessage({ type: 'success', text: 'SMS provider connected successfully!' });
+        setShowSmsSetup(false);
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to connect SMS provider' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save SMS configuration' });
+    } finally {
+      setSavingSms(false);
+    }
+  };
+
+  const disconnectSms = async () => {
+    try {
+      const response = await fetch('/api/sms/config', { method: 'DELETE' });
+      if (response.ok) {
+        setSmsStatus({ connected: false });
+        setMessage({ type: 'success', text: 'SMS provider disconnected' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to disconnect SMS provider' });
+    }
+  };
+
+  const testSmsConnection = async () => {
+    if (!testSmsPhone.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a phone number to test' });
+      return;
+    }
+
+    setTestingSms(true);
+    try {
+      const response = await fetch('/api/sms/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: testSmsPhone }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Test SMS sent! Check your phone.' });
+        setTestSmsPhone('');
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to send test SMS' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to send test SMS' });
+    } finally {
+      setTestingSms(false);
     }
   };
 
@@ -484,6 +582,190 @@ function IntegrationsContent() {
                       Update webhook
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* SMS Integration */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-[#00D67A] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+              SMS
+            </div>
+            <div className="flex-1">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-[#101E57]">SMS Reminders</h2>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Send text message reminders to reduce no-shows
+                  </p>
+                </div>
+                {smsStatus?.connected && (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-sm text-green-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                      Connected ({smsStatus.provider})
+                    </span>
+                    <button
+                      onClick={disconnectSms}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium ml-4"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {!smsStatus?.connected && !showSmsSetup && (
+                <div className="mt-4">
+                  <div className="bg-gradient-to-r from-[#e6fff5] to-[#f0fff9] border border-[#99ffd6] rounded-lg p-4 mb-4">
+                    <p className="text-sm font-medium text-[#101E57] mb-2">Reduce no-shows by up to 30%:</p>
+                    <ul className="text-sm text-[#667085] space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00D67A] mt-0.5">&#10003;</span>
+                        <span>SMS has 98% open rate vs 20% for email</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00D67A] mt-0.5">&#10003;</span>
+                        <span>Attendees get reminders directly on their phone</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-[#00D67A] mt-0.5">&#10003;</span>
+                        <span>Supports international phone numbers</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <button
+                    onClick={() => setShowSmsSetup(true)}
+                    className="bg-[#00D67A] text-white px-4 py-2 rounded-lg hover:bg-[#00c06d] transition font-medium text-sm"
+                  >
+                    Set Up SMS
+                  </button>
+                </div>
+              )}
+
+              {!smsStatus?.connected && showSmsSetup && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Provider
+                    </label>
+                    <select
+                      value={smsProvider}
+                      onChange={(e) => setSmsProvider(e.target.value as 'aircall' | 'twilio')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    >
+                      <option value="aircall">Aircall</option>
+                      <option value="twilio">Twilio</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      {smsProvider === 'twilio' ? 'Account SID' : 'API Key'}
+                    </label>
+                    <input
+                      type="password"
+                      value={smsApiKey}
+                      onChange={(e) => setSmsApiKey(e.target.value)}
+                      placeholder={smsProvider === 'twilio' ? 'ACxxxxxxxxxx' : 'Enter your API key'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      {smsProvider === 'twilio' ? 'Auth Token' : 'API Secret'} (optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={smsApiSecret}
+                      onChange={(e) => setSmsApiSecret(e.target.value)}
+                      placeholder="Enter secret if required"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Sender Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={smsSenderPhone}
+                      onChange={(e) => setSmsSenderPhone(e.target.value)}
+                      placeholder="+15551234567"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <p className="text-xs text-[#667085] mt-1">
+                      The phone number that will send SMS reminders (E.164 format)
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={saveSmsConfig}
+                      disabled={!smsApiKey.trim() || savingSms}
+                      className="bg-[#00D67A] text-white px-4 py-2 rounded-lg hover:bg-[#00c06d] transition disabled:opacity-50 font-medium text-sm"
+                    >
+                      {savingSms ? 'Connecting...' : 'Connect SMS'}
+                    </button>
+                    <button
+                      onClick={() => setShowSmsSetup(false)}
+                      className="text-[#667085] hover:text-[#101E57] text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {smsStatus?.connected && (
+                <div className="mt-4">
+                  <div className="bg-gradient-to-r from-[#e6fff5] to-[#f0fff9] border border-[#99ffd6] rounded-lg p-4 mb-4">
+                    <h3 className="font-medium text-[#101E57] mb-3">SMS Features:</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#00D67A]">&#10003;</span>
+                        <span className="text-[#667085]">24-hour reminders</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#00D67A]">&#10003;</span>
+                        <span className="text-[#667085]">1-hour reminders</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#00D67A]">&#10003;</span>
+                        <span className="text-[#667085]">Opt-in consent</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#00D67A]">&#10003;</span>
+                        <span className="text-[#667085]">International support</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="tel"
+                      value={testSmsPhone}
+                      onChange={(e) => setTestSmsPhone(e.target.value)}
+                      placeholder="+1 555 123 4567"
+                      className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] text-sm"
+                    />
+                    <button
+                      onClick={testSmsConnection}
+                      disabled={testingSms || !testSmsPhone.trim()}
+                      className="bg-[#00D67A] text-white px-4 py-2 rounded-lg hover:bg-[#00c06d] transition disabled:opacity-50 font-medium text-sm"
+                    >
+                      {testingSms ? 'Sending...' : 'Send Test SMS'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#667085] mt-2">
+                    Enable SMS reminders for individual events in Event Settings.
+                  </p>
                 </div>
               )}
             </div>

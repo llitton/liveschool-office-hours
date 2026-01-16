@@ -70,6 +70,11 @@ export interface OHEvent {
   round_robin_period: 'day' | 'week' | 'month' | 'all_time';
   // Host profile image (joined from oh_admins)
   host_profile_image?: string | null;
+  // SMS reminders
+  sms_reminders_enabled: boolean;
+  sms_phone_required: boolean;
+  sms_reminder_24h_template: string | null;
+  sms_reminder_1h_template: string | null;
 }
 
 export interface OHSlot {
@@ -114,6 +119,11 @@ export interface OHBooking {
   recording_sent_at: string | null;
   // Round-robin assignment
   assigned_host_id: string | null;
+  // SMS reminders
+  phone: string | null;
+  sms_consent: boolean;
+  sms_reminder_24h_sent_at: string | null;
+  sms_reminder_1h_sent_at: string | null;
 }
 
 export interface OHAttendeeNote {
@@ -280,6 +290,23 @@ export interface OHSlackConfig {
   daily_digest: boolean;
   daily_digest_time: string;
   post_session_summary: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// SMS REMINDERS
+// ============================================
+
+export type SMSProvider = 'aircall' | 'twilio' | 'messagebird';
+
+export interface OHSMSConfig {
+  id: string;
+  provider: SMSProvider;
+  api_key: string;
+  api_secret: string | null;
+  sender_phone: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
