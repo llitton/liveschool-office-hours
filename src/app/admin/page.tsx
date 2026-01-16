@@ -5,8 +5,8 @@ import Image from 'next/image';
 import EventActions from './EventActions';
 import DashboardStats from './DashboardStats';
 import TodaysSessions from '@/components/TodaysSessions';
-import AdminHeader from '@/components/AdminHeader';
 import OnboardingWrapper from './OnboardingWrapper';
+import { PageContainer } from '@/components/AppShell';
 
 export default async function AdminPage({
   searchParams,
@@ -116,12 +116,9 @@ export default async function AdminPage({
       hasSlots={hasSlots}
       firstEventSlug={firstEventSlug}
     >
-      <div className="min-h-screen bg-[#F6F6F9]">
-        <AdminHeader email={session.email} />
-
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <DashboardStats />
-          <TodaysSessions />
+      <PageContainer>
+        <DashboardStats />
+        <TodaysSessions />
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-[#101E57]">Events</h2>
@@ -239,8 +236,7 @@ export default async function AdminPage({
             })}
           </div>
         )}
-      </main>
-      </div>
+      </PageContainer>
     </OnboardingWrapper>
   );
 }
