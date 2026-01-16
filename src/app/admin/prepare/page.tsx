@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import AppShell, { PageContainer, PageHeader, TwoColumnLayout } from '@/components/AppShell';
+import { PageContainer, PageHeader, TwoColumnLayout } from '@/components/AppShell';
 import { Card, CardHeader, CardBody, LinkCard, CalloutCard, EmptyState } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
@@ -115,7 +115,7 @@ export default function PreparePage() {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <>
         <PageContainer>
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
@@ -123,13 +123,13 @@ export default function PreparePage() {
             <div className="h-64 bg-gray-200 rounded" />
           </div>
         </PageContainer>
-      </AppShell>
+      </>
     );
   }
 
   if (events.length === 0) {
     return (
-      <AppShell>
+      <>
         <PageContainer narrow>
           <EmptyState
             icon={
@@ -149,7 +149,7 @@ export default function PreparePage() {
             }
           />
         </PageContainer>
-      </AppShell>
+      </>
     );
   }
 
@@ -346,7 +346,7 @@ export default function PreparePage() {
   );
 
   return (
-    <AppShell>
+    <>
       <PageContainer>
         <PageHeader
           title="Prepare"
@@ -354,6 +354,6 @@ export default function PreparePage() {
         />
         <TwoColumnLayout main={mainContent} sidebar={sidebar} />
       </PageContainer>
-    </AppShell>
+    </>
   );
 }

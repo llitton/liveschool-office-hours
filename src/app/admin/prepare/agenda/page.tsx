@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import { Card, CardBody } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
 
@@ -83,7 +83,7 @@ function AgendaContent() {
 
 export default function AgendaPage() {
   return (
-    <AppShell>
+    <>
       <PageContainer narrow>
         <PageHeader
           title="Agenda"
@@ -94,6 +94,6 @@ export default function AgendaPage() {
           <AgendaContent />
         </Suspense>
       </PageContainer>
-    </AppShell>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 
 interface Admin {
   id: string;
@@ -122,30 +122,26 @@ export default function PeoplePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F6F9]">
-        <AdminNav />
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-96 mb-8" />
-            <div className="h-64 bg-gray-200 rounded" />
-          </div>
-        </main>
-      </div>
+      <PageContainer narrow>
+        <PageHeader
+          title="People"
+          description="Manage your team and who can host sessions."
+        />
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
+          <div className="h-4 bg-gray-200 rounded w-96 mb-8" />
+          <div className="h-64 bg-gray-200 rounded" />
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminNav />
-
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#101E57] mb-2">People</h1>
-          <p className="text-[#667085]">
-            Manage your team and who can host sessions.
-          </p>
-        </div>
+    <PageContainer narrow>
+      <PageHeader
+        title="People"
+        description="Manage your team and who can host sessions."
+      />
 
         {error && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 text-sm">{error}</div>
@@ -324,7 +320,6 @@ export default function PeoplePage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+    </PageContainer>
   );
 }

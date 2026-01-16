@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
+import { LinkButton } from '@/components/ui/Button';
 import type { RoutingQuestion } from '@/types';
 
 interface RoutingFormWithEvent {
@@ -57,42 +58,31 @@ export default function PeopleRoutingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F6F9]">
-        <AdminNav />
-        <main className="max-w-5xl mx-auto px-4 py-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-96 mb-8" />
-            <div className="h-64 bg-gray-200 rounded" />
-          </div>
-        </main>
-      </div>
+      <PageContainer>
+        <PageHeader
+          title="Routing"
+          description="Create forms that route attendees to the right session or host."
+        />
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-4" />
+          <div className="h-4 bg-gray-200 rounded w-96 mb-8" />
+          <div className="h-64 bg-gray-200 rounded" />
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminNav />
-
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-[#101E57] mb-2">Routing</h1>
-            <p className="text-[#667085]">
-              Create forms that route attendees to the right session or host.
-            </p>
-          </div>
-          <Link
-            href="/admin/routing/new"
-            className="inline-flex items-center gap-2 bg-[#101E57] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#1a2d6e] transition"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+    <PageContainer>
+      <PageHeader
+        title="Routing"
+        description="Create forms that route attendees to the right session or host."
+        action={
+          <LinkButton href="/admin/routing/new">
             Create routing form
-          </Link>
-        </div>
+          </LinkButton>
+        }
+      />
 
         {error && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">{error}</div>
@@ -176,7 +166,6 @@ export default function PeopleRoutingPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </PageContainer>
   );
 }

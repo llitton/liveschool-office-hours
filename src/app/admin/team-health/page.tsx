@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 
 interface TeamMemberHealth {
   id: string;
@@ -80,36 +79,11 @@ export default function TeamHealthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={140}
-                height={36}
-              />
-              <span className="text-[#667085] text-sm font-medium">Connect</span>
-            </div>
-            <a
-              href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Sign out
-            </a>
-          </div>
-          <AdminNav />
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-[#101E57]">Team Health</h1>
-            <p className="text-[#667085] mt-1">Monitor team performance and workload distribution</p>
-          </div>
+    <PageContainer>
+      <PageHeader
+        title="Team Health"
+        description="Monitor team performance and workload distribution"
+        action={
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as Period)}
@@ -120,7 +94,8 @@ export default function TeamHealthPage() {
             <option value="quarter">Last 90 days</option>
             <option value="all">All time</option>
           </select>
-        </div>
+        }
+      />
 
         {loading ? (
           <div className="text-center py-12 text-[#667085]">Loading team health data...</div>
@@ -176,8 +151,7 @@ export default function TeamHealthPage() {
             </div>
           </>
         )}
-      </main>
-    </div>
+    </PageContainer>
   );
 }
 

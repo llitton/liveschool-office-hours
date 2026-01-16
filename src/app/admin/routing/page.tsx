@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
+import { LinkButton } from '@/components/ui/Button';
 import type { OHEvent, RoutingQuestion } from '@/types';
 
 interface RoutingFormWithEvent {
@@ -71,37 +71,13 @@ export default function RoutingFormsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={140}
-                height={36}
-              />
-              <span className="text-[#667085] text-sm font-medium">Connect</span>
-            </div>
-            <a
-              href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Sign out
-            </a>
-          </div>
-          <AdminNav />
-        </div>
-      </header>
+    <PageContainer narrow>
+      {error && (
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{error}</div>
+      )}
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{error}</div>
-        )}
-
-        {loading ? (
-          <div className="animate-pulse h-32 bg-gray-200 rounded-lg" />
+      {loading ? (
+        <div className="animate-pulse h-32 bg-gray-200 rounded-lg" />
         ) : forms.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <h1 className="text-xl font-semibold text-[#101E57] mb-2">
@@ -186,7 +162,6 @@ export default function RoutingFormsPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </PageContainer>
   );
 }

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import type { RoutingQuestion, OHEvent, OHAdmin } from '@/types';
 
 interface RuleWithJoins {
@@ -238,17 +237,30 @@ export default function EditRoutingFormPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
-        <div className="text-[#667085]">Loading...</div>
-      </div>
+      <PageContainer narrow>
+        <PageHeader
+          title="Edit Routing Form"
+          backLink={{ href: '/admin/routing', label: 'Back to Routing Forms' }}
+        />
+        <div className="bg-white rounded-xl p-6 animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
+          <div className="h-32 bg-gray-100 rounded" />
+        </div>
+      </PageContainer>
     );
   }
 
   if (!form) {
     return (
-      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
-        <div className="text-red-600">Routing form not found</div>
-      </div>
+      <PageContainer narrow>
+        <PageHeader
+          title="Routing Form Not Found"
+          backLink={{ href: '/admin/routing', label: 'Back to Routing Forms' }}
+        />
+        <div className="bg-white rounded-xl p-6 text-center">
+          <p className="text-red-600">This routing form could not be found.</p>
+        </div>
+      </PageContainer>
     );
   }
 
@@ -259,41 +271,12 @@ export default function EditRoutingFormPage({
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={140}
-                height={36}
-              />
-              <span className="text-[#667085] text-sm font-medium">Connect</span>
-            </div>
-            <a
-              href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Sign out
-            </a>
-          </div>
-          <AdminNav />
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <button
-            onClick={() => router.push('/admin/routing')}
-            className="text-[#667085] hover:text-[#101E57] text-sm flex items-center gap-1"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Routing Forms
-          </button>
+    <PageContainer narrow>
+      <PageHeader
+        title={form.name}
+        description="Edit routing form settings, questions, and rules"
+        backLink={{ href: '/admin/routing', label: 'Back to Routing Forms' }}
+        action={
           <a
             href={`/route/${form.slug}`}
             target="_blank"
@@ -305,7 +288,8 @@ export default function EditRoutingFormPage({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </a>
-        </div>
+        }
+      />
 
         {error && (
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">{error}</div>
@@ -667,7 +651,6 @@ export default function EditRoutingFormPage({
             </div>
           )}
         </div>
-      </main>
-    </div>
+    </PageContainer>
   );
 }

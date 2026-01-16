@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import { Card, CardBody, CardHeader, CalloutCard, EmptyState } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -151,7 +151,7 @@ function QuestionsContent() {
 
 export default function QuestionsPage() {
   return (
-    <AppShell>
+    <>
       <PageContainer narrow>
         <PageHeader
           title="Questions"
@@ -162,6 +162,6 @@ export default function QuestionsPage() {
           <QuestionsContent />
         </Suspense>
       </PageContainer>
-    </AppShell>
+    </>
   );
 }

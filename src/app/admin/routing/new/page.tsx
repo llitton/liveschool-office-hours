@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import type { RoutingQuestion, OHEvent } from '@/types';
 
 export default function NewRoutingFormPage() {
@@ -128,45 +127,14 @@ export default function NewRoutingFormPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={140}
-                height={36}
-              />
-              <span className="text-[#667085] text-sm font-medium">Connect</span>
-            </div>
-            <a
-              href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Sign out
-            </a>
-          </div>
-          <AdminNav />
-        </div>
-      </header>
+    <PageContainer narrow>
+      <PageHeader
+        title="Create Routing Form"
+        description="Set up questions to route visitors to the right session"
+        backLink={{ href: '/admin/routing', label: 'Back to Routing Forms' }}
+      />
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <button
-            onClick={() => router.back()}
-            className="text-[#667085] hover:text-[#101E57] text-sm flex items-center gap-1"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Routing Forms
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h1 className="text-2xl font-semibold text-[#101E57] mb-6">Create Routing Form</h1>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 
           {error && (
             <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">{error}</div>
@@ -358,7 +326,6 @@ export default function NewRoutingFormPage() {
             </div>
           </form>
         </div>
-      </main>
-    </div>
+    </PageContainer>
   );
 }

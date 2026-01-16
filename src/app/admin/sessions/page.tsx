@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { format, formatDistanceToNow, parseISO, isWithinInterval, addMinutes } from 'date-fns';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 
 interface Attendee {
   id: string;
@@ -154,15 +153,17 @@ export default function SessionDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F6F9] p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-3">
-            <div className="h-8 w-32 bg-gray-200 rounded" />
-            <div className="h-16 bg-gray-200 rounded-lg" />
-            <div className="h-16 bg-gray-200 rounded-lg" />
-          </div>
+      <PageContainer narrow>
+        <PageHeader
+          title={format(new Date(), 'EEEE, MMMM d')}
+          description="Today's sessions"
+        />
+        <div className="animate-pulse space-y-3">
+          <div className="h-8 w-32 bg-gray-200 rounded" />
+          <div className="h-16 bg-gray-200 rounded-lg" />
+          <div className="h-16 bg-gray-200 rounded-lg" />
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -184,43 +185,13 @@ export default function SessionDashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={140}
-                height={36}
-              />
-              <span className="text-[#667085] text-sm font-medium">Connect</span>
-            </div>
-            <a
-              href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Sign out
-            </a>
-          </div>
-          <AdminNav />
-        </div>
-      </header>
+    <PageContainer narrow>
+      <PageHeader
+        title={format(new Date(), 'EEEE, MMMM d')}
+        description={`${sessions.length} session${sessions.length !== 1 ? 's' : ''} today${totalBooked > 0 ? ` · ${totalBooked} booked · ${capacityUsed}% capacity` : ''}`}
+      />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Today's date header */}
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-[#101E57]">
-            {format(new Date(), 'EEEE, MMMM d')}
-          </h1>
-          <p className="text-sm text-[#667085]">
-            {sessions.length} session{sessions.length !== 1 ? 's' : ''} today
-            {totalBooked > 0 && ` · ${totalBooked} booked · ${capacityUsed}% capacity`}
-          </p>
-        </div>
-
-        <div className="space-y-4">
+      <div className="space-y-4">
         {/* Live - always show first with prominence */}
         {liveSessions.length > 0 && (
           <div>
@@ -285,8 +256,7 @@ export default function SessionDashboardPage() {
             </Link>
           </div>
         )}
-        </div>
-      </main>
-    </div>
+      </div>
+    </PageContainer>
   );
 }

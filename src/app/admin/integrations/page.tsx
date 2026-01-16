@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 
 interface HubSpotStatus {
   connected: boolean;
@@ -272,44 +271,25 @@ function IntegrationsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
-        <p className="text-[#667085]">Loading...</p>
-      </div>
+      <PageContainer narrow>
+        <PageHeader
+          title="Integrations"
+          description="Connect external services to enhance your scheduling"
+        />
+        <div className="bg-white rounded-xl p-6 animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
+          <div className="h-32 bg-gray-100 rounded" />
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={140}
-                height={36}
-              />
-              <span className="text-[#667085] text-sm font-medium">Connect</span>
-            </div>
-            <a
-              href="/api/auth/logout"
-              className="text-red-600 hover:text-red-700 text-sm font-medium"
-            >
-              Sign out
-            </a>
-          </div>
-          <AdminNav />
-        </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-[#101E57]">Integrations</h1>
-          <p className="text-[#667085] mt-1">
-            Connect external services to enhance your scheduling
-          </p>
-        </div>
+    <PageContainer narrow>
+      <PageHeader
+        title="Integrations"
+        description="Connect external services to enhance your scheduling"
+      />
 
         {message && (
           <div
@@ -801,8 +781,7 @@ function IntegrationsContent() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </PageContainer>
   );
 }
 
@@ -810,9 +789,16 @@ export default function IntegrationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
-          <p className="text-[#667085]">Loading...</p>
-        </div>
+        <PageContainer narrow>
+          <PageHeader
+            title="Integrations"
+            description="Connect external services to enhance your scheduling"
+          />
+          <div className="bg-white rounded-xl p-6 animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
+            <div className="h-32 bg-gray-100 rounded" />
+          </div>
+        </PageContainer>
       }
     >
       <IntegrationsContent />

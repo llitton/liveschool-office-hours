@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
 
@@ -140,7 +140,7 @@ function LogisticsContent() {
 
 export default function LogisticsPage() {
   return (
-    <AppShell>
+    <>
       <PageContainer narrow>
         <PageHeader
           title="Logistics"
@@ -151,6 +151,6 @@ export default function LogisticsPage() {
           <LogisticsContent />
         </Suspense>
       </PageContainer>
-    </AppShell>
+    </>
   );
 }

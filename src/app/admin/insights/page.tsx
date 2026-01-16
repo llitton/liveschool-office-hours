@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 
 interface TeamMemberHealth {
   id: string;
@@ -77,20 +77,11 @@ export default function InsightsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminNav />
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-[#101E57] mb-2">Insights</h1>
-            <p className="text-[#667085]">
-              Understand how your sessions are performing and where to improve.
-            </p>
-          </div>
-
-          {/* Period selector */}
+    <PageContainer>
+      <PageHeader
+        title="Insights"
+        description="Understand how your sessions are performing and where to improve."
+        action={
           <div className="flex items-center gap-1 bg-white rounded-lg border border-[#E0E0E0] p-1">
             {(['week', 'month', 'quarter', 'all'] as Period[]).map((p) => (
               <button
@@ -106,7 +97,8 @@ export default function InsightsPage() {
               </button>
             ))}
           </div>
-        </div>
+        }
+      />
 
         {loading ? (
           <div className="grid grid-cols-4 gap-4 mb-8">
@@ -240,7 +232,6 @@ export default function InsightsPage() {
             <p className="text-[#667085]">Failed to load insights. Please try again.</p>
           </div>
         )}
-      </main>
-    </div>
+    </PageContainer>
   );
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
-import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import { Card, CardBody, EmptyState } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
 import { AttendanceBadge } from '@/components/ui/Badge';
@@ -60,7 +60,7 @@ export default function PastPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <>
         <PageContainer narrow>
           <PageHeader
             title="Past Sessions"
@@ -76,13 +76,13 @@ export default function PastPage() {
             </CardBody>
           </Card>
         </PageContainer>
-      </AppShell>
+      </>
     );
   }
 
   if (sessions.length === 0) {
     return (
-      <AppShell>
+      <>
         <PageContainer narrow>
           <PageHeader
             title="Past Sessions"
@@ -103,12 +103,12 @@ export default function PastPage() {
             }
           />
         </PageContainer>
-      </AppShell>
+      </>
     );
   }
 
   return (
-    <AppShell>
+    <>
       <PageContainer narrow>
         <PageHeader
           title="Past Sessions"
@@ -217,6 +217,6 @@ export default function PastPage() {
           })}
         </div>
       </PageContainer>
-    </AppShell>
+    </>
   );
 }

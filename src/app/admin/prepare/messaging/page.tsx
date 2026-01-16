@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { PageContainer, PageHeader } from '@/components/AppShell';
 import { Card, CardBody, CalloutCard } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
 
@@ -171,7 +171,7 @@ function MessagingContent() {
 
 export default function MessagingPage() {
   return (
-    <AppShell>
+    <>
       <PageContainer narrow>
         <PageHeader
           title="Messaging"
@@ -182,6 +182,6 @@ export default function MessagingPage() {
           <MessagingContent />
         </Suspense>
       </PageContainer>
-    </AppShell>
+    </>
   );
 }

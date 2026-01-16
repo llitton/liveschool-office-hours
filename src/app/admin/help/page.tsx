@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import AdminNav from '@/components/AdminNav';
+import { PageContainer, PageHeader, TwoColumnLayout } from '@/components/AppShell';
 
 interface HelpArticle {
   id: string;
@@ -542,17 +542,11 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminNav currentPage="help" />
-
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-[32px] font-semibold text-[#101E57] mb-2">Help Center</h1>
-          <p className="text-[#667085]">
-            Learn how to get the most out of LiveSchool Sessions.
-          </p>
-        </div>
+    <PageContainer>
+      <PageHeader
+        title="Help Center"
+        description="Learn how to get the most out of LiveSchool Sessions."
+      />
 
         {/* Search */}
         <div className="mb-8 max-w-xl">
@@ -677,7 +671,6 @@ export default function HelpPage() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </PageContainer>
   );
 }
