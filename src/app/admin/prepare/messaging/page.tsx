@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
-import AdminHeader from '@/components/AdminHeader';
+import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { Card, CardBody, CalloutCard } from '@/components/ui/Card';
+import { LinkButton } from '@/components/ui/Button';
 
 interface Event {
   id: string;
@@ -37,21 +38,27 @@ function MessagingContent() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-[#E0E0E0] p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
-        <div className="h-32 bg-gray-100 rounded" />
-      </div>
+      <Card>
+        <CardBody>
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
+            <div className="h-32 bg-gray-100 rounded" />
+          </div>
+        </CardBody>
+      </Card>
     );
   }
 
   if (!event) {
     return (
-      <div className="bg-white rounded-xl border border-[#E0E0E0] p-8 text-center">
-        <p className="text-[#667085]">Select a session to configure its messaging.</p>
-        <Link href="/admin/prepare" className="text-[#6F71EE] font-medium hover:underline mt-2 inline-block">
-          Go back to Prepare
-        </Link>
-      </div>
+      <Card>
+        <CardBody className="text-center py-8">
+          <p className="text-[#667085] mb-4">Select a session to configure its messaging.</p>
+          <LinkButton href="/admin/prepare" variant="tertiary">
+            Go back to Prepare
+          </LinkButton>
+        </CardBody>
+      </Card>
     );
   }
 
@@ -61,16 +68,16 @@ function MessagingContent() {
   return (
     <div className="space-y-6">
       {/* Confirmation email */}
-      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
+      <Card>
         <div className="px-6 py-4 border-b border-[#E0E0E0] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasConfirmation ? 'bg-green-50' : 'bg-amber-50'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasConfirmation ? 'bg-[#ECFDF5]' : 'bg-[#FEF3C7]'}`}>
               {hasConfirmation ? (
-                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#059669]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
                 </svg>
               )}
@@ -80,14 +87,11 @@ function MessagingContent() {
               <p className="text-sm text-[#667085]">Sent immediately after booking</p>
             </div>
           </div>
-          <Link
-            href={`/admin/events/${event.id}/emails`}
-            className="text-sm text-[#6F71EE] hover:underline font-medium"
-          >
+          <LinkButton href={`/admin/events/${event.id}/emails`} variant="tertiary" size="sm">
             Edit
-          </Link>
+          </LinkButton>
         </div>
-        <div className="p-6">
+        <CardBody>
           {hasConfirmation ? (
             <div className="bg-[#F6F6F9] rounded-lg p-4">
               <p className="text-sm font-medium text-[#101E57] mb-1">Subject</p>
@@ -98,20 +102,20 @@ function MessagingContent() {
               Using default confirmation template. Customize to match your brand.
             </p>
           )}
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Reminder email */}
-      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
+      <Card>
         <div className="px-6 py-4 border-b border-[#E0E0E0] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasReminder ? 'bg-green-50' : 'bg-amber-50'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${hasReminder ? 'bg-[#ECFDF5]' : 'bg-[#FEF3C7]'}`}>
               {hasReminder ? (
-                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#059669]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
                 </svg>
               )}
@@ -121,14 +125,11 @@ function MessagingContent() {
               <p className="text-sm text-[#667085]">Sent 24 hours and 1 hour before</p>
             </div>
           </div>
-          <Link
-            href={`/admin/events/${event.id}/emails`}
-            className="text-sm text-[#6F71EE] hover:underline font-medium"
-          >
+          <LinkButton href={`/admin/events/${event.id}/emails`} variant="tertiary" size="sm">
             Edit
-          </Link>
+          </LinkButton>
         </div>
-        <div className="p-6">
+        <CardBody>
           {hasReminder ? (
             <div className="bg-[#F6F6F9] rounded-lg p-4">
               <p className="text-sm font-medium text-[#101E57] mb-1">Subject</p>
@@ -139,11 +140,11 @@ function MessagingContent() {
               Using default reminder template. Customize to improve attendance.
             </p>
           )}
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
       {/* Tips */}
-      <div className="bg-[#FAFAFA] rounded-xl border border-[#E0E0E0] p-5">
+      <CalloutCard>
         <h3 className="font-medium text-[#101E57] mb-2">Tips for effective messaging</h3>
         <ul className="space-y-2 text-sm text-[#667085]">
           <li className="flex items-start gap-2">
@@ -159,41 +160,28 @@ function MessagingContent() {
             Set expectations about what will happen
           </li>
         </ul>
-      </div>
+      </CalloutCard>
 
-      <Link
-        href={`/admin/events/${event.id}/emails`}
-        className="block w-full text-center bg-[#101E57] text-white px-5 py-3 rounded-xl font-medium hover:bg-[#1a2d6e] transition"
-      >
+      <LinkButton href={`/admin/events/${event.id}/emails`} className="w-full justify-center">
         Edit email templates
-      </Link>
+      </LinkButton>
     </div>
   );
 }
 
 export default function MessagingPage() {
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminHeader email="" />
-
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Link href="/admin/prepare" className="text-sm text-[#6F71EE] hover:underline flex items-center gap-1 mb-4">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Prepare
-          </Link>
-          <h1 className="text-2xl font-bold text-[#101E57] mb-2">Messaging</h1>
-          <p className="text-[#667085]">
-            Confirmation and reminder emails sent to attendees.
-          </p>
-        </div>
-
-        <Suspense fallback={<div className="animate-pulse h-48 bg-gray-200 rounded" />}>
+    <AppShell>
+      <PageContainer narrow>
+        <PageHeader
+          title="Messaging"
+          description="Confirmation and reminder emails sent to attendees."
+          backLink={{ href: '/admin/prepare', label: 'Back to Prepare' }}
+        />
+        <Suspense fallback={<div className="animate-pulse h-48 bg-gray-200 rounded-xl" />}>
           <MessagingContent />
         </Suspense>
-      </main>
-    </div>
+      </PageContainer>
+    </AppShell>
   );
 }

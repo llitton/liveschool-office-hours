@@ -2,8 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
-import AdminHeader from '@/components/AdminHeader';
+import AppShell, { PageContainer, PageHeader } from '@/components/AppShell';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { LinkButton } from '@/components/ui/Button';
 
 interface Event {
   id: string;
@@ -38,39 +39,42 @@ function LogisticsContent() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-[#E0E0E0] p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
-        <div className="h-32 bg-gray-100 rounded" />
-      </div>
+      <Card>
+        <CardBody>
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-4" />
+            <div className="h-32 bg-gray-100 rounded" />
+          </div>
+        </CardBody>
+      </Card>
     );
   }
 
   if (!event) {
     return (
-      <div className="bg-white rounded-xl border border-[#E0E0E0] p-8 text-center">
-        <p className="text-[#667085]">Select a session to view its logistics.</p>
-        <Link href="/admin/prepare" className="text-[#6F71EE] font-medium hover:underline mt-2 inline-block">
-          Go back to Prepare
-        </Link>
-      </div>
+      <Card>
+        <CardBody className="text-center py-8">
+          <p className="text-[#667085] mb-4">Select a session to view its logistics.</p>
+          <LinkButton href="/admin/prepare" variant="tertiary">
+            Go back to Prepare
+          </LinkButton>
+        </CardBody>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl border border-[#E0E0E0] overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#E0E0E0] flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-[#101E57]">{event.name}</h2>
-            <p className="text-sm text-[#667085]">Session logistics and settings</p>
-          </div>
-          <Link
-            href={`/admin/events/${event.id}/settings`}
-            className="text-sm text-[#6F71EE] hover:underline font-medium"
-          >
-            Edit settings
-          </Link>
-        </div>
+      <Card>
+        <CardHeader
+          title={event.name}
+          description="Session logistics and settings"
+          action={
+            <LinkButton href={`/admin/events/${event.id}/settings`} variant="tertiary" size="sm">
+              Edit settings
+            </LinkButton>
+          }
+        />
 
         <div className="divide-y divide-[#E0E0E0]">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -125,41 +129,28 @@ function LogisticsContent() {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <Link
-        href={`/admin/events/${event.id}/settings`}
-        className="block w-full text-center bg-[#101E57] text-white px-5 py-3 rounded-xl font-medium hover:bg-[#1a2d6e] transition"
-      >
+      <LinkButton href={`/admin/events/${event.id}/settings`} className="w-full justify-center">
         Edit all settings
-      </Link>
+      </LinkButton>
     </div>
   );
 }
 
 export default function LogisticsPage() {
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <AdminHeader email="" />
-
-      <main className="max-w-3xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <Link href="/admin/prepare" className="text-sm text-[#6F71EE] hover:underline flex items-center gap-1 mb-4">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Prepare
-          </Link>
-          <h1 className="text-2xl font-bold text-[#101E57] mb-2">Logistics</h1>
-          <p className="text-[#667085]">
-            Host, capacity, and technical setup for the session.
-          </p>
-        </div>
-
-        <Suspense fallback={<div className="animate-pulse h-48 bg-gray-200 rounded" />}>
+    <AppShell>
+      <PageContainer narrow>
+        <PageHeader
+          title="Logistics"
+          description="Host, capacity, and technical setup for the session."
+          backLink={{ href: '/admin/prepare', label: 'Back to Prepare' }}
+        />
+        <Suspense fallback={<div className="animate-pulse h-48 bg-gray-200 rounded-xl" />}>
           <LogisticsContent />
         </Suspense>
-      </main>
-    </div>
+      </PageContainer>
+    </AppShell>
   );
 }
