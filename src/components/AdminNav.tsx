@@ -7,6 +7,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard', exact: true },
   { href: '/admin/settings', label: 'My Settings' },
   { href: '/admin/analytics', label: 'Analytics' },
+  { href: '/admin/team-health', label: 'Team Health' },
   { href: '/admin/integrations', label: 'Integrations' },
   { href: '/admin/team', label: 'Team' },
 ];
