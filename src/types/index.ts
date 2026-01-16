@@ -7,7 +7,7 @@ export interface CustomQuestion {
 }
 
 // Meeting type enum
-export type MeetingType = 'one_on_one' | 'group' | 'collective' | 'round_robin' | 'panel';
+export type MeetingType = 'one_on_one' | 'group' | 'collective' | 'round_robin' | 'panel' | 'webinar';
 
 export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {
   one_on_one: 'One-on-One',
@@ -15,6 +15,7 @@ export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {
   collective: 'Collective (All Hosts)',
   round_robin: 'Round-Robin',
   panel: 'Panel',
+  webinar: 'Webinar',
 };
 
 export const MEETING_TYPE_DESCRIPTIONS: Record<MeetingType, string> = {
@@ -23,7 +24,11 @@ export const MEETING_TYPE_DESCRIPTIONS: Record<MeetingType, string> = {
   collective: 'All selected hosts must be available for the meeting',
   round_robin: 'Meetings are distributed across team members',
   panel: 'Multiple hosts interview or meet with one attendee',
+  webinar: 'Presentation-style event with set date/time for many attendees',
 };
+
+// Meeting types that don't need minimum notice (events happen at set times)
+export const MEETING_TYPES_NO_MIN_NOTICE: MeetingType[] = ['webinar'];
 
 export interface OHEvent {
   id: string;

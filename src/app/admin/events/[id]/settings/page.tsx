@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { OHEvent, CustomQuestion, MeetingType, RoundRobinStrategy, RoundRobinPeriod } from '@/types';
+import { MEETING_TYPES_NO_MIN_NOTICE } from '@/types';
 import Breadcrumb from '@/components/Breadcrumb';
 import TimezoneSelector from '@/components/TimezoneSelector';
 import RoundRobinHostSelector from '@/components/RoundRobinHostSelector';
@@ -738,7 +739,8 @@ export default function EventSettingsPage({
           <HostSelector eventId={id} />
         </div>
 
-        {/* Booking Constraints */}
+        {/* Booking Constraints - Hidden for webinars since slots have fixed times */}
+        {!MEETING_TYPES_NO_MIN_NOTICE.includes(meetingType) && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Booking Rules</h2>
           <p className="text-sm text-[#667085] mb-6">
@@ -853,6 +855,7 @@ export default function EventSettingsPage({
             </div>
           </div>
         </div>
+        )}
 
         {/* Timezone Settings */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
