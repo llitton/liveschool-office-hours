@@ -52,24 +52,19 @@ function LoginContent() {
         </h1>
         <p className="text-[#667085] mb-6 text-sm">
           {error === 'unauthorized'
-            ? 'Your email is not authorized. Please contact an administrator.'
-            : 'Try again, or contact support if this keeps happening.'}
+            ? 'Your email is not authorized. Contact Laura to get access.'
+            : 'Something went wrong. Try again or contact Laura.'}
         </p>
 
-        <div className="space-y-3">
-          <button
-            onClick={handleRetry}
-            className="w-full bg-[#101E57] text-white px-6 py-3 rounded-lg hover:bg-[#1a2d6e] transition font-medium"
-          >
-            Try again
-          </button>
-          <a
-            href="mailto:support@whyliveschool.com"
-            className="block text-sm text-[#667085] hover:text-[#101E57] transition"
-          >
-            Contact support
-          </a>
-        </div>
+        <button
+          onClick={handleRetry}
+          className="w-full bg-[#101E57] text-white px-6 py-3 rounded-lg hover:bg-[#1a2d6e] transition font-medium mb-4"
+        >
+          Try again
+        </button>
+        <p className="text-xs text-[#667085]">
+          Still having trouble? Contact Laura
+        </p>
       </div>
     );
   }
@@ -123,7 +118,7 @@ function LoginContent() {
 
       <button
         onClick={handleSignIn}
-        className="w-full inline-flex items-center justify-center gap-3 bg-[#101E57] text-white px-6 py-3 rounded-lg hover:bg-[#1a2d6e] transition font-medium mb-4"
+        className="w-full inline-flex items-center justify-center gap-3 bg-[#101E57] text-white px-6 py-3 rounded-lg hover:bg-[#1a2d6e] transition font-medium mb-6"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -146,20 +141,9 @@ function LoginContent() {
         Continue with Google
       </button>
 
-      <p className="text-sm text-[#667085] mb-6">
-        Use your school or district Google account.
+      <p className="text-xs text-[#667085]">
+        Trouble signing in? Contact Laura
       </p>
-
-      <p className="text-xs text-[#667085] mb-4">
-        After you sign in, you&apos;ll be redirected to your organization.
-      </p>
-
-      <a
-        href="mailto:support@whyliveschool.com"
-        className="text-xs text-[#667085] hover:text-[#6F71EE] transition"
-      >
-        Trouble signing in? Contact support
-      </a>
     </div>
   );
 }
