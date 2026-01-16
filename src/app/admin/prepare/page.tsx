@@ -267,9 +267,16 @@ export default function PreparePage() {
                 </div>
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-[#101E57] mb-2">{selectedEvent.name}</h3>
-                  <p className="text-[#667085] text-sm mb-4">
-                    {selectedEvent.description || 'No description added yet. Add one to help attendees know what to expect.'}
-                  </p>
+                  {selectedEvent.description ? (
+                    <div
+                      className="text-[#667085] text-sm mb-4 prose prose-sm max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0"
+                      dangerouslySetInnerHTML={{ __html: selectedEvent.description }}
+                    />
+                  ) : (
+                    <p className="text-[#667085] text-sm mb-4 italic">
+                      No description added yet. Add one to help attendees know what to expect.
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 text-sm text-[#667085]">
                     <span className="flex items-center gap-1.5">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
