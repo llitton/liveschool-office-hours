@@ -9,13 +9,13 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=${error}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/login?error=${error}`
     );
   }
 
   if (!code) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=no_code`
+      `${process.env.NEXT_PUBLIC_APP_URL}/login?error=no_code`
     );
   }
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (adminError || !admin) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=unauthorized`
+        `${process.env.NEXT_PUBLIC_APP_URL}/login?error=unauthorized`
       );
     }
 
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error('Auth callback error:', err);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=auth_failed`
+      `${process.env.NEXT_PUBLIC_APP_URL}/login?error=auth_failed`
     );
   }
 }
