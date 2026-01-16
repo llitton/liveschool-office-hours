@@ -85,6 +85,9 @@ export interface OHEvent {
   sms_phone_required: boolean;
   sms_reminder_24h_template: string | null;
   sms_reminder_1h_template: string | null;
+  // Waitlist settings
+  waitlist_enabled: boolean;
+  waitlist_limit: number | null;
 }
 
 export interface OHSlot {
@@ -134,6 +137,11 @@ export interface OHBooking {
   sms_consent: boolean;
   sms_reminder_24h_sent_at: string | null;
   sms_reminder_1h_sent_at: string | null;
+  // Waitlist
+  is_waitlisted: boolean;
+  waitlist_position: number | null;
+  promoted_from_waitlist_at: string | null;
+  waitlist_notification_sent_at: string | null;
 }
 
 export interface OHAttendeeNote {

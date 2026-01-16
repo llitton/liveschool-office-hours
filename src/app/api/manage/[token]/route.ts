@@ -210,6 +210,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
+  const wasWaitlisted = booking.is_waitlisted;
+
   // Cancel the booking
   const { error: updateError } = await supabase
     .from('oh_bookings')
@@ -228,8 +230,8 @@ export async function DELETE(
     .single();
 
   if (admin?.google_access_token && admin?.google_refresh_token) {
-    // Remove attendee from Google Calendar event
-    if (booking.slot.google_event_id) {
+    // Remove attendee from Google Calendar event (only if they were confirmed, not waitlisted)
+    if (booking.slot.google_event_id && !wasWaitlisted) {
       try {
         await removeAttendeeFromEvent(
           admin.google_access_token,
@@ -254,10 +256,10 @@ export async function DELETE(
 
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-          <h2>Booking Cancelled</h2>
+          <h2>${wasWaitlisted ? 'Waitlist Spot Removed' : 'Booking Cancelled'}</h2>
           <p>Hi ${booking.first_name},</p>
-          <p>Your booking for <strong>${booking.slot.event.name}</strong> has been cancelled as requested.</p>
-          <p>The calendar event has been removed from your calendar.</p>
+          <p>Your ${wasWaitlisted ? 'waitlist spot' : 'booking'} for <strong>${booking.slot.event.name}</strong> has been cancelled as requested.</p>
+          ${!wasWaitlisted ? '<p>The calendar event has been removed from your calendar.</p>' : ''}
           <p>If you'd like to book another time, please visit our booking page.</p>
           <p>Best,<br>${hostName}</p>
         </div>
@@ -278,5 +280,180 @@ export async function DELETE(
     }
   }
 
+  // If the cancelled booking was confirmed (not waitlisted), promote from waitlist
+  if (!wasWaitlisted && booking.slot.event.waitlist_enabled) {
+    await promoteFromWaitlist(booking.slot_id, booking.slot, admin, supabase);
+  }
+
+  // If cancelled booking was waitlisted, update positions for remaining waitlist
+  if (wasWaitlisted) {
+    await updateWaitlistPositions(booking.slot_id, supabase);
+  }
+
   return NextResponse.json({ success: true });
+}
+
+// Helper to promote the first person from the waitlist
+async function promoteFromWaitlist(
+  slotId: string,
+  slot: { google_event_id: string | null; google_meet_link: string | null; start_time: string; end_time: string; event: { id: string; name: string; host_email: string; host_name: string; description: string | null } },
+  admin: { google_access_token: string | null; google_refresh_token: string | null } | null,
+  supabase: ReturnType<typeof getServiceSupabase>
+) {
+  // Get the first waitlisted booking
+  const { data: nextInLine, error } = await supabase
+    .from('oh_bookings')
+    .select('*')
+    .eq('slot_id', slotId)
+    .is('cancelled_at', null)
+    .eq('is_waitlisted', true)
+    .order('waitlist_position', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error || !nextInLine) {
+    // No one on waitlist
+    return;
+  }
+
+  // Promote them
+  const { error: promoteError } = await supabase
+    .from('oh_bookings')
+    .update({
+      is_waitlisted: false,
+      waitlist_position: null,
+      promoted_from_waitlist_at: new Date().toISOString(),
+    })
+    .eq('id', nextInLine.id);
+
+  if (promoteError) {
+    console.error('Failed to promote from waitlist:', promoteError);
+    return;
+  }
+
+  // Add to Google Calendar
+  if (admin?.google_access_token && admin?.google_refresh_token && slot.google_event_id) {
+    const { addAttendeeToEvent } = await import('@/lib/google');
+    try {
+      await addAttendeeToEvent(
+        admin.google_access_token,
+        admin.google_refresh_token,
+        slot.google_event_id,
+        nextInLine.email
+      );
+    } catch (err) {
+      console.error('Failed to add promoted attendee to calendar:', err);
+    }
+  }
+
+  // Send promotion notification email
+  if (admin?.google_access_token && admin?.google_refresh_token) {
+    try {
+      const { format, parseISO } = await import('date-fns');
+      const { formatInTimeZone } = await import('date-fns-tz');
+      const timezone = nextInLine.attendee_timezone || 'America/New_York';
+      const sessionTime = formatInTimeZone(parseISO(slot.start_time), timezone, "EEEE, MMMM d 'at' h:mm a zzz");
+      const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${nextInLine.manage_token}`;
+
+      const htmlBody = `
+        <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+          <div style="background: #DCFCE7; border-left: 4px solid #22C55E; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+            <h2 style="margin: 0 0 8px 0; color: #166534; font-size: 18px;">Great news! You're off the waitlist!</h2>
+            <p style="margin: 0; color: #166534; font-size: 14px;">
+              A spot opened up and your booking is now confirmed.
+            </p>
+          </div>
+
+          <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
+            Hi ${nextInLine.first_name},
+          </p>
+
+          <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
+            A spot has become available for <strong>${slot.event.name}</strong> and you've been moved from the waitlist to a confirmed booking!
+          </p>
+
+          <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
+            <strong>When:</strong> ${sessionTime}
+          </p>
+
+          ${slot.google_meet_link ? `
+            <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
+                Join Google Meet →
+              </a>
+            </div>
+          ` : ''}
+
+          <p style="color: #667085; font-size: 14px; margin-bottom: 20px;">
+            A calendar invite has been sent to your email. Please add this session to your calendar.
+          </p>
+
+          <div style="background: #F6F6F9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+            <p style="color: #667085; margin: 0 0 12px 0; font-size: 14px;">
+              Can't make it anymore? Let us know so someone else can take your spot.
+            </p>
+            <a href="${manageUrl}" style="display: inline-block; background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              Manage Booking
+            </a>
+          </div>
+
+          <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+            <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+              Sent from Connect with LiveSchool
+            </p>
+          </div>
+        </div>
+      `;
+
+      await sendEmail(
+        admin.google_access_token,
+        admin.google_refresh_token,
+        {
+          to: nextInLine.email,
+          subject: `You're confirmed! ${slot.event.name}`,
+          replyTo: slot.event.host_email,
+          htmlBody,
+        }
+      );
+
+      // Mark notification sent
+      await supabase
+        .from('oh_bookings')
+        .update({ waitlist_notification_sent_at: new Date().toISOString() })
+        .eq('id', nextInLine.id);
+    } catch (err) {
+      console.error('Failed to send waitlist promotion email:', err);
+    }
+  }
+
+  // Update positions for remaining waitlisted bookings
+  await updateWaitlistPositions(slotId, supabase);
+}
+
+// Helper to update waitlist positions after a promotion or cancellation
+async function updateWaitlistPositions(
+  slotId: string,
+  supabase: ReturnType<typeof getServiceSupabase>
+) {
+  // Get all remaining waitlisted bookings ordered by current position
+  const { data: waitlisted } = await supabase
+    .from('oh_bookings')
+    .select('id, waitlist_position')
+    .eq('slot_id', slotId)
+    .is('cancelled_at', null)
+    .eq('is_waitlisted', true)
+    .order('waitlist_position', { ascending: true });
+
+  if (!waitlisted || waitlisted.length === 0) return;
+
+  // Update each position sequentially
+  for (let i = 0; i < waitlisted.length; i++) {
+    const newPosition = i + 1;
+    if (waitlisted[i].waitlist_position !== newPosition) {
+      await supabase
+        .from('oh_bookings')
+        .update({ waitlist_position: newPosition })
+        .eq('id', waitlisted[i].id);
+    }
+  }
 }

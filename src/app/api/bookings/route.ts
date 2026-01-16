@@ -262,11 +262,54 @@ export async function POST(request: NextRequest) {
 
   // Check if slot is full
   const bookingCount = slot.bookings?.[0]?.count || 0;
-  if (bookingCount >= slot.event.max_attendees) {
-    return NextResponse.json(
-      { error: 'This time slot is full' },
-      { status: 400 }
-    );
+  const confirmedBookings = await supabase
+    .from('oh_bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('slot_id', slot_id)
+    .is('cancelled_at', null)
+    .eq('is_waitlisted', false);
+
+  const confirmedCount = confirmedBookings.count || 0;
+  const isSlotFull = confirmedCount >= slot.event.max_attendees;
+  let isWaitlisted = false;
+  let waitlistPosition: number | null = null;
+
+  if (isSlotFull) {
+    // Check if waitlist is enabled for this event
+    if (!slot.event.waitlist_enabled) {
+      return NextResponse.json(
+        { error: 'This time slot is full' },
+        { status: 400 }
+      );
+    }
+
+    // Check waitlist limit if set
+    if (slot.event.waitlist_limit) {
+      const { count: waitlistCount } = await supabase
+        .from('oh_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('slot_id', slot_id)
+        .is('cancelled_at', null)
+        .eq('is_waitlisted', true);
+
+      if ((waitlistCount || 0) >= slot.event.waitlist_limit) {
+        return NextResponse.json(
+          { error: 'This time slot and its waitlist are both full' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Calculate waitlist position
+    const { count: currentWaitlistCount } = await supabase
+      .from('oh_bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('slot_id', slot_id)
+      .is('cancelled_at', null)
+      .eq('is_waitlisted', true);
+
+    isWaitlisted = true;
+    waitlistPosition = (currentWaitlistCount || 0) + 1;
   }
 
   // Check if user already booked this slot
@@ -306,6 +349,8 @@ export async function POST(request: NextRequest) {
       assigned_host_id: assignedHostId,
       phone: formattedPhone,
       sms_consent: sms_consent || false,
+      is_waitlisted: isWaitlisted,
+      waitlist_position: waitlistPosition,
     })
     .select()
     .single();
@@ -328,8 +373,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (admin?.google_access_token && admin?.google_refresh_token) {
-    // Only add to calendar if booking is confirmed (not pending approval)
-    if (slot.google_event_id && bookingStatus === 'confirmed') {
+    // Only add to calendar if booking is confirmed (not pending approval) AND not waitlisted
+    if (slot.google_event_id && bookingStatus === 'confirmed' && !isWaitlisted) {
       try {
         await addAttendeeToEvent(
           admin.google_access_token,
@@ -347,7 +392,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send confirmation email using templates
+    // Send confirmation or waitlist email
     try {
       // Match prep resources based on booking question responses
       const matchedResources = await matchPrepResources(
@@ -378,93 +423,151 @@ export async function POST(request: NextRequest) {
         assignedHost ? { name: assignedHost.name, email: assignedHost.email } : null
       );
 
-      const subject = processTemplate(
-        slot.event.confirmation_subject || defaultTemplates.confirmation_subject,
-        variables
-      );
-
-      const bodyText = processTemplate(
-        slot.event.confirmation_body || defaultTemplates.confirmation_body,
-        variables
-      );
-
-      // Generate calendar URLs
-      const calendarEvent = {
-        title: slot.event.name,
-        description: `${slot.event.description || ''}\n\n${slot.google_meet_link ? `Join: ${slot.google_meet_link}` : ''}`.trim(),
-        location: slot.google_meet_link || 'Google Meet',
-        startTime: parseISO(slot.start_time),
-        endTime: parseISO(slot.end_time),
-      };
-
-      const googleCalUrl = generateGoogleCalendarUrl(calendarEvent);
-      const outlookUrl = generateOutlookUrl(calendarEvent);
       const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${manage_token}`;
-      const icalUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/manage/${manage_token}/ical`;
 
       // Extract the user's question/topic if provided
       const userTopic = question_responses?.question || question_responses?.response || question_responses?.topic || null;
 
-      const htmlBody = `
-        <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-          ${htmlifyEmailBody(bodyText)}
+      let subject: string;
+      let htmlBody: string;
 
-          ${userTopic ? `
-            <div style="background: #EEF0FF; border-left: 4px solid #6F71EE; padding: 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #101E57; font-size: 14px; font-weight: 600;">What you want to discuss:</h3>
-              <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${userTopic}"</p>
+      if (isWaitlisted) {
+        // Waitlist confirmation email
+        subject = `You're on the waitlist for ${slot.event.name}`;
+        const sessionTime = format(parseISO(slot.start_time), 'EEEE, MMMM d \'at\' h:mm a');
+
+        htmlBody = `
+          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+            <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+              <h2 style="margin: 0 0 8px 0; color: #92400E; font-size: 18px;">You're #${waitlistPosition} on the waitlist</h2>
+              <p style="margin: 0; color: #92400E; font-size: 14px;">
+                We'll notify you immediately if a spot opens up.
+              </p>
             </div>
-          ` : ''}
 
-          ${slot.event.description ? `
-            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #101E57;">About this session:</h3>
-              <p style="color: #667085;">${slot.event.description}</p>
-            </div>
-          ` : ''}
+            <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
+              Hi ${first_name},
+            </p>
 
-          ${slot.google_meet_link ? `
-            <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
-                Join Google Meet →
+            <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
+              The session <strong>${slot.event.name}</strong> on <strong>${sessionTime}</strong> is currently full,
+              but you've been added to the waitlist at position #${waitlistPosition}.
+            </p>
+
+            <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
+              If a spot becomes available, we'll automatically move you to a confirmed booking and send you a
+              confirmation email with the meeting details.
+            </p>
+
+            ${userTopic ? `
+              <div style="background: #EEF0FF; border-left: 4px solid #6F71EE; padding: 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #101E57; font-size: 14px; font-weight: 600;">What you want to discuss:</h3>
+                <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${userTopic}"</p>
+              </div>
+            ` : ''}
+
+            <div style="background: #F6F6F9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              <p style="color: #667085; margin: 0 0 12px 0; font-size: 14px;">
+                Changed your mind? Remove yourself from the waitlist.
+              </p>
+              <a href="${manageUrl}" style="display: inline-block; background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Manage Waitlist Spot
               </a>
             </div>
-          ` : ''}
 
-          ${slot.event.prep_materials ? `
-            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #101E57;">Preparation Materials</h3>
-              <p style="color: #667085; white-space: pre-wrap;">${slot.event.prep_materials}</p>
+            <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+              <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
             </div>
-          ` : ''}
-
-          ${prepResourcesHtml}
-
-          <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #101E57;">Add to Calendar</h3>
-            <p style="margin-bottom: 12px;">
-              <a href="${googleCalUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Google Calendar</a>
-              <a href="${outlookUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Outlook</a>
-              <a href="${icalUrl}" style="color: #6F71EE; text-decoration: none;">Apple Calendar (.ics)</a>
-            </p>
           </div>
+        `;
+      } else {
+        // Regular confirmation email
+        subject = processTemplate(
+          slot.event.confirmation_subject || defaultTemplates.confirmation_subject,
+          variables
+        );
 
-          <div style="background: #F6F6F9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-            <p style="color: #667085; margin: 0 0 12px 0; font-size: 14px;">
-              Something come up? No problem.
-            </p>
-            <a href="${manageUrl}" style="display: inline-block; background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-              Reschedule or Cancel
-            </a>
-          </div>
+        const bodyText = processTemplate(
+          slot.event.confirmation_body || defaultTemplates.confirmation_body,
+          variables
+        );
 
-          <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
-            <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-              Sent from Connect with LiveSchool
-            </p>
+        // Generate calendar URLs
+        const calendarEvent = {
+          title: slot.event.name,
+          description: `${slot.event.description || ''}\n\n${slot.google_meet_link ? `Join: ${slot.google_meet_link}` : ''}`.trim(),
+          location: slot.google_meet_link || 'Google Meet',
+          startTime: parseISO(slot.start_time),
+          endTime: parseISO(slot.end_time),
+        };
+
+        const googleCalUrl = generateGoogleCalendarUrl(calendarEvent);
+        const outlookUrl = generateOutlookUrl(calendarEvent);
+        const icalUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/manage/${manage_token}/ical`;
+
+        htmlBody = `
+          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+            ${htmlifyEmailBody(bodyText)}
+
+            ${userTopic ? `
+              <div style="background: #EEF0FF; border-left: 4px solid #6F71EE; padding: 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #101E57; font-size: 14px; font-weight: 600;">What you want to discuss:</h3>
+                <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${userTopic}"</p>
+              </div>
+            ` : ''}
+
+            ${slot.event.description ? `
+              <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #101E57;">About this session:</h3>
+                <p style="color: #667085;">${slot.event.description}</p>
+              </div>
+            ` : ''}
+
+            ${slot.google_meet_link ? `
+              <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
+                  Join Google Meet →
+                </a>
+              </div>
+            ` : ''}
+
+            ${slot.event.prep_materials ? `
+              <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #101E57;">Preparation Materials</h3>
+                <p style="color: #667085; white-space: pre-wrap;">${slot.event.prep_materials}</p>
+              </div>
+            ` : ''}
+
+            ${prepResourcesHtml}
+
+            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #101E57;">Add to Calendar</h3>
+              <p style="margin-bottom: 12px;">
+                <a href="${googleCalUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Google Calendar</a>
+                <a href="${outlookUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Outlook</a>
+                <a href="${icalUrl}" style="color: #6F71EE; text-decoration: none;">Apple Calendar (.ics)</a>
+              </p>
+            </div>
+
+            <div style="background: #F6F6F9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+              <p style="color: #667085; margin: 0 0 12px 0; font-size: 14px;">
+                Something come up? No problem.
+              </p>
+              <a href="${manageUrl}" style="display: inline-block; background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                Reschedule or Cancel
+              </a>
+            </div>
+
+            <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+              <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
 
       await sendEmail(
         admin.google_access_token,

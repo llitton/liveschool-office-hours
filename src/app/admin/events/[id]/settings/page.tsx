@@ -59,6 +59,10 @@ export default function EventSettingsPage({
   const [smsReminder24hTemplate, setSmsReminder24hTemplate] = useState('');
   const [smsReminder1hTemplate, setSmsReminder1hTemplate] = useState('');
 
+  // Waitlist settings
+  const [waitlistEnabled, setWaitlistEnabled] = useState(false);
+  const [waitlistLimit, setWaitlistLimit] = useState<string>('');
+
   // Available preset banners
   const PRESET_BANNERS = [
     { label: 'Default Banner', value: '/banners/default-banner.png' },
@@ -103,6 +107,10 @@ export default function EventSettingsPage({
       setSmsPhoneRequired(eventData.sms_phone_required ?? false);
       setSmsReminder24hTemplate(eventData.sms_reminder_24h_template || '');
       setSmsReminder1hTemplate(eventData.sms_reminder_1h_template || '');
+
+      // Set waitlist settings
+      setWaitlistEnabled(eventData.waitlist_enabled ?? false);
+      setWaitlistLimit(eventData.waitlist_limit?.toString() || '');
 
       // Set banner state
       const currentBanner = eventData.banner_image || '';
@@ -165,6 +173,9 @@ export default function EventSettingsPage({
           sms_phone_required: smsPhoneRequired,
           sms_reminder_24h_template: smsReminder24hTemplate || null,
           sms_reminder_1h_template: smsReminder1hTemplate || null,
+          // Waitlist settings
+          waitlist_enabled: waitlistEnabled,
+          waitlist_limit: waitlistLimit ? parseInt(waitlistLimit) : null,
         }),
       });
 
@@ -976,6 +987,60 @@ export default function EventSettingsPage({
                   <p className="text-xs text-[#667085]">
                     {'{{first_name}}'}, {'{{last_name}}'}, {'{{event_name}}'}, {'{{time_with_timezone}}'}, {'{{date}}'}
                   </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Waitlist Settings */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Waitlist</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Allow attendees to join a waitlist when sessions are full. They&apos;ll be automatically promoted if someone cancels.
+          </p>
+
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={waitlistEnabled}
+                onChange={(e) => setWaitlistEnabled(e.target.checked)}
+                className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              />
+              <div>
+                <span className="font-medium text-[#101E57]">Enable Waitlist</span>
+                <p className="text-sm text-[#667085] mt-0.5">
+                  When a session is full, allow attendees to join a waitlist
+                </p>
+              </div>
+            </label>
+
+            {waitlistEnabled && (
+              <div className="ml-7 pt-2">
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  Maximum Waitlist Size
+                </label>
+                <input
+                  type="number"
+                  value={waitlistLimit}
+                  onChange={(e) => setWaitlistLimit(e.target.value)}
+                  placeholder="Unlimited"
+                  min={1}
+                  className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  Leave empty for unlimited waitlist. Once the limit is reached, no more signups are allowed.
+                </p>
+
+                <div className="mt-4 bg-[#F6F6F9] rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-[#101E57] mb-2">How it works:</h4>
+                  <ul className="text-sm text-[#667085] space-y-1">
+                    <li>• When capacity is full, new signups go to the waitlist</li>
+                    <li>• Waitlisted attendees receive a special email with their position</li>
+                    <li>• When someone cancels, the first waitlisted person is auto-promoted</li>
+                    <li>• Promoted attendees receive a confirmation email with meeting details</li>
+                  </ul>
                 </div>
               </div>
             )}
