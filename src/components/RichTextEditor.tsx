@@ -181,6 +181,11 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       {/* Editor Content */}
       <EditorContent editor={editor} className="bg-white" />
 
+      {/* Formatting Tips */}
+      <div className="px-3 py-2 text-xs text-[#667085] bg-gray-50 border-t border-gray-100">
+        <span className="font-medium">Tips:</span> Select text and click <span className="font-semibold">B</span> for bold. Type <span className="font-mono bg-gray-100 px-1 rounded">1.</span> at line start for numbered lists.
+      </div>
+
       {/* Styles for placeholder */}
       <style jsx global>{`
         .tiptap p.is-editor-empty:first-child::before {
