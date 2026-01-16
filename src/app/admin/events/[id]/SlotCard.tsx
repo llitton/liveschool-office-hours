@@ -1737,9 +1737,91 @@ export default function SlotCard({
                     </button>
                   </div>
 
-                  <p className="text-xs text-[#667085] text-center">
-                    Auto follow-up emails will be sent in ~2 hours if not sent manually.
-                  </p>
+                </div>
+              </div>
+
+              {/* Section 6: What Happens Next */}
+              <div className="border border-blue-200 rounded-lg overflow-hidden bg-blue-50/50">
+                <div className="px-4 py-3 bg-blue-100/50 border-b border-blue-200 flex items-center gap-2">
+                  <span className="text-lg">🔮</span>
+                  <span className="font-medium text-blue-900">What Happens Next</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {/* Feedback Emails */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Feedback Request</p>
+                      <p className="text-xs text-blue-700">
+                        {bookings.filter(b => b.attended_at && !b.feedback_sent_at).length > 0
+                          ? `Will be sent to ${bookings.filter(b => b.attended_at && !b.feedback_sent_at).length} attendee(s) automatically`
+                          : bookings.filter(b => b.feedback_sent_at).length > 0
+                          ? `Already sent to ${bookings.filter(b => b.feedback_sent_at).length} attendee(s)`
+                          : 'No attendees marked yet'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* No-Show Re-engagement */}
+                  {event.no_show_emails_enabled !== false && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg className="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-amber-900">No-Show Re-engagement</p>
+                        <p className="text-xs text-amber-700">
+                          {bookings.filter(b => b.no_show_at && !b.no_show_email_sent_at).length > 0
+                            ? `Will be sent to ${bookings.filter(b => b.no_show_at && !b.no_show_email_sent_at).length} no-show(s) in ${event.no_show_email_delay_hours || 2} hours`
+                            : bookings.filter(b => b.no_show_email_sent_at).length > 0
+                            ? `Already sent to ${bookings.filter(b => b.no_show_email_sent_at).length} no-show(s)`
+                            : 'No no-shows marked yet'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recording Status */}
+                  <div className="flex items-start gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      recordingLink ? 'bg-green-200' : 'bg-gray-200'
+                    }`}>
+                      <svg className={`w-3 h-3 ${recordingLink ? 'text-green-700' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${recordingLink ? 'text-green-900' : 'text-gray-700'}`}>
+                        Recording
+                      </p>
+                      <p className={`text-xs ${recordingLink ? 'text-green-700' : 'text-gray-500'}`}>
+                        {recordingLink
+                          ? 'Added - will be included in follow-up emails'
+                          : 'Not added yet - follow-up emails will not include recording'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* HubSpot Sync */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-orange-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-3 h-3 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-orange-900">HubSpot Sync</p>
+                      <p className="text-xs text-orange-700">
+                        Attendance will be synced to HubSpot contacts automatically
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
