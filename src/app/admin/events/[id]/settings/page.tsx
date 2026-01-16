@@ -10,6 +10,7 @@ import TimezoneSelector from '@/components/TimezoneSelector';
 import RoundRobinHostSelector from '@/components/RoundRobinHostSelector';
 import HostSelector from '@/components/HostSelector';
 import { RichTextEditor } from '@/components/RichTextEditor';
+import TaskTemplatesManager from '@/components/TaskTemplatesManager';
 
 export default function EventSettingsPage({
   params,
@@ -995,6 +996,11 @@ export default function EventSettingsPage({
             placeholder="Example:&#10;&#10;Before our session, please:&#10;• Review our help docs at https://...&#10;• Have your account login ready&#10;• Prepare 2-3 questions you'd like to discuss"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
           />
+        </div>
+
+        {/* Task Templates */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <TaskTemplatesManager eventId={id} />
         </div>
 
         {/* Save Button */}

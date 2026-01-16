@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format, parseISO, isPast } from 'date-fns';
-import type { OHEvent, OHBooking, OHSlot } from '@/types';
+import type { OHEvent, OHBooking, OHSlot, OHTaskTemplate } from '@/types';
 import HubSpotContactCard from '@/components/HubSpotContactCard';
 
 interface SlotWithBookings extends OHSlot {
@@ -106,6 +106,12 @@ export default function SlotCard({
     error?: string;
   } | null>(null);
 
+  // Task templates state
+  const [taskTemplates, setTaskTemplates] = useState<OHTaskTemplate[]>([]);
+  const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
+  const [applyingTemplates, setApplyingTemplates] = useState(false);
+  const [templatesApplied, setTemplatesApplied] = useState(false);
+
   const isPastSlot = isPast(parseISO(slot.end_time));
   const capacityPercent = Math.round((slot.booking_count / event.max_attendees) * 100);
 
@@ -127,8 +133,32 @@ export default function SlotCard({
     if (!showWrapUp) {
       setWrapUpAutoSynced(false);
       setSyncResult(null);
+      setTemplatesApplied(false);
     }
   }, [showWrapUp]);
+
+  // Fetch task templates when wrap-up modal opens
+  useEffect(() => {
+    if (showWrapUp && taskTemplates.length === 0) {
+      const fetchTemplates = async () => {
+        try {
+          const response = await fetch(`/api/events/${event.id}/task-templates`);
+          if (response.ok) {
+            const data = await response.json();
+            setTaskTemplates(data);
+            // Auto-select templates marked as auto_create
+            const autoCreateIds = data
+              .filter((t: OHTaskTemplate) => t.auto_create)
+              .map((t: OHTaskTemplate) => t.id);
+            setSelectedTemplates(new Set(autoCreateIds));
+          }
+        } catch (err) {
+          console.error('Failed to fetch task templates:', err);
+        }
+      };
+      fetchTemplates();
+    }
+  }, [showWrapUp, event.id]);
 
   const handleMarkAttendance = async (
     bookingId: string,
@@ -530,6 +560,49 @@ export default function SlotCard({
     } finally {
       setSchedulingFollowup(false);
     }
+  };
+
+  const handleApplyTemplates = async () => {
+    if (selectedTemplates.size === 0) return;
+    setApplyingTemplates(true);
+
+    try {
+      // Apply templates to all attended bookings
+      const attendedBookings = bookings.filter((b) => b.attended_at);
+      const templateIds = Array.from(selectedTemplates);
+
+      await Promise.all(
+        attendedBookings.map((booking) =>
+          fetch(`/api/events/${event.id}/task-templates/apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              booking_id: booking.id,
+              template_ids: templateIds,
+              slot_end_time: slot.end_time,
+            }),
+          })
+        )
+      );
+
+      setTemplatesApplied(true);
+    } catch (err) {
+      console.error('Failed to apply templates:', err);
+    } finally {
+      setApplyingTemplates(false);
+    }
+  };
+
+  const toggleTemplateSelection = (templateId: string) => {
+    setSelectedTemplates((prev) => {
+      const next = new Set(prev);
+      if (next.has(templateId)) {
+        next.delete(templateId);
+      } else {
+        next.add(templateId);
+      }
+      return next;
+    });
   };
 
   return (
@@ -1417,7 +1490,87 @@ export default function SlotCard({
                 </div>
               </div>
 
-              {/* Section 3: Follow-ups */}
+              {/* Section 3: Task Templates */}
+              {taskTemplates.length > 0 && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">📋</span>
+                      <span className="font-medium text-[#101E57]">Follow-up Tasks</span>
+                    </div>
+                    {templatesApplied ? (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Tasks created
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[#667085]">Optional</span>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    {templatesApplied ? (
+                      <div className="text-center py-2">
+                        <p className="text-sm text-green-600">
+                          {selectedTemplates.size} task template(s) applied to {bookings.filter(b => b.attended_at).length} attendee(s)
+                        </p>
+                        <p className="text-xs text-[#667085] mt-1">
+                          View tasks in each attendee&apos;s Session panel
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2 mb-3">
+                          {taskTemplates.map((template) => (
+                            <label
+                              key={template.id}
+                              className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition ${
+                                selectedTemplates.has(template.id)
+                                  ? 'bg-[#6F71EE]/10 border border-[#6F71EE]/30'
+                                  : 'bg-[#F6F6F9] border border-transparent hover:border-gray-200'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedTemplates.has(template.id)}
+                                onChange={() => toggleTemplateSelection(template.id)}
+                                className="w-4 h-4 rounded border-gray-300 text-[#6F71EE] focus:ring-[#6F71EE]"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-[#101E57]">{template.title}</p>
+                                {template.description && (
+                                  <p className="text-xs text-[#667085] truncate">{template.description}</p>
+                                )}
+                              </div>
+                              {template.default_due_offset_hours && (
+                                <span className="text-xs text-[#667085] whitespace-nowrap">
+                                  Due in {template.default_due_offset_hours}h
+                                </span>
+                              )}
+                            </label>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={handleApplyTemplates}
+                          disabled={applyingTemplates || selectedTemplates.size === 0 || !bookings.some(b => b.attended_at)}
+                          className="w-full py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {applyingTemplates
+                            ? 'Creating tasks...'
+                            : `Create ${selectedTemplates.size} task(s) for ${bookings.filter(b => b.attended_at).length} attendee(s)`}
+                        </button>
+                        <p className="text-xs text-[#667085] text-center mt-2">
+                          Tasks will be created for all attended bookings
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Section 4: Follow-ups */}
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">

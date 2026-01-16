@@ -249,7 +249,29 @@ export interface OHQuickTask {
   hubspot_task_id: string | null;
   created_by: string | null;
   created_at: string;
+  template_id: string | null;
 }
+
+export type TaskTiming = 'before_session' | 'during_session' | 'after_session';
+
+export interface OHTaskTemplate {
+  id: string;
+  event_id: string;
+  title: string;
+  description: string | null;
+  timing: TaskTiming;
+  default_due_offset_hours: number | null;
+  auto_create: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const TASK_TIMING_LABELS: Record<TaskTiming, string> = {
+  before_session: 'Before Session',
+  during_session: 'During Session',
+  after_session: 'After Session',
+};
 
 // Extended booking with tags and tasks
 export interface OHBookingWithExtras extends OHBooking {
