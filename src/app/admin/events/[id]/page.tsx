@@ -8,12 +8,13 @@ import type { OHEvent, OHSlot, OHBooking } from '@/types';
 import SlotCard from './SlotCard';
 import Breadcrumb from '@/components/Breadcrumb';
 import DayTimeline from '@/components/DayTimeline';
+import WeekCalendar from '@/components/WeekCalendar';
 
 interface SlotWithBookings extends OHSlot {
   booking_count: number;
 }
 
-type SlotCreationMode = 'single' | 'bulk' | 'recurring';
+type SlotCreationMode = 'single' | 'bulk' | 'recurring' | 'calendar';
 
 export default function ManageEventPage({
   params,
@@ -439,12 +440,23 @@ export default function ManageEventPage({
             >
               Weekly Recurring
             </button>
+            <button
+              onClick={() => setCreationMode('calendar')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'calendar'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Calendar View
+            </button>
           </div>
           {/* Tab Helper Text */}
           <p className="text-sm text-[#667085] mb-6">
             {creationMode === 'single' && 'Add one specific date and time'}
             {creationMode === 'bulk' && 'Create multiple slots across a date range on selected days'}
             {creationMode === 'recurring' && 'Repeat on the same day each week'}
+            {creationMode === 'calendar' && 'See your week at a glance and click to create slots'}
           </p>
 
           {/* Single Slot Form */}
@@ -680,9 +692,32 @@ export default function ManageEventPage({
             </form>
           )}
 
-          <p className="text-sm text-[#667085] mt-4">
-            Each slot is {event.duration_minutes} minutes. Google Calendar events with Meet links will be created automatically.
-          </p>
+          {/* Calendar View */}
+          {creationMode === 'calendar' && (
+            <WeekCalendar
+              eventId={id}
+              slotDuration={event?.duration_minutes || 30}
+              onSlotCreate={async (date, time) => {
+                const startTime = new Date(`${date}T${time}:00`);
+                await createSlot(startTime);
+                await fetchData();
+              }}
+              onSlotClick={(slotId) => {
+                // Could navigate to slot details or show a modal
+                const slot = slots.find(s => s.id === slotId);
+                if (slot) {
+                  // Just scroll to the slot in the list for now
+                  document.getElementById(`slot-${slotId}`)?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            />
+          )}
+
+          {creationMode !== 'calendar' && (
+            <p className="text-sm text-[#667085] mt-4">
+              Each slot is {event.duration_minutes} minutes. Google Calendar events with Meet links will be created automatically.
+            </p>
+          )}
         </div>
 
         {/* Upcoming Slots */}
