@@ -4,7 +4,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { convertPlainTextToHtml, isPlainText } from '@/lib/text-to-html';
 
 interface RichTextEditorProps {
   content: string;
@@ -43,6 +44,30 @@ function ToolbarButton({ onClick, active, disabled, title, children }: ToolbarBu
 }
 
 export function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+  const [showConvertBanner, setShowConvertBanner] = useState(false);
+
+  // Check if content looks like plain text that could be converted
+  useEffect(() => {
+    if (content && isPlainText(content)) {
+      // Check for patterns that suggest formatting intent
+      const hasFormattingPatterns =
+        /<<[^>]+>>/.test(content) || // <<bold>>
+        /\*\*[^*]+\*\*/.test(content) || // **bold**
+        /^\d+\.\s+/m.test(content) || // 1. list item
+        /^[-*]\s+/m.test(content); // - bullet item
+
+      setShowConvertBanner(hasFormattingPatterns);
+    } else {
+      setShowConvertBanner(false);
+    }
+  }, [content]);
+
+  const handleConvert = useCallback(() => {
+    const converted = convertPlainTextToHtml(content);
+    onChange(converted);
+    setShowConvertBanner(false);
+  }, [content, onChange]);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -114,6 +139,36 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-[#6F71EE] focus-within:border-transparent">
+      {/* Convert Banner */}
+      {showConvertBanner && (
+        <div className="px-3 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-sm text-amber-800">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Formatting detected! Convert to rich text for better display.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleConvert}
+              className="px-3 py-1 text-sm font-medium bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
+            >
+              Convert
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowConvertBanner(false)}
+              className="text-amber-600 hover:text-amber-800"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-gray-50">
         <ToolbarButton
