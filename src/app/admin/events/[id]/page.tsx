@@ -524,7 +524,7 @@ export default function ManageEventPage({
                     <li className="flex items-start gap-2">
                       <span className="text-amber-500 mt-0.5">•</span>
                       <span className="text-[#667085]">
-                        Add recording link from Fireflies/Loom
+                        Add recording link from Fireflies
                       </span>
                     </li>
                     <li className="flex items-start gap-2">

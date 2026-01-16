@@ -1610,7 +1610,7 @@ export default function SlotCard({
                     </button>
                   </div>
                   <p className="text-xs text-[#667085] mt-2">
-                    Paste link from Fireflies, Loom, or other recording service. Will be included in follow-up emails.
+                    Paste your Fireflies recording link. Will be included in follow-up emails.
                   </p>
                 </div>
               </div>
