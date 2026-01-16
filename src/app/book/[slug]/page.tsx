@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
 import type { OHEvent, OHSlot, CustomQuestion } from '@/types';
+import SimpleMarkdown from '@/components/SimpleMarkdown';
 
 interface SlotWithCount extends OHSlot {
   booking_count: number;
@@ -410,6 +411,9 @@ export default function BookingPage({
                 className="mb-4 brightness-0 invert"
               />
               <h1 className="text-xl font-semibold">{event.name}</h1>
+              {event.subtitle && (
+                <p className="text-white/80 mt-1">{event.subtitle}</p>
+              )}
               <div className="flex items-center gap-2 mt-2 text-white/80">
                 {event.host_profile_image ? (
                   <img
@@ -646,6 +650,9 @@ export default function BookingPage({
             />
 
             <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
+            {event.subtitle && (
+              <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
+            )}
 
             <div className="flex flex-wrap gap-4 mt-3 text-[#667085]">
               <span className="flex items-center gap-2">
@@ -694,7 +701,7 @@ export default function BookingPage({
 
             {event.description && (
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="text-[#667085] whitespace-pre-wrap">{event.description}</p>
+                <SimpleMarkdown content={event.description} className="text-[#667085]" />
               </div>
             )}
 

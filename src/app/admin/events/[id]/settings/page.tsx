@@ -22,6 +22,9 @@ export default function EventSettingsPage({
   const [success, setSuccess] = useState('');
 
   // Form state
+  const [eventName, setEventName] = useState('');
+  const [eventSubtitle, setEventSubtitle] = useState('');
+  const [eventDescription, setEventDescription] = useState('');
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [prepMaterials, setPrepMaterials] = useState('');
   const [bannerMode, setBannerMode] = useState<'none' | 'preset' | 'custom'>('none');
@@ -61,6 +64,9 @@ export default function EventSettingsPage({
       if (!response.ok) throw new Error('Event not found');
       const eventData = await response.json();
       setEvent(eventData);
+      setEventName(eventData.name || '');
+      setEventSubtitle(eventData.subtitle || '');
+      setEventDescription(eventData.description || '');
       setCustomQuestions(eventData.custom_questions || []);
       setPrepMaterials(eventData.prep_materials || '');
 
@@ -118,6 +124,9 @@ export default function EventSettingsPage({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          name: eventName,
+          subtitle: eventSubtitle || null,
+          description: eventDescription || null,
           custom_questions: customQuestions,
           prep_materials: prepMaterials,
           banner_image: finalBannerImage,
@@ -231,6 +240,61 @@ export default function EventSettingsPage({
         {success && (
           <div className="bg-green-50 text-green-700 p-4 rounded mb-6 text-sm">{success}</div>
         )}
+
+        {/* Event Info */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Event Info</h2>
+          <p className="text-sm text-[#667085] mb-6">
+            Edit your event&apos;s title, subtitle, and description.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
+                Event Name
+              </label>
+              <input
+                type="text"
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+                placeholder="e.g., Student Shopping 101"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
+                Subtitle
+              </label>
+              <input
+                type="text"
+                value={eventSubtitle}
+                onChange={(e) => setEventSubtitle(e.target.value)}
+                placeholder="e.g., Open an Amazon.com Style Online Store for Your Students"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+              />
+              <p className="text-xs text-[#667085] mt-1">
+                Optional tagline shown below the event name on the booking page.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-1">
+                Description
+              </label>
+              <textarea
+                value={eventDescription}
+                onChange={(e) => setEventDescription(e.target.value)}
+                rows={4}
+                placeholder="Describe what attendees will get from this session..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+              />
+              <p className="text-xs text-[#667085] mt-1">
+                Supports basic formatting: **bold**, *italic*, and bullet lists (start lines with - or •)
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Custom Questions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">

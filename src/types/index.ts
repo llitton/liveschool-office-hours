@@ -29,6 +29,7 @@ export interface OHEvent {
   id: string;
   slug: string;
   name: string;
+  subtitle: string | null;
   description: string | null;
   duration_minutes: number;
   host_name: string;

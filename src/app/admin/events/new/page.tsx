@@ -24,6 +24,7 @@ export default function NewEventPage() {
   // Basic info
   const [formData, setFormData] = useState({
     name: '',
+    subtitle: '',
     slug: '',
     description: '',
     duration_minutes: 30,
@@ -409,9 +410,27 @@ export default function NewEventPage() {
                   required
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  placeholder="e.g., LiveSchool Store Setup Help"
+                  placeholder="e.g., Student Shopping 101"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={formData.subtitle}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, subtitle: e.target.value }))
+                  }
+                  placeholder="e.g., Open an Amazon.com Style Online Store for Your Students"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  Optional tagline shown below the event name on the booking page.
+                </p>
               </div>
 
               <div>
@@ -442,10 +461,13 @@ export default function NewEventPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, description: e.target.value }))
                   }
-                  rows={3}
+                  rows={4}
                   placeholder="Describe what attendees will get from this session..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
+                <p className="text-xs text-[#667085] mt-1">
+                  Supports basic formatting: **bold**, *italic*, and bullet lists (start lines with - or •)
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
