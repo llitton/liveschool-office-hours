@@ -309,7 +309,7 @@ export default function ManageEventPage({
                 Add Time Slots
               </button>
               <a
-                href={`/book/${event.slug}`}
+                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/book/${event.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white text-[#6F71EE] border border-[#6F71EE] px-4 py-2 rounded-lg hover:bg-[#6F71EE]/5 transition font-medium flex items-center gap-2"
@@ -402,12 +402,12 @@ export default function ManageEventPage({
             <p className="text-sm text-[#667085]">
               Public booking link:{' '}
               <a
-                href={`/book/${event.slug}`}
+                href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/book/${event.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#6F71EE] hover:underline font-medium"
               >
-                /book/{event.slug}
+                {process.env.NEXT_PUBLIC_APP_URL || ''}/book/{event.slug}
               </a>
             </p>
           </div>
