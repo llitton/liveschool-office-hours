@@ -221,22 +221,34 @@ class MockQueryBuilder<T> {
   }
 
   gt(field: string, value: unknown) {
-    this.filters.push((item) => (item as Record<string, unknown>)[field] > value);
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) > (value as number | string);
+    });
     return this;
   }
 
   gte(field: string, value: unknown) {
-    this.filters.push((item) => (item as Record<string, unknown>)[field] >= value);
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) >= (value as number | string);
+    });
     return this;
   }
 
   lt(field: string, value: unknown) {
-    this.filters.push((item) => (item as Record<string, unknown>)[field] < value);
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) < (value as number | string);
+    });
     return this;
   }
 
   lte(field: string, value: unknown) {
-    this.filters.push((item) => (item as Record<string, unknown>)[field] <= value);
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) <= (value as number | string);
+    });
     return this;
   }
 
