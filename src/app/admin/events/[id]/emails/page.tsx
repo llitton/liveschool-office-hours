@@ -7,7 +7,7 @@ import type { OHEvent } from '@/types';
 import { defaultTemplates } from '@/lib/email-templates';
 import Breadcrumb from '@/components/Breadcrumb';
 
-type TemplateType = 'confirmation' | 'reminder' | 'cancellation';
+type TemplateType = 'confirmation' | 'reminder' | 'cancellation' | 'no_show';
 
 export default function EmailTemplatesPage({
   params,
@@ -36,6 +36,7 @@ export default function EmailTemplatesPage({
     time: '2:00 PM EST',
     meet_link: 'https://meet.google.com/abc-defg-hij',
     reminder_timing: 'tomorrow',
+    rebook_link: `https://connect.liveschool.com/book/${event?.slug || 'your-event'}`,
   };
 
   const [templates, setTemplates] = useState({
@@ -45,6 +46,8 @@ export default function EmailTemplatesPage({
     reminder_body: '',
     cancellation_subject: '',
     cancellation_body: '',
+    no_show_subject: '',
+    no_show_body: '',
   });
 
   useEffect(() => {
@@ -67,6 +70,8 @@ export default function EmailTemplatesPage({
         reminder_body: data.reminder_body || defaultTemplates.reminder_body,
         cancellation_subject: data.cancellation_subject || defaultTemplates.cancellation_subject,
         cancellation_body: data.cancellation_body || defaultTemplates.cancellation_body,
+        no_show_subject: data.no_show_subject || defaultTemplates.no_show_subject,
+        no_show_body: data.no_show_body || defaultTemplates.no_show_body,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load event');
@@ -108,16 +113,20 @@ export default function EmailTemplatesPage({
 
   const templateInfo = {
     confirmation: {
-      title: 'Confirmation Email',
+      title: 'Confirmation',
       description: 'Sent immediately after someone books a slot.',
     },
     reminder: {
-      title: 'Reminder Email',
+      title: 'Reminder',
       description: 'Sent 24 hours and 1 hour before the session.',
     },
     cancellation: {
-      title: 'Cancellation Email',
+      title: 'Cancellation',
       description: 'Sent when a session is cancelled.',
+    },
+    no_show: {
+      title: 'No-Show',
+      description: 'Sent automatically to attendees marked as no-show, with a link to rebook.',
     },
   };
 
@@ -131,6 +140,7 @@ export default function EmailTemplatesPage({
     { var: '{{time}}', desc: 'Session time', sample: sampleData.time },
     { var: '{{meet_link}}', desc: 'Google Meet link', sample: sampleData.meet_link },
     { var: '{{reminder_timing}}', desc: 'e.g., "tomorrow" or "in 1 hour"', sample: sampleData.reminder_timing },
+    { var: '{{rebook_link}}', desc: 'Link to book another session (for no-show emails)', sample: sampleData.rebook_link },
   ];
 
   // Replace template variables with sample data for preview
@@ -198,7 +208,7 @@ export default function EmailTemplatesPage({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               {/* Tabs */}
               <div className="flex border-b border-gray-200">
-                {(['confirmation', 'reminder', 'cancellation'] as TemplateType[]).map((tab) => (
+                {(['confirmation', 'reminder', 'cancellation', 'no_show'] as TemplateType[]).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}

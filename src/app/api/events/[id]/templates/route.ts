@@ -25,6 +25,8 @@ export async function PUT(
       reminder_body: body.reminder_body,
       cancellation_subject: body.cancellation_subject,
       cancellation_body: body.cancellation_body,
+      no_show_subject: body.no_show_subject,
+      no_show_body: body.no_show_body,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

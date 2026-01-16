@@ -150,7 +150,140 @@ export async function GET() {
   }
 
   // =============================================
-  // 2. Send feedback requests (1-2 hours after session)
+  // 2. Send no-show re-engagement emails
+  // =============================================
+  // Get slots that ended in the last 24 hours with no-show bookings
+  const { data: noShowSlots } = await supabase
+    .from('oh_slots')
+    .select(`
+      *,
+      event:oh_events(*),
+      bookings:oh_bookings(*)
+    `)
+    .eq('is_cancelled', false)
+    .lt('end_time', now.toISOString())
+    .gt('end_time', twentyFourHoursAgo.toISOString());
+
+  for (const slot of noShowSlots || []) {
+    const event = slot.event;
+
+    // Skip if no-show emails are disabled for this event
+    if (event.no_show_emails_enabled === false) continue;
+
+    // Calculate when the no-show email should be sent based on delay setting
+    const delayHours = event.no_show_email_delay_hours || 2;
+    const sendAfter = new Date(new Date(slot.end_time).getTime() + delayHours * 60 * 60 * 1000);
+
+    // Only send if we're past the delay window
+    if (now < sendAfter) continue;
+
+    // Don't send if more than 24 hours have passed (prevent sending old emails)
+    const maxSendTime = new Date(new Date(slot.end_time).getTime() + 24 * 60 * 60 * 1000);
+    if (now > maxSendTime) continue;
+
+    const { data: admin } = await supabase
+      .from('oh_admins')
+      .select('*')
+      .eq('email', event.host_email)
+      .single();
+
+    if (!admin?.google_access_token || !admin?.google_refresh_token) continue;
+
+    for (const booking of slot.bookings || []) {
+      // Only send to no-show bookings that haven't received the email
+      if (booking.cancelled_at) continue;
+      if (!booking.no_show_at) continue;
+      if (booking.no_show_email_sent_at) continue;
+
+      try {
+        // Generate re-booking link
+        const rebookUrl = `${process.env.APP_URL || 'http://localhost:3000'}/book/${event.slug}`;
+
+        // Use custom template or default
+        const subject = event.no_show_subject || `We missed you at ${event.name}!`;
+
+        // Process template variables
+        const processTemplate = (template: string) => {
+          return template
+            .replace(/\{\{first_name\}\}/g, booking.first_name)
+            .replace(/\{\{last_name\}\}/g, booking.last_name)
+            .replace(/\{\{event_name\}\}/g, event.name)
+            .replace(/\{\{host_name\}\}/g, event.host_name)
+            .replace(/\{\{rebook_link\}\}/g, rebookUrl);
+        };
+
+        let htmlBody: string;
+
+        if (event.no_show_body) {
+          // Use custom template
+          htmlBody = `
+            <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+              ${processTemplate(event.no_show_body)}
+              <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+                <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+                  Sent from Connect with LiveSchool
+                </p>
+              </div>
+            </div>
+          `;
+        } else {
+          // Default no-show template
+          htmlBody = `
+            <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+              <h2 style="color: #101E57;">We missed you!</h2>
+              <p>Hi ${booking.first_name},</p>
+              <p>We noticed you weren't able to join <strong>${event.name}</strong> today. No worries - life happens!</p>
+              <p>We'd love to connect with you. Feel free to book another session at a time that works better for you.</p>
+
+              <div style="margin: 24px 0; text-align: center;">
+                <a href="${rebookUrl}" style="background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                  Book Another Session
+                </a>
+              </div>
+
+              <p style="color: #667085;">
+                If you have any questions, just reply to this email.
+              </p>
+
+              <p style="margin-top: 24px;">
+                Best,<br>
+                ${event.host_name}
+              </p>
+
+              <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+                <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+                  Sent from Connect with LiveSchool
+                </p>
+              </div>
+            </div>
+          `;
+        }
+
+        await sendEmail(
+          admin.google_access_token,
+          admin.google_refresh_token,
+          {
+            to: booking.email,
+            subject: processTemplate(subject),
+            replyTo: event.host_email,
+            htmlBody,
+          }
+        );
+
+        await supabase
+          .from('oh_bookings')
+          .update({ no_show_email_sent_at: new Date().toISOString() })
+          .eq('id', booking.id);
+
+        noShowSent++;
+      } catch (err) {
+        console.error('Failed to send no-show re-engagement email:', err);
+      }
+    }
+  }
+
+  // =============================================
+  // 3. Send feedback requests (1-2 hours after session)
   // =============================================
   // Get slots that ended 1-2 hours ago (for feedback requests)
   const { data: recentSlots } = await supabase
@@ -289,6 +422,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     followupSent,
+    noShowSent,
     feedbackSent,
     recordingsSent,
   });

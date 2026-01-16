@@ -17,6 +17,7 @@ export interface EmailTemplateVariables {
   assigned_host_name?: string;
   assigned_host_email?: string;
   is_round_robin?: string;
+  rebook_link?: string;
 }
 
 export const defaultTemplates = {
@@ -53,6 +54,20 @@ Looking forward to our conversation!
 Your {{event_name}} session scheduled for {{date}} at {{time_with_timezone}} has been cancelled.
 
 If you'd like to book another time, I'd love to still connect with you. Just head back to the booking page to find a time that works.
+
+Best,
+{{host_name}}`,
+
+  no_show_subject: 'We missed you at {{event_name}}!',
+  no_show_body: `Hi {{first_name}},
+
+We noticed you weren't able to join {{event_name}} today. No worries - life happens!
+
+We'd love to connect with you. Feel free to book another session at a time that works better for you:
+
+{{rebook_link}}
+
+If you have any questions, just reply to this email.
 
 Best,
 {{host_name}}`,
