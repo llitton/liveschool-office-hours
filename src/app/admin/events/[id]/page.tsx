@@ -300,15 +300,18 @@ export default function ManageEventPage({
 
             {/* Primary Actions */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={scrollToAddSlots}
-                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Time Slots
-              </button>
+              {/* Only show "Add Time Slots" for webinars - other events use dynamic availability */}
+              {event.meeting_type === 'webinar' && (
+                <button
+                  onClick={scrollToAddSlots}
+                  className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Time Slots
+                </button>
+              )}
               <a
                 href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/book/${event.slug}`}
                 target="_blank"
@@ -414,7 +417,8 @@ export default function ManageEventPage({
           </div>
         </div>
 
-        {/* Session Workflow Guide */}
+        {/* Session Workflow Guide - only for webinars that have scheduled sessions */}
+        {event.meeting_type === 'webinar' && (
         <div className="bg-gradient-to-r from-[#6F71EE]/5 to-[#417762]/5 rounded-lg border border-[#6F71EE]/20 mb-8 overflow-hidden">
           <button
             onClick={() => setShowWorkflowGuide(!showWorkflowGuide)}
@@ -549,8 +553,55 @@ export default function ManageEventPage({
             </div>
           )}
         </div>
+        )}
 
-        {/* Add Time Slots */}
+        {/* Dynamic Availability Info - for non-webinar events */}
+        {event.meeting_type !== 'webinar' && (
+          <div className="bg-gradient-to-r from-[#417762]/5 to-[#6F71EE]/5 rounded-lg border border-[#417762]/20 p-6 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-[#417762]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-[#101E57] text-lg mb-2">
+                  Dynamic Availability
+                </h3>
+                <p className="text-[#667085] mb-4">
+                  This event uses <span className="font-medium text-[#101E57]">calendar-based availability</span>.
+                  Available times are automatically generated based on your calendar&apos;s free/busy status and
+                  your availability patterns. Attendees can book any open time on your calendar.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    href="/admin/settings"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-[#6F71EE] hover:underline"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Manage Availability Patterns
+                  </Link>
+                  <span className="text-[#667085]">•</span>
+                  <Link
+                    href={`/admin/events/${id}/settings`}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-[#6F71EE] hover:underline"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Event Settings (Duration, Buffer)
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Time Slots - only for webinars */}
+        {event.meeting_type === 'webinar' && (
         <div ref={slotsRef} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 scroll-mt-4">
           <h2 className="text-lg font-semibold text-[#101E57] mb-4">Add Time Slots</h2>
 
@@ -865,10 +916,13 @@ export default function ManageEventPage({
             </p>
           )}
         </div>
+        )}
 
-        {/* Upcoming Slots */}
+        {/* Upcoming Bookings - shown for all events to track confirmed meetings */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Upcoming Time Slots</h2>
+          <h2 className="text-lg font-semibold text-[#101E57] mb-4">
+            {event.meeting_type === 'webinar' ? 'Upcoming Time Slots' : 'Upcoming Bookings'}
+          </h2>
 
           {slots.filter(s => !isPast(parseISO(s.end_time))).length === 0 ? (
             <div className="text-center py-12 bg-[#F6F6F9] rounded-lg">
@@ -877,19 +931,37 @@ export default function ManageEventPage({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-[#101E57] mb-2">No upcoming sessions</h3>
+              <h3 className="text-lg font-semibold text-[#101E57] mb-2">
+                {event.meeting_type === 'webinar' ? 'No upcoming sessions' : 'No upcoming bookings'}
+              </h3>
               <p className="text-[#667085] mb-6 max-w-sm mx-auto">
-                Create time slots above to start accepting bookings. Attendees will see available times on your public booking page.
+                {event.meeting_type === 'webinar'
+                  ? 'Create time slots above to start accepting bookings. Attendees will see available times on your public booking page.'
+                  : 'Attendees can book available times directly from your public booking page. Once someone books, their meeting will appear here.'}
               </p>
-              <button
-                onClick={scrollToAddSlots}
-                className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Your First Time Slot
-              </button>
+              {event.meeting_type === 'webinar' ? (
+                <button
+                  onClick={scrollToAddSlots}
+                  className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Your First Time Slot
+                </button>
+              ) : (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/book/${event.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  View Booking Page
+                </a>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

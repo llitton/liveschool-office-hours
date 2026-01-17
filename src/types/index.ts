@@ -483,7 +483,8 @@ export interface RoutingFormWithRules extends OHRoutingForm {
 // USER ONBOARDING
 // ============================================
 
-export type OnboardingStep = 'google' | 'event' | 'slots' | 'share';
+// Note: 'slots' step removed - non-webinar events use dynamic availability
+export type OnboardingStep = 'google' | 'event' | 'share';
 
 export interface OnboardingState {
   welcomeSeen: boolean;

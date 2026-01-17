@@ -59,20 +59,33 @@ const helpSections: HelpSection[] = [
         ],
       },
       {
-        id: 'add-slots',
-        title: 'Adding Time Slots',
-        description: 'Create available times when people can book with you.',
-        body: 'Time slots are the windows when people can book sessions. Add them to make your session available.',
-        steps: [
-          'Open a session from the Sessions page',
-          'Click Add Time Slots',
-          'Select the date(s) and times',
-          'Click Create Slots',
+        id: 'availability',
+        title: 'How Availability Works',
+        description: 'Understand how attendees see your available times.',
+        body: 'LiveSchool uses dynamic availability for most event types. Your available times are automatically generated based on your Google Calendar.',
+        lists: [
+          {
+            label: 'For most events (1:1, Group, Round-Robin)',
+            items: [
+              'Availability is calculated automatically from your calendar',
+              'Busy times are blocked, free times are shown',
+              'No need to manually create time slots',
+              'Just connect Google Calendar and share your link',
+            ],
+          },
+          {
+            label: 'For Webinars only',
+            items: [
+              'Webinars require specific time slots to be created',
+              'This lets you schedule sessions at exact times',
+              'Use calendar view, bulk create, or recurring options',
+              'Attendees can only book the slots you create',
+            ],
+          },
         ],
         tips: [
-          'Add multiple slots at once by selecting a date range',
-          'Delete upcoming slots that have no bookings',
-          'Cancelled slots can be recreated if needed',
+          'Most users never need to create time slots manually',
+          'Your calendar is synced in real-time for accurate availability',
         ],
       },
       {
@@ -344,6 +357,274 @@ const helpSections: HelpSection[] = [
               'Reminder emails are sent automatically',
               'Enable SMS reminders for mobile',
               'Follow up with no-shows to reschedule',
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'event-types',
+    title: 'Event Types',
+    articles: [
+      {
+        id: 'one-on-one',
+        title: 'One-on-One Meetings',
+        description: 'Private meetings between you and one attendee.',
+        body: 'One-on-one meetings are the most common type. Each booking is a private session with one attendee.',
+        lists: [
+          {
+            label: 'Best for',
+            items: [
+              '1:1 support calls',
+              'Coaching sessions',
+              'Discovery calls',
+              'Private consultations',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'group-events',
+        title: 'Group Sessions',
+        description: 'Sessions with multiple attendees at the same time.',
+        body: 'Group sessions let multiple people book the same time slot. Great for workshops and office hours.',
+        lists: [
+          {
+            label: 'Best for',
+            items: [
+              'Office hours with multiple attendees',
+              'Training workshops',
+              'Q&A sessions',
+              'Group coaching',
+            ],
+          },
+        ],
+        tips: [
+          'Set the maximum attendees per slot in event settings',
+          'Attendees see how many spots are left',
+        ],
+      },
+      {
+        id: 'round-robin',
+        title: 'Round-Robin Events',
+        description: 'Distribute bookings across multiple hosts automatically.',
+        body: 'Round-robin events spread bookings evenly across your team. Great for support and sales teams.',
+        steps: [
+          'Create an event and select Round-Robin type',
+          'Add team members as participating hosts',
+          'Choose a distribution strategy (cycle or least bookings)',
+          'Bookings are automatically assigned to available hosts',
+        ],
+        lists: [
+          {
+            label: 'Distribution strategies',
+            items: [
+              'Cycle — rotate through hosts in order',
+              'Least Bookings — assign to host with fewest sessions',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'collective',
+        title: 'Collective Events',
+        description: 'Meetings that require all hosts to be available.',
+        body: 'Collective events check availability across all hosts. Only times when everyone is free are shown.',
+        lists: [
+          {
+            label: 'Best for',
+            items: [
+              'Panel interviews',
+              'Team meetings with customers',
+              'Multi-expert consultations',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'webinars',
+        title: 'Webinars',
+        description: 'Scheduled sessions at specific times with specific capacity.',
+        body: 'Webinars are different from other event types — they require manually created time slots instead of using dynamic availability.',
+        lists: [
+          {
+            label: 'How webinars differ',
+            items: [
+              'You create specific time slots manually',
+              'Attendees can only book the times you create',
+              'Great for scheduled broadcasts or training sessions',
+              'Supports high attendee counts',
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'advanced-features',
+    title: 'Advanced Features',
+    articles: [
+      {
+        id: 'meeting-polls',
+        title: 'Meeting Polls',
+        description: 'Let attendees vote on the best time for a meeting.',
+        body: 'Meeting polls help find times that work for multiple people. Share a poll link and let participants vote on their preferred times.',
+        steps: [
+          'Go to Polls in the sidebar',
+          'Click Create New Poll',
+          'Add the times you could meet',
+          'Share the poll link with participants',
+          'Once voting is done, book the winning time',
+        ],
+        tips: [
+          'Great for scheduling meetings with external groups',
+          'Participants don\'t need an account to vote',
+        ],
+      },
+      {
+        id: 'quick-links',
+        title: 'Quick Links & Chrome Extension',
+        description: 'Access your booking links quickly without logging in.',
+        body: 'Quick Links gives you a personal page with all your booking links. The Chrome extension makes it even faster.',
+        steps: [
+          'Go to Settings',
+          'Find your Quick Links token',
+          'Bookmark your personal Quick Links page',
+          'Or install the Chrome extension for one-click access',
+        ],
+        lists: [
+          {
+            label: 'Chrome extension features',
+            items: [
+              'See all your events in a popup',
+              'Copy booking links with one click',
+              'See upcoming slot availability',
+              'No login required once connected',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'routing-forms',
+        title: 'Routing Forms',
+        description: 'Direct attendees to the right event based on their answers.',
+        body: 'Routing forms ask qualifying questions and automatically direct people to the appropriate event or host.',
+        steps: [
+          'Go to Routing in the sidebar',
+          'Create a new routing form',
+          'Add questions with conditional routing',
+          'Map answers to specific events or hosts',
+          'Share the routing form link',
+        ],
+        lists: [
+          {
+            label: 'Use cases',
+            items: [
+              'Route support requests by product',
+              'Match customers to the right expert',
+              'Qualify leads before sales calls',
+              'Direct to different event types by need',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'waitlist',
+        title: 'Waitlist',
+        description: 'Let people join a waitlist when sessions are full.',
+        body: 'When a session fills up, people can join a waitlist. If someone cancels, the next person is automatically notified.',
+        steps: [
+          'Enable waitlist in event settings',
+          'Optionally set a waitlist limit',
+          'When full, attendees see "Join Waitlist"',
+          'Cancellations automatically promote waitlisted attendees',
+        ],
+        tips: [
+          'Waitlisted attendees get their position number',
+          'They\'re notified immediately if a spot opens',
+        ],
+      },
+      {
+        id: 'sms-reminders',
+        title: 'SMS Reminders',
+        description: 'Send text message reminders before sessions.',
+        body: 'SMS reminders can significantly reduce no-shows. Enable them per event to send texts before sessions.',
+        steps: [
+          'Enable SMS reminders in event settings',
+          'Optionally require phone numbers from attendees',
+          'Customize reminder templates',
+          'Reminders are sent 24 hours and 1 hour before',
+        ],
+        tips: [
+          'SMS has higher open rates than email',
+          'Attendees must consent to receive texts',
+        ],
+      },
+      {
+        id: 'one-off-meetings',
+        title: 'One-Off Meeting Links',
+        description: 'Create single-use links for specific meetings.',
+        body: 'One-off meeting links are perfect for scheduling a single meeting. The link expires after use or a set date.',
+        steps: [
+          'Click One-Off Meeting in the sidebar',
+          'Set the duration and optional expiration',
+          'Share the unique link',
+          'Once booked, the link becomes inactive',
+        ],
+        lists: [
+          {
+            label: 'Options',
+            items: [
+              'Single use — link works once',
+              'Expiration date — link expires on a date',
+              'No expiration — stays active until booked',
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    articles: [
+      {
+        id: 'hubspot',
+        title: 'HubSpot Integration',
+        description: 'Sync bookings and attendance with HubSpot CRM.',
+        body: 'Connect HubSpot to automatically log meetings, update contacts, and track engagement.',
+        lists: [
+          {
+            label: 'What syncs automatically',
+            items: [
+              'New bookings create or update contacts',
+              'Meeting activities are logged',
+              'Attendance status is recorded',
+              'No-shows are tracked for follow-up',
+            ],
+          },
+        ],
+        steps: [
+          'Go to Settings > Integrations',
+          'Click Connect HubSpot',
+          'Authorize access to your HubSpot account',
+          'Bookings will now sync automatically',
+        ],
+      },
+      {
+        id: 'slack',
+        title: 'Slack Notifications',
+        description: 'Get notified in Slack when bookings happen.',
+        body: 'Connect Slack to receive real-time notifications about new bookings and important events.',
+        lists: [
+          {
+            label: 'Notification types',
+            items: [
+              'New booking received',
+              'Booking cancelled',
+              'Attendee joined waitlist',
+              'Session starting soon',
             ],
           },
         ],

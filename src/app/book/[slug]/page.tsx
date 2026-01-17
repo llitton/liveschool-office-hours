@@ -247,12 +247,13 @@ export default function BookingPage({
 
       setEvent(foundEvent);
 
-      // Get slots for this event
-      const slotsRes = await fetch(`/api/slots?eventId=${foundEvent.id}`);
-      if (!slotsRes.ok) throw new Error('Failed to load available times');
+      // Get available times for this event
+      // Uses dynamic availability for non-webinars, pre-created slots for webinars
+      const timesRes = await fetch(`/api/events/${foundEvent.id}/available-times`);
+      if (!timesRes.ok) throw new Error('Failed to load available times');
 
-      const slotsData = await slotsRes.json();
-      setSlots(slotsData);
+      const timesData = await timesRes.json();
+      setSlots(timesData.slots || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -277,11 +278,15 @@ export default function BookingPage({
     setError('');
 
     try {
+      // Check if this is a dynamic slot (non-webinar events use dynamic availability)
+      const isDynamicSlot = selectedSlot.id.startsWith('dynamic-');
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slot_id: selectedSlot.id,
+          event_id: isDynamicSlot ? event.id : undefined, // Required for dynamic slots
           ...formData,
           question_responses: questionResponses,
           attendee_timezone: timezone,

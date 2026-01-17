@@ -25,11 +25,11 @@ const primaryNavItems = [
   {
     href: '/admin',
     label: 'Sessions',
-    matchPaths: ['/admin', '/admin/events', '/admin/upcoming', '/admin/past'],
+    matchPaths: ['/admin', '/admin/events', '/admin/past'],
   },
   {
     href: '/admin/prepare',
-    label: 'Prepare',
+    label: 'Upcoming',
     matchPaths: ['/admin/prepare'],
   },
   {
@@ -57,18 +57,11 @@ const primaryNavItems = [
 const subNavConfig: Record<string, SubNavItem[]> = {
   sessions: [
     { href: '/admin', label: 'Today', exact: true },
-    { href: '/admin/upcoming', label: 'Upcoming' },
     { href: '/admin/past', label: 'Past' },
     { href: '/admin/one-off', label: 'One-off' },
     { href: '/admin/polls', label: 'Polls' },
   ],
-  prepare: [
-    { href: '/admin/prepare', label: 'Overview', exact: true },
-    { href: '/admin/prepare/agenda', label: 'Agenda' },
-    { href: '/admin/prepare/questions', label: 'Questions' },
-    { href: '/admin/prepare/logistics', label: 'Logistics' },
-    { href: '/admin/prepare/messaging', label: 'Messaging' },
-  ],
+  // No sub-nav for "upcoming" - it's a single page now
   people: [
     { href: '/admin/people', label: 'Team', exact: true },
     { href: '/admin/people/routing', label: 'Routing' },
@@ -311,9 +304,7 @@ export default function AppShell({ children }: AppShellProps) {
     ) {
       return 'sessions';
     }
-    if (pathname.startsWith('/admin/prepare')) {
-      return 'prepare';
-    }
+    // No sub-nav for /admin/prepare (Upcoming) - it's a single page
     if (
       pathname.startsWith('/admin/people') ||
       pathname.startsWith('/admin/team') ||

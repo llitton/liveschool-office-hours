@@ -53,9 +53,6 @@ export default async function AdminPage({
   // Determine onboarding status
   const hasGoogleConnected = !!admin?.google_access_token;
   const hasEvents = (events?.length || 0) > 0;
-  const hasSlots = events?.some(e => e.slots?.some(
-    (s: { is_cancelled: boolean }) => !s.is_cancelled
-  )) || false;
   const firstEventSlug = events?.[0]?.slug;
 
   return (
@@ -64,7 +61,6 @@ export default async function AdminPage({
       initialState={admin?.onboarding_progress}
       hasGoogleConnected={hasGoogleConnected}
       hasEvents={hasEvents}
-      hasSlots={hasSlots}
       firstEventSlug={firstEventSlug}
     >
       <PageContainer>

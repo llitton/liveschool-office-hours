@@ -20,14 +20,12 @@ interface ChecklistStepData {
 interface WelcomeChecklistProps {
   hasGoogleConnected: boolean;
   hasEvents: boolean;
-  hasSlots: boolean;
   firstEventSlug?: string;
 }
 
 export default function WelcomeChecklist({
   hasGoogleConnected,
   hasEvents,
-  hasSlots,
   firstEventSlug,
 }: WelcomeChecklistProps) {
   const { state, completeStep, isStepComplete, dismissChecklist, startTour } = useOnboarding();
@@ -69,16 +67,6 @@ export default function WelcomeChecklist({
       checkComplete: hasEvents,
     },
     {
-      id: 'slots',
-      title: 'Add Time Slots',
-      description: 'Add available times when people can book sessions with you.',
-      action: {
-        label: hasSlots ? 'View Slots' : 'Add Slots',
-        href: hasEvents ? '/admin' : '/admin/events/new',
-      },
-      checkComplete: hasSlots,
-    },
-    {
       id: 'share',
       title: 'Share Your Booking Link',
       description: 'Send your booking link to let people schedule sessions with you.',
@@ -96,9 +84,6 @@ export default function WelcomeChecklist({
   }
   if (hasEvents && !isStepComplete('event')) {
     completeStep('event');
-  }
-  if (hasSlots && !isStepComplete('slots')) {
-    completeStep('slots');
   }
 
   const completedCount = steps.filter(

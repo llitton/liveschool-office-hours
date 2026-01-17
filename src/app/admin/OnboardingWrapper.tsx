@@ -11,7 +11,6 @@ interface OnboardingWrapperProps {
   initialState?: OnboardingState | null;
   hasGoogleConnected: boolean;
   hasEvents: boolean;
-  hasSlots: boolean;
   firstEventSlug?: string;
 }
 
@@ -21,7 +20,6 @@ export default function OnboardingWrapper({
   initialState,
   hasGoogleConnected,
   hasEvents,
-  hasSlots,
   firstEventSlug,
 }: OnboardingWrapperProps) {
   return (
@@ -32,7 +30,6 @@ export default function OnboardingWrapper({
         <WelcomeChecklist
           hasGoogleConnected={hasGoogleConnected}
           hasEvents={hasEvents}
-          hasSlots={hasSlots}
           firstEventSlug={firstEventSlug}
         />
       </div>
