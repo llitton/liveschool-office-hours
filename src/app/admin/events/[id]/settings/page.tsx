@@ -46,6 +46,10 @@ export default function EventSettingsPage({
   const [requireApproval, setRequireApproval] = useState(false);
   const [startTimeIncrement, setStartTimeIncrement] = useState(30);
 
+  // Buffer settings
+  const [bufferBefore, setBufferBefore] = useState(0);
+  const [bufferAfter, setBufferAfter] = useState(0);
+
   // Timezone settings
   const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
   const [lockTimezone, setLockTimezone] = useState(false);
@@ -95,6 +99,10 @@ export default function EventSettingsPage({
       setBookingWindowDays(eventData.booking_window_days ?? 60);
       setRequireApproval(eventData.require_approval ?? false);
       setStartTimeIncrement(eventData.start_time_increment ?? 30);
+
+      // Set buffer settings
+      setBufferBefore(eventData.buffer_before ?? 0);
+      setBufferAfter(eventData.buffer_after ?? 0);
 
       // Set timezone settings
       setDisplayTimezone(eventData.display_timezone || 'America/New_York');
@@ -165,6 +173,9 @@ export default function EventSettingsPage({
           booking_window_days: bookingWindowDays,
           require_approval: requireApproval,
           start_time_increment: startTimeIncrement,
+          // Buffer settings
+          buffer_before: bufferBefore,
+          buffer_after: bufferAfter,
           // Timezone settings
           display_timezone: displayTimezone,
           lock_timezone: lockTimezone,
@@ -868,6 +879,50 @@ export default function EventSettingsPage({
               </div>
               <p className="text-xs text-[#667085] mt-1">
                 How often time slots appear. For example, with 30-minute increments, slots start at 9:00, 9:30, 10:00, etc.
+              </p>
+            </div>
+
+            {/* Buffer Time */}
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-2">
+                Buffer Time
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-[#667085] mb-1">Before session</label>
+                  <select
+                    value={bufferBefore}
+                    onChange={(e) => setBufferBefore(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={0}>No buffer</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>1 hour</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-[#667085] mb-1">After session</label>
+                  <select
+                    value={bufferAfter}
+                    onChange={(e) => setBufferAfter(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={0}>No buffer</option>
+                    <option value={5}>5 minutes</option>
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>1 hour</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-[#667085] mt-1">
+                Add breathing room before or after sessions. Times with conflicts in your calendar will be blocked.
               </p>
             </div>
 
