@@ -305,6 +305,169 @@ export async function getAvailableSlots(
 }
 
 /**
+ * Check if ALL hosts are available at a specific time (for collective events)
+ */
+export async function checkCollectiveAvailability(
+  hostIds: string[],
+  startTime: Date,
+  endTime: Date,
+  eventId?: string
+): Promise<{ available: boolean; unavailableHosts: string[]; reasons: Record<string, string> }> {
+  const unavailableHosts: string[] = [];
+  const reasons: Record<string, string> = {};
+
+  // Check each host's availability
+  for (const hostId of hostIds) {
+    const result = await checkTimeAvailability(hostId, startTime, endTime, eventId);
+    if (!result.available) {
+      unavailableHosts.push(hostId);
+      reasons[hostId] = result.reason || 'Not available';
+    }
+  }
+
+  return {
+    available: unavailableHosts.length === 0,
+    unavailableHosts,
+    reasons,
+  };
+}
+
+/**
+ * Get available slots where ALL hosts are free (for collective events)
+ */
+export async function getCollectiveAvailableSlots(
+  hostIds: string[],
+  eventDurationMinutes: number,
+  startDate: Date,
+  endDate: Date,
+  eventId?: string
+): Promise<TimeSlot[]> {
+  if (hostIds.length === 0) {
+    return [];
+  }
+
+  // Get availability data for all hosts
+  const allPatterns = await Promise.all(
+    hostIds.map((id) => getAvailabilityPatterns(id))
+  );
+  const allBusyBlocks = await Promise.all(
+    hostIds.map((id) => getBusyBlocks(id, startDate, endDate))
+  );
+  const allExistingSlots = await Promise.all(
+    hostIds.map((id) => getExistingSlots(id, eventId || null, startDate, endDate))
+  );
+
+  const availableSlots: TimeSlot[] = [];
+  let currentDate = startOfDay(startDate);
+
+  while (isBefore(currentDate, endDate)) {
+    const dayOfWeek = getDay(currentDate);
+
+    // Find the intersection of all hosts' patterns for this day
+    const hostDayPatterns = allPatterns.map((patterns) =>
+      patterns.filter((p) => p.day_of_week === dayOfWeek)
+    );
+
+    // Skip if any host has no availability on this day
+    if (hostDayPatterns.some((patterns) => patterns.length === 0)) {
+      currentDate = addDays(currentDate, 1);
+      continue;
+    }
+
+    // Find common available windows
+    // Start with the first host's patterns and narrow down
+    let commonWindows: { start: string; end: string }[] = hostDayPatterns[0].map((p) => ({
+      start: p.start_time,
+      end: p.end_time,
+    }));
+
+    // Intersect with each subsequent host's patterns
+    for (let i = 1; i < hostDayPatterns.length; i++) {
+      const hostWindows = hostDayPatterns[i].map((p) => ({
+        start: p.start_time,
+        end: p.end_time,
+      }));
+
+      // Calculate intersection
+      const newCommon: { start: string; end: string }[] = [];
+      for (const w1 of commonWindows) {
+        for (const w2 of hostWindows) {
+          const intersectStart = w1.start > w2.start ? w1.start : w2.start;
+          const intersectEnd = w1.end < w2.end ? w1.end : w2.end;
+          if (intersectStart < intersectEnd) {
+            newCommon.push({ start: intersectStart, end: intersectEnd });
+          }
+        }
+      }
+      commonWindows = newCommon;
+    }
+
+    // Generate slots within common windows
+    for (const window of commonWindows) {
+      const [startHour, startMin] = window.start.split(':').map(Number);
+      const [endHour, endMin] = window.end.split(':').map(Number);
+
+      let slotStart = setMinutes(setHours(currentDate, startHour), startMin);
+      const windowEnd = setMinutes(setHours(currentDate, endHour), endMin);
+
+      while (
+        isBefore(addMinutes(slotStart, eventDurationMinutes), windowEnd) ||
+        slotStart.getTime() + eventDurationMinutes * 60000 <= windowEnd.getTime()
+      ) {
+        const slotEnd = addMinutes(slotStart, eventDurationMinutes);
+
+        // Skip if in the past
+        if (isBefore(slotStart, new Date())) {
+          slotStart = addMinutes(slotStart, 30);
+          continue;
+        }
+
+        // Check if this slot conflicts with ANY host's busy blocks or existing slots
+        let hasConflict = false;
+
+        for (let i = 0; i < hostIds.length; i++) {
+          // Check busy blocks
+          const conflictsWithBusy = allBusyBlocks[i].some((block) =>
+            areIntervalsOverlapping(
+              { start: slotStart, end: slotEnd },
+              { start: parseISO(block.start_time), end: parseISO(block.end_time) }
+            )
+          );
+
+          if (conflictsWithBusy) {
+            hasConflict = true;
+            break;
+          }
+
+          // Check existing slots
+          const conflictsWithSlot = allExistingSlots[i].some((existing) =>
+            areIntervalsOverlapping(
+              { start: slotStart, end: slotEnd },
+              { start: existing.start, end: existing.end }
+            )
+          );
+
+          if (conflictsWithSlot) {
+            hasConflict = true;
+            break;
+          }
+        }
+
+        if (!hasConflict) {
+          availableSlots.push({ start: slotStart, end: slotEnd });
+        }
+
+        slotStart = addMinutes(slotStart, 30);
+      }
+    }
+
+    currentDate = addDays(currentDate, 1);
+  }
+
+  return availableSlots;
+}
+
+/**
  * Generate suggested slots based on availability patterns for a given week
  */
 export async function generateSlotsFromPatterns(

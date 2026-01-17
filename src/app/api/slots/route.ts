@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession, getHostWithTokens } from '@/lib/auth';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
-import { checkTimeAvailability } from '@/lib/availability';
+import { checkTimeAvailability, checkCollectiveAvailability } from '@/lib/availability';
+import { getParticipatingHosts } from '@/lib/round-robin';
 import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping, addHours, addDays, isBefore, isAfter } from 'date-fns';
 
 // GET slots for an event
@@ -148,6 +149,33 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // For collective events, check that ALL hosts are available
+  if (event.meeting_type === 'collective') {
+    const collectiveHosts = await getParticipatingHosts(event_id);
+    if (collectiveHosts.length > 0) {
+      const collectiveCheck = await checkCollectiveAvailability(
+        collectiveHosts,
+        parseISO(start_time),
+        parseISO(end_time),
+        event_id
+      );
+
+      if (!collectiveCheck.available) {
+        // Get names of unavailable hosts
+        const { data: admins } = await supabase
+          .from('oh_admins')
+          .select('id, name, email')
+          .in('id', collectiveCheck.unavailableHosts);
+
+        const hostNames = admins?.map(a => a.name || a.email).join(', ') || 'Some hosts';
+        return NextResponse.json(
+          { error: `Not all hosts are available. Unavailable: ${hostNames}` },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   // Determine which host to use for availability check and calendar
   // Priority: assigned_host_id > event.host_id > current session
   let hostAdmin = null;
@@ -169,6 +197,7 @@ export async function POST(request: NextRequest) {
     hostId = sessionAdmin?.id;
   }
 
+  // Skip individual availability check for collective (already done above)
   // Check availability against the host's calendar using LIVE Google Calendar data
   if (hostAdmin?.google_access_token && hostAdmin?.google_refresh_token) {
     try {
@@ -259,6 +288,19 @@ export async function POST(request: NextRequest) {
   const calendarRefreshToken = hostAdmin?.google_refresh_token || session.google_refresh_token;
   const hostEmail = hostAdmin?.email || event.host_email;
 
+  // For collective events, get all co-host emails
+  let coHostEmails: string[] = [];
+  if (event.meeting_type === 'collective') {
+    const collectiveHosts = await getParticipatingHosts(event_id);
+    if (collectiveHosts.length > 0) {
+      const { data: coHosts } = await supabase
+        .from('oh_admins')
+        .select('email')
+        .in('id', collectiveHosts);
+      coHostEmails = coHosts?.map(h => h.email) || [];
+    }
+  }
+
   if (calendarAccessToken && calendarRefreshToken) {
     try {
       const calendarResult = await createCalendarEvent(
@@ -270,6 +312,7 @@ export async function POST(request: NextRequest) {
           startTime: start_time,
           endTime: end_time,
           hostEmail: hostEmail,
+          coHostEmails: coHostEmails.length > 0 ? coHostEmails : undefined,
         }
       );
       googleEventId = calendarResult.eventId || null;

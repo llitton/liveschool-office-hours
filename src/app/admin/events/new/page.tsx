@@ -93,9 +93,9 @@ export default function NewEventPage() {
     setBookingWindowDays(template.booking_window_days);
   };
 
-  // Fetch team members when round-robin is selected
+  // Fetch team members when round-robin or collective is selected
   useEffect(() => {
-    if (meetingType === 'round_robin' && teamMembers.length === 0) {
+    if ((meetingType === 'round_robin' || meetingType === 'collective') && teamMembers.length === 0) {
       fetchTeamMembers();
     }
   }, [meetingType]);
@@ -137,7 +137,7 @@ export default function NewEventPage() {
   const handleMeetingTypeChange = (type: MeetingType) => {
     setMeetingType(type);
     // Auto-set max attendees based on type
-    if (type === 'one_on_one' || type === 'round_robin') {
+    if (type === 'one_on_one' || type === 'round_robin' || type === 'collective') {
       setMaxAttendeesInput('1');
     } else if (type === 'group' && parseInt(maxAttendeesInput) === 1) {
       setMaxAttendeesInput('30');
@@ -161,6 +161,13 @@ export default function NewEventPage() {
     // Validate round-robin hosts
     if (meetingType === 'round_robin' && selectedHosts.length < 2) {
       setError('Please select at least 2 team members for round-robin distribution.');
+      setLoading(false);
+      return;
+    }
+
+    // Validate collective hosts
+    if (meetingType === 'collective' && selectedHosts.length < 2) {
+      setError('Please select at least 2 team members for collective meetings.');
       setLoading(false);
       return;
     }
@@ -341,18 +348,39 @@ export default function NewEventPage() {
                   </p>
                 </div>
               </label>
+
+              <label
+                className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                  meetingType === 'collective'
+                    ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="meeting_type"
+                  value="collective"
+                  checked={meetingType === 'collective'}
+                  onChange={() => handleMeetingTypeChange('collective')}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                />
+                <div className="flex-1">
+                  <span className="font-medium text-[#101E57]">Collective</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    All selected hosts must be available. Great for sales calls with AE + SDR, interviews, or support escalations.
+                  </p>
+                </div>
+              </label>
             </div>
 
-            <p className="text-xs text-[#667085] mt-3">
-              More meeting types (collective, panel) coming soon.
-            </p>
-
-            {/* Round-robin team selection */}
-            {meetingType === 'round_robin' && (
+            {/* Team selection for round-robin and collective */}
+            {(meetingType === 'round_robin' || meetingType === 'collective') && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="font-medium text-[#101E57] mb-2">Select Team Members</h3>
                 <p className="text-sm text-[#667085] mb-4">
-                  Choose which team members will receive bookings. Select at least 2 people.
+                  {meetingType === 'round_robin'
+                    ? 'Choose which team members will receive bookings. Select at least 2 people.'
+                    : 'All selected members must be available for a time slot to appear. Select at least 2 people.'}
                 </p>
 
                 {loadingTeam ? (
@@ -430,56 +458,58 @@ export default function NewEventPage() {
                   </p>
                 )}
 
-                {/* Round-robin strategy */}
-                <div className="mt-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Distribution Strategy
-                      </label>
-                      <select
-                        value={roundRobinStrategy}
-                        onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                      >
-                        <option value="cycle">Simple Rotation</option>
-                        <option value="least_bookings">Load Balanced</option>
-                        <option value="availability_weighted">Availability Weighted</option>
-                        <option value="priority">Priority Based</option>
-                      </select>
+                {/* Round-robin strategy - only show for round-robin */}
+                {meetingType === 'round_robin' && (
+                  <div className="mt-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[#101E57] mb-1">
+                          Distribution Strategy
+                        </label>
+                        <select
+                          value={roundRobinStrategy}
+                          onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                        >
+                          <option value="cycle">Simple Rotation</option>
+                          <option value="least_bookings">Load Balanced</option>
+                          <option value="availability_weighted">Availability Weighted</option>
+                          <option value="priority">Priority Based</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#101E57] mb-1">
+                          Balancing Period
+                        </label>
+                        <select
+                          value={roundRobinPeriod}
+                          onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] disabled:bg-gray-50 disabled:text-gray-400"
+                          disabled={roundRobinStrategy === 'cycle' || roundRobinStrategy === 'priority'}
+                        >
+                          <option value="day">Daily</option>
+                          <option value="week">Weekly</option>
+                          <option value="month">Monthly</option>
+                          <option value="all_time">All Time</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Balancing Period
-                      </label>
-                      <select
-                        value={roundRobinPeriod}
-                        onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] disabled:bg-gray-50 disabled:text-gray-400"
-                        disabled={roundRobinStrategy === 'cycle' || roundRobinStrategy === 'priority'}
-                      >
-                        <option value="day">Daily</option>
-                        <option value="week">Weekly</option>
-                        <option value="month">Monthly</option>
-                        <option value="all_time">All Time</option>
-                      </select>
-                    </div>
+                    <p className="text-sm text-[#667085]">
+                      {roundRobinStrategy === 'cycle' && (
+                        <>Rotate through hosts in order. Best for equal distribution when all hosts have similar availability.</>
+                      )}
+                      {roundRobinStrategy === 'least_bookings' && (
+                        <>Assign to the host with the fewest bookings in the period. Best when hosts have different schedules.</>
+                      )}
+                      {roundRobinStrategy === 'availability_weighted' && (
+                        <>Balance bookings relative to each host&apos;s available hours. Best when hosts have very different availability.</>
+                      )}
+                      {roundRobinStrategy === 'priority' && (
+                        <>Assign to highest priority available host. Set priorities in event settings after creation.</>
+                      )}
+                    </p>
                   </div>
-                  <p className="text-sm text-[#667085]">
-                    {roundRobinStrategy === 'cycle' && (
-                      <>Rotate through hosts in order. Best for equal distribution when all hosts have similar availability.</>
-                    )}
-                    {roundRobinStrategy === 'least_bookings' && (
-                      <>Assign to the host with the fewest bookings in the period. Best when hosts have different schedules.</>
-                    )}
-                    {roundRobinStrategy === 'availability_weighted' && (
-                      <>Balance bookings relative to each host&apos;s available hours. Best when hosts have very different availability.</>
-                    )}
-                    {roundRobinStrategy === 'priority' && (
-                      <>Assign to highest priority available host. Set priorities in event settings after creation.</>
-                    )}
-                  </p>
-                </div>
+                )}
               </div>
             )}
           </div>

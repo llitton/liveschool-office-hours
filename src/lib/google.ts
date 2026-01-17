@@ -77,11 +77,22 @@ export async function createCalendarEvent(
     endTime: string;
     attendeeEmail?: string;
     hostEmail: string;
+    coHostEmails?: string[]; // For collective events - all hosts as attendees
   }
 ) {
   const calendar = getCalendarClient(accessToken, refreshToken);
 
   const attendees = [{ email: event.hostEmail }];
+
+  // Add co-hosts as attendees (for collective events)
+  if (event.coHostEmails && event.coHostEmails.length > 0) {
+    for (const coHost of event.coHostEmails) {
+      if (coHost !== event.hostEmail) {
+        attendees.push({ email: coHost });
+      }
+    }
+  }
+
   if (event.attendeeEmail) {
     attendees.push({ email: event.attendeeEmail });
   }
