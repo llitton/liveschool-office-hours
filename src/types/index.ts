@@ -413,7 +413,7 @@ export interface OHEffectivenessMetrics {
 // ROUND-ROBIN DISTRIBUTION
 // ============================================
 
-export type RoundRobinStrategy = 'cycle' | 'least_bookings' | 'availability_weighted';
+export type RoundRobinStrategy = 'cycle' | 'least_bookings' | 'availability_weighted' | 'priority';
 export type RoundRobinPeriod = 'day' | 'week' | 'month' | 'all_time';
 
 export interface OHRoundRobinState {

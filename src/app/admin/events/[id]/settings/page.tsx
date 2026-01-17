@@ -710,11 +710,34 @@ export default function EventSettingsPage({
                     </p>
                   </div>
                 </label>
+
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                    roundRobinStrategy === 'priority'
+                      ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="round_robin_strategy"
+                    value="priority"
+                    checked={roundRobinStrategy === 'priority'}
+                    onChange={() => setRoundRobinStrategy('priority')}
+                    className="mt-0.5 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                  />
+                  <div>
+                    <span className="font-medium text-[#101E57]">Priority Based</span>
+                    <p className="text-sm text-[#667085]">
+                      Assign to highest priority host first. Set priorities with stars below.
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 
             {/* Balancing Period - Only show for load balancing strategies */}
-            {roundRobinStrategy !== 'cycle' && (
+            {roundRobinStrategy !== 'cycle' && roundRobinStrategy !== 'priority' && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-[#101E57] mb-2">
                   Balancing Period
@@ -739,8 +762,11 @@ export default function EventSettingsPage({
             <div className="pt-4 border-t">
               <label className="block text-sm font-medium text-[#101E57] mb-3">
                 Participating Hosts
+                {roundRobinStrategy === 'priority' && (
+                  <span className="ml-2 font-normal text-[#667085]">— click stars to set priority</span>
+                )}
               </label>
-              <RoundRobinHostSelector eventId={id} />
+              <RoundRobinHostSelector eventId={id} showPriority={roundRobinStrategy === 'priority'} />
             </div>
           </div>
         )}

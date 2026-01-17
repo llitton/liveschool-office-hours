@@ -523,6 +523,163 @@ async function selectAvailabilityWeightedHost(
 }
 
 /**
+ * Get host priorities for an event
+ */
+async function getHostPriorities(
+  eventId: string,
+  hostIds: string[]
+): Promise<Record<string, number>> {
+  const supabase = getServiceSupabase();
+  const priorities: Record<string, number> = {};
+
+  // Initialize all hosts with default priority (3)
+  for (const hostId of hostIds) {
+    priorities[hostId] = 3;
+  }
+
+  const { data } = await supabase
+    .from('oh_event_hosts')
+    .select('admin_id, priority')
+    .eq('event_id', eventId)
+    .in('admin_id', hostIds);
+
+  if (data) {
+    for (const host of data) {
+      priorities[host.admin_id] = host.priority ?? 3;
+    }
+  }
+
+  return priorities;
+}
+
+/**
+ * Get most recent booking time for each host
+ */
+async function getLastBookingTimes(
+  hostIds: string[]
+): Promise<Record<string, Date | null>> {
+  const supabase = getServiceSupabase();
+  const times: Record<string, Date | null> = {};
+
+  // Initialize all hosts with null
+  for (const hostId of hostIds) {
+    times[hostId] = null;
+  }
+
+  // Get most recent booking for each host
+  const { data } = await supabase
+    .from('oh_bookings')
+    .select('assigned_host_id, created_at')
+    .in('assigned_host_id', hostIds)
+    .is('cancelled_at', null)
+    .order('created_at', { ascending: false });
+
+  if (data) {
+    for (const booking of data) {
+      if (booking.assigned_host_id && !times[booking.assigned_host_id]) {
+        times[booking.assigned_host_id] = new Date(booking.created_at);
+      }
+    }
+  }
+
+  return times;
+}
+
+/**
+ * Select next host using priority strategy
+ * Highest priority hosts are assigned first, with tie-breakers:
+ * 1. Highest priority (1-5 scale, 5 is highest)
+ * 2. Least recent booking (if priorities tie)
+ * 3. Random (if still tied)
+ */
+async function selectPriorityHost(
+  eventId: string,
+  hostIds: string[],
+  slotStart: Date,
+  slotEnd: Date
+): Promise<{ hostId: string; reason: string } | null> {
+  // Get priorities and last booking times
+  const [priorities, lastBookings] = await Promise.all([
+    getHostPriorities(eventId, hostIds),
+    getLastBookingTimes(hostIds),
+  ]);
+
+  // Build candidates with availability check
+  const candidates: {
+    hostId: string;
+    priority: number;
+    lastBooking: Date | null;
+  }[] = [];
+
+  for (const hostId of hostIds) {
+    // Get host's buffer settings
+    const buffers = await getHostBuffers(hostId);
+
+    // Check availability with host's buffers
+    const availability = await checkTimeAvailability(
+      hostId,
+      slotStart,
+      slotEnd,
+      eventId,
+      buffers.before,
+      buffers.after
+    );
+    if (!availability.available) {
+      continue;
+    }
+
+    // Check meeting limits
+    const limits = await checkHostMeetingLimits(hostId, slotStart);
+    if (!limits.withinLimits) {
+      continue;
+    }
+
+    candidates.push({
+      hostId,
+      priority: priorities[hostId] || 3,
+      lastBooking: lastBookings[hostId],
+    });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  // Sort by:
+  // 1. Priority (descending - higher priority first)
+  // 2. Last booking time (ascending - least recent first, null = never booked = first)
+  // 3. Random for final tie-breaker
+  candidates.sort((a, b) => {
+    // Priority (higher first)
+    if (a.priority !== b.priority) {
+      return b.priority - a.priority;
+    }
+
+    // Last booking (least recent first, null = first)
+    if (a.lastBooking === null && b.lastBooking === null) {
+      return Math.random() - 0.5; // Random tie-breaker
+    }
+    if (a.lastBooking === null) return -1;
+    if (b.lastBooking === null) return 1;
+
+    const timeDiff = a.lastBooking.getTime() - b.lastBooking.getTime();
+    if (timeDiff !== 0) return timeDiff;
+
+    // Random final tie-breaker
+    return Math.random() - 0.5;
+  });
+
+  const selected = candidates[0];
+  await updateRoundRobinState(eventId, selected.hostId);
+
+  const priorityStars = '★'.repeat(selected.priority) + '☆'.repeat(5 - selected.priority);
+  return {
+    hostId: selected.hostId,
+    reason: `priority (${priorityStars})`,
+  };
+}
+
+/**
  * Main function: Select the next host for a round-robin booking
  */
 export async function selectNextHost(
@@ -563,6 +720,10 @@ export async function selectNextHost(
         slotStart,
         slotEnd
       );
+      break;
+
+    case 'priority':
+      result = await selectPriorityHost(eventId, hostIds, slotStart, slotEnd);
       break;
 
     default:

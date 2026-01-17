@@ -6,6 +6,7 @@ interface Host {
   id: string;
   admin_id: string;
   role: 'owner' | 'host' | 'backup';
+  priority?: number;
   admin: {
     id: string;
     name: string | null;
@@ -22,9 +23,10 @@ interface HostStats {
 
 interface RoundRobinHostSelectorProps {
   eventId: string;
+  showPriority?: boolean;
 }
 
-export default function RoundRobinHostSelector({ eventId }: RoundRobinHostSelectorProps) {
+export default function RoundRobinHostSelector({ eventId, showPriority = false }: RoundRobinHostSelectorProps) {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [owner, setOwner] = useState<{ id: string; name: string | null; email: string } | null>(null);
   const [stats, setStats] = useState<{
@@ -32,6 +34,7 @@ export default function RoundRobinHostSelector({ eventId }: RoundRobinHostSelect
     hostStats: HostStats[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingPriority, setUpdatingPriority] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -60,6 +63,56 @@ export default function RoundRobinHostSelector({ eventId }: RoundRobinHostSelect
     }
   };
 
+  const updatePriority = async (hostRecordId: string, newPriority: number) => {
+    setUpdatingPriority(hostRecordId);
+    try {
+      const res = await fetch(`/api/events/${eventId}/hosts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostId: hostRecordId, priority: newPriority }),
+      });
+      if (res.ok) {
+        // Update local state
+        setHosts(prev => prev.map(h =>
+          h.id === hostRecordId ? { ...h, priority: newPriority } : h
+        ));
+      }
+    } catch (err) {
+      console.error('Failed to update priority:', err);
+    } finally {
+      setUpdatingPriority(null);
+    }
+  };
+
+  const PriorityStars = ({ hostRecordId, currentPriority }: { hostRecordId: string; currentPriority: number }) => {
+    const [hoverPriority, setHoverPriority] = useState<number | null>(null);
+    const displayPriority = hoverPriority ?? currentPriority;
+    const isUpdating = updatingPriority === hostRecordId;
+
+    return (
+      <div
+        className={`flex gap-0.5 ${isUpdating ? 'opacity-50' : ''}`}
+        onMouseLeave={() => setHoverPriority(null)}
+      >
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            disabled={isUpdating}
+            onMouseEnter={() => setHoverPriority(star)}
+            onClick={() => updatePriority(hostRecordId, star)}
+            className="text-lg leading-none transition-colors disabled:cursor-wait"
+            title={`Priority ${star}`}
+          >
+            <span className={star <= displayPriority ? 'text-yellow-400' : 'text-gray-300'}>
+              ★
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -68,18 +121,36 @@ export default function RoundRobinHostSelector({ eventId }: RoundRobinHostSelect
     );
   }
 
-  // All participants = owner + hosts with role 'host'
-  const participants = [
-    ...(owner ? [{ id: owner.id, name: owner.name, email: owner.email, isOwner: true }] : []),
-    ...hosts
-      .filter((h) => h.role === 'host')
-      .map((h) => ({
-        id: h.admin.id,
-        name: h.admin.name,
-        email: h.admin.email,
-        isOwner: false,
-      })),
-  ];
+  // All participants = owner + hosts with role 'host' or 'owner'
+  // For round-robin, we use the hosts from oh_event_hosts table
+  const participatingHosts = hosts.filter((h) => h.role === 'host' || h.role === 'owner');
+
+  // Map to include all needed info
+  const participants = participatingHosts.map((h) => ({
+    id: h.admin.id,
+    hostRecordId: h.id, // The oh_event_hosts record ID for updates
+    name: h.admin.name,
+    email: h.admin.email,
+    isOwner: h.role === 'owner',
+    priority: h.priority ?? 3,
+  }));
+
+  // If owner exists but isn't in hosts list (legacy setup), add them
+  if (owner && !participants.find(p => p.id === owner.id)) {
+    participants.unshift({
+      id: owner.id,
+      hostRecordId: '', // No record to update
+      name: owner.name,
+      email: owner.email,
+      isOwner: true,
+      priority: 3, // Default priority
+    });
+  }
+
+  // Sort by priority (descending) when showing priorities
+  if (showPriority) {
+    participants.sort((a, b) => b.priority - a.priority);
+  }
 
   if (participants.length === 0) {
     return (
@@ -139,22 +210,41 @@ export default function RoundRobinHostSelector({ eventId }: RoundRobinHostSelect
                 </div>
               </div>
 
-              {/* Distribution stats */}
-              <div className="text-right">
-                <p className="text-sm font-medium text-[#101E57]">
-                  {bookingCount} booking{bookingCount !== 1 ? 's' : ''}
-                </p>
-                {stats && stats.totalAssignments > 0 && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#6F71EE] rounded-full"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-[#667085]">{percentage}%</span>
+              <div className="flex items-center gap-4">
+                {/* Priority stars */}
+                {showPriority && participant.hostRecordId && (
+                  <PriorityStars
+                    hostRecordId={participant.hostRecordId}
+                    currentPriority={participant.priority}
+                  />
+                )}
+                {showPriority && !participant.hostRecordId && (
+                  <div className="flex gap-0.5 opacity-50" title="Add as host to set priority">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className={star <= 3 ? 'text-yellow-400' : 'text-gray-300'}>
+                        ★
+                      </span>
+                    ))}
                   </div>
                 )}
+
+                {/* Distribution stats */}
+                <div className="text-right min-w-[80px]">
+                  <p className="text-sm font-medium text-[#101E57]">
+                    {bookingCount} booking{bookingCount !== 1 ? 's' : ''}
+                  </p>
+                  {stats && stats.totalAssignments > 0 && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#6F71EE] rounded-full"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-[#667085]">{percentage}%</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );

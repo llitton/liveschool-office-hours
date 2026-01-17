@@ -445,6 +445,7 @@ export default function NewEventPage() {
                         <option value="cycle">Simple Rotation</option>
                         <option value="least_bookings">Load Balanced</option>
                         <option value="availability_weighted">Availability Weighted</option>
+                        <option value="priority">Priority Based</option>
                       </select>
                     </div>
                     <div>
@@ -454,8 +455,8 @@ export default function NewEventPage() {
                       <select
                         value={roundRobinPeriod}
                         onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                        disabled={roundRobinStrategy === 'cycle'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] disabled:bg-gray-50 disabled:text-gray-400"
+                        disabled={roundRobinStrategy === 'cycle' || roundRobinStrategy === 'priority'}
                       >
                         <option value="day">Daily</option>
                         <option value="week">Weekly</option>
@@ -473,6 +474,9 @@ export default function NewEventPage() {
                     )}
                     {roundRobinStrategy === 'availability_weighted' && (
                       <>Balance bookings relative to each host&apos;s available hours. Best when hosts have very different availability.</>
+                    )}
+                    {roundRobinStrategy === 'priority' && (
+                      <>Assign to highest priority available host. Set priorities in event settings after creation.</>
                     )}
                   </p>
                 </div>

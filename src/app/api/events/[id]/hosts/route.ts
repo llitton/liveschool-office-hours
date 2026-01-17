@@ -199,7 +199,7 @@ export async function PATCH(
   }
 
   const body = await request.json();
-  const { hostId, role, can_manage_slots, can_view_bookings } = body;
+  const { hostId, role, can_manage_slots, can_view_bookings, priority } = body;
 
   if (!hostId) {
     return NextResponse.json({ error: 'hostId is required' }, { status: 400 });
@@ -207,10 +207,11 @@ export async function PATCH(
 
   const supabase = getServiceSupabase();
 
-  const updateData: Partial<OHEventHost> = {};
+  const updateData: Partial<OHEventHost & { priority?: number }> = {};
   if (role !== undefined) updateData.role = role;
   if (can_manage_slots !== undefined) updateData.can_manage_slots = can_manage_slots;
   if (can_view_bookings !== undefined) updateData.can_view_bookings = can_view_bookings;
+  if (priority !== undefined) updateData.priority = Math.max(1, Math.min(5, priority));
 
   const { data: host, error } = await supabase
     .from('oh_event_hosts')
