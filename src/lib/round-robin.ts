@@ -241,6 +241,24 @@ async function updateRoundRobinState(
 }
 
 /**
+ * Get host's buffer settings
+ */
+async function getHostBuffers(hostId: string): Promise<{ before: number; after: number }> {
+  const supabase = getServiceSupabase();
+
+  const { data } = await supabase
+    .from('oh_admins')
+    .select('default_buffer_before, default_buffer_after')
+    .eq('id', hostId)
+    .single();
+
+  return {
+    before: data?.default_buffer_before || 0,
+    after: data?.default_buffer_after || 0,
+  };
+}
+
+/**
  * Select next host using cycle strategy (simple rotation)
  */
 async function selectCycleHost(
@@ -265,8 +283,18 @@ async function selectCycleHost(
     const index = (startIndex + i) % hostIds.length;
     const hostId = hostIds[index];
 
-    // Check availability
-    const availability = await checkTimeAvailability(hostId, slotStart, slotEnd);
+    // Get host's buffer settings
+    const buffers = await getHostBuffers(hostId);
+
+    // Check availability with host's buffers
+    const availability = await checkTimeAvailability(
+      hostId,
+      slotStart,
+      slotEnd,
+      eventId,
+      buffers.before,
+      buffers.after
+    );
     if (!availability.available) {
       continue;
     }
@@ -305,8 +333,18 @@ async function selectLeastBookingsHost(
   const candidates: { hostId: string; count: number }[] = [];
 
   for (const hostId of hostIds) {
-    // Check availability
-    const availability = await checkTimeAvailability(hostId, slotStart, slotEnd);
+    // Get host's buffer settings
+    const buffers = await getHostBuffers(hostId);
+
+    // Check availability with host's buffers
+    const availability = await checkTimeAvailability(
+      hostId,
+      slotStart,
+      slotEnd,
+      eventId,
+      buffers.before,
+      buffers.after
+    );
     if (!availability.available) {
       continue;
     }
@@ -427,8 +465,18 @@ async function selectAvailabilityWeightedHost(
   }[] = [];
 
   for (const hostId of hostIds) {
-    // Check availability for this specific slot
-    const availability = await checkTimeAvailability(hostId, slotStart, slotEnd);
+    // Get host's buffer settings
+    const buffers = await getHostBuffers(hostId);
+
+    // Check availability for this specific slot with host's buffers
+    const availability = await checkTimeAvailability(
+      hostId,
+      slotStart,
+      slotEnd,
+      eventId,
+      buffers.before,
+      buffers.after
+    );
     if (!availability.available) {
       continue;
     }

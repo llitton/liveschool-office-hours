@@ -431,36 +431,50 @@ export default function NewEventPage() {
                 )}
 
                 {/* Round-robin strategy */}
-                <div className="mt-6 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      Distribution Strategy
-                    </label>
-                    <select
-                      value={roundRobinStrategy}
-                      onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                    >
-                      <option value="cycle">Simple Rotation</option>
-                      <option value="least_bookings">Load Balanced</option>
-                      <option value="availability_weighted">Availability Weighted</option>
-                    </select>
+                <div className="mt-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Distribution Strategy
+                      </label>
+                      <select
+                        value={roundRobinStrategy}
+                        onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      >
+                        <option value="cycle">Simple Rotation</option>
+                        <option value="least_bookings">Load Balanced</option>
+                        <option value="availability_weighted">Availability Weighted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Balancing Period
+                      </label>
+                      <select
+                        value={roundRobinPeriod}
+                        onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                        disabled={roundRobinStrategy === 'cycle'}
+                      >
+                        <option value="day">Daily</option>
+                        <option value="week">Weekly</option>
+                        <option value="month">Monthly</option>
+                        <option value="all_time">All Time</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      Balancing Period
-                    </label>
-                    <select
-                      value={roundRobinPeriod}
-                      onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                    >
-                      <option value="day">Daily</option>
-                      <option value="week">Weekly</option>
-                      <option value="month">Monthly</option>
-                      <option value="all_time">All Time</option>
-                    </select>
-                  </div>
+                  <p className="text-sm text-[#667085]">
+                    {roundRobinStrategy === 'cycle' && (
+                      <>Rotate through hosts in order. Best for equal distribution when all hosts have similar availability.</>
+                    )}
+                    {roundRobinStrategy === 'least_bookings' && (
+                      <>Assign to the host with the fewest bookings in the period. Best when hosts have different schedules.</>
+                    )}
+                    {roundRobinStrategy === 'availability_weighted' && (
+                      <>Balance bookings relative to each host&apos;s available hours. Best when hosts have very different availability.</>
+                    )}
+                  </p>
                 </div>
               </div>
             )}
