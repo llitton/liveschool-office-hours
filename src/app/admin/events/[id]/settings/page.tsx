@@ -293,21 +293,24 @@ export default function EventSettingsPage({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#101E57] mb-1">
-                Subtitle
-              </label>
-              <input
-                type="text"
-                value={eventSubtitle}
-                onChange={(e) => setEventSubtitle(e.target.value)}
-                placeholder="e.g., Open an Amazon.com Style Online Store for Your Students"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-              />
-              <p className="text-xs text-[#667085] mt-1">
-                Optional tagline shown below the event name on the booking page.
-              </p>
-            </div>
+            {/* Subtitle - only for webinars */}
+            {meetingType === 'webinar' && (
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Subtitle
+                </label>
+                <input
+                  type="text"
+                  value={eventSubtitle}
+                  onChange={(e) => setEventSubtitle(e.target.value)}
+                  placeholder="e.g., Open an Amazon.com Style Online Store for Your Students"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  Optional tagline shown below the event name on the booking page.
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-[#101E57] mb-1">
@@ -461,7 +464,8 @@ export default function EventSettingsPage({
           </button>
         </div>
 
-        {/* Banner Image */}
+        {/* Banner Image - only for webinars */}
+        {meetingType === 'webinar' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Banner Image</h2>
           <p className="text-sm text-[#667085] mb-4">
@@ -578,6 +582,7 @@ export default function EventSettingsPage({
             </div>
           )}
         </div>
+        )}
 
         {/* Meeting Type */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
@@ -774,10 +779,12 @@ export default function EventSettingsPage({
           </div>
         )}
 
-        {/* Event Hosts - Show for all meeting types */}
+        {/* Event Hosts - Show for round-robin, collective, group, and webinar (not one-on-one) */}
+        {meetingType !== 'one_on_one' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <HostSelector eventId={id} />
         </div>
+        )}
 
         {/* Booking Constraints - Hidden for webinars since slots have fixed times */}
         {!MEETING_TYPES_NO_MIN_NOTICE.includes(meetingType) && (
@@ -1044,7 +1051,8 @@ export default function EventSettingsPage({
           </div>
         </div>
 
-        {/* Waitlist Settings */}
+        {/* Waitlist Settings - Show for group sessions and webinars (not one-on-one) */}
+        {meetingType !== 'one_on_one' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Waitlist</h2>
           <p className="text-sm text-[#667085] mb-4">
@@ -1097,8 +1105,10 @@ export default function EventSettingsPage({
             )}
           </div>
         </div>
+        )}
 
-        {/* Prep Materials */}
+        {/* Prep Materials - only for webinars */}
+        {meetingType === 'webinar' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Preparation Materials</h2>
           <p className="text-sm text-[#667085] mb-4">
@@ -1114,16 +1124,21 @@ export default function EventSettingsPage({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
           />
         </div>
+        )}
 
-        {/* Task Templates */}
+        {/* Task Templates - only for webinars */}
+        {meetingType === 'webinar' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <TaskTemplatesManager eventId={id} />
         </div>
+        )}
 
-        {/* Prep Resources */}
+        {/* Prep Resources - only for webinars */}
+        {meetingType === 'webinar' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <PrepResourcesManager eventId={id} />
         </div>
+        )}
 
         {/* Save Button */}
         <div className="flex items-center gap-4">
