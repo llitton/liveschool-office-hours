@@ -97,8 +97,8 @@ export default function ChromeExtensionPrivacyPage() {
           </h2>
           <p>
             For questions about this privacy policy or your data, contact us at{' '}
-            <a href="mailto:help@liveschoolinc.com" className="text-[#6F71EE]">
-              help@liveschoolinc.com
+            <a href="mailto:laura@liveschoolinc.com" className="text-[#6F71EE]">
+              laura@liveschoolinc.com
             </a>
           </p>
 
