@@ -1,0 +1,13 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="#6F71EE"/>
+
+  <!-- Calendar Icon -->
+  <rect x="28" y="36" width="72" height="64" rx="8" stroke="white" stroke-width="6" fill="none"/>
+  <line x1="28" y1="56" x2="100" y2="56" stroke="white" stroke-width="6"/>
+  <line x1="48" y1="28" x2="48" y2="44" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  <line x1="80" y1="28" x2="80" y2="44" stroke="white" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Check mark -->
+  <path d="M48 76 L58 86 L80 64" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

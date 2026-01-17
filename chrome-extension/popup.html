@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <img src="icons/logo.png" alt="LiveSchool" class="logo">
+      <span class="title">My Booking Links</span>
+    </header>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Loading your events...</p>
+    </div>
+
+    <!-- Setup Required -->
+    <div id="setup" class="setup hidden">
+      <div class="setup-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6F71EE" stroke-width="2">
+          <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <h2>Setup Required</h2>
+      <p>Connect your LiveSchool account to see your booking links.</p>
+      <button id="openSettings" class="btn-primary">Open Settings</button>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error hidden">
+      <div class="error-icon">!</div>
+      <p id="errorMessage">Something went wrong</p>
+      <button id="retry" class="btn-secondary">Try Again</button>
+    </div>
+
+    <!-- Events List -->
+    <div id="events" class="events hidden">
+      <!-- User Info -->
+      <div id="userInfo" class="user-info"></div>
+
+      <!-- Search -->
+      <div class="search-box">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search events..." />
+      </div>
+
+      <!-- Events Container -->
+      <div id="eventsList" class="events-list"></div>
+
+      <!-- No Results -->
+      <div id="noResults" class="no-results hidden">
+        <p>No events match your search</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty" class="empty hidden">
+        <p>No active events found</p>
+        <a href="https://liveschoolhelp.com/admin/events/new" target="_blank" class="btn-link">
+          Create an Event
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <a href="https://liveschoolhelp.com/admin" target="_blank">Open Dashboard</a>
+      <span class="divider">|</span>
+      <a href="#" id="settingsLink">Settings</a>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+    <span>Link copied!</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
