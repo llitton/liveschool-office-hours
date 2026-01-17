@@ -138,17 +138,17 @@ export async function POST(request: NextRequest) {
         inviter.google_refresh_token,
         {
           to: email,
-          subject: `${inviterName} invited you to LiveSchool Connect`,
+          subject: `${inviterName} invited you to LiveSchool Sessions`,
           htmlBody: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #1a1a1a; margin-bottom: 20px;">You've been invited to LiveSchool Connect!</h2>
+              <h2 style="color: #1a1a1a; margin-bottom: 20px;">You've been invited to LiveSchool Sessions!</h2>
 
               <p style="color: #444; font-size: 16px; line-height: 1.6;">
                 Hi ${inviteeName},
               </p>
 
               <p style="color: #444; font-size: 16px; line-height: 1.6;">
-                ${inviterName} has invited you to join the team on <strong>LiveSchool Connect</strong> — a scheduling tool that makes it easy for customers and partners to book time with you.
+                ${inviterName} has invited you to join <strong>LiveSchool Sessions</strong> — our internal scheduling tool for demos, support calls, onboardings, and office hours.
               </p>
 
               <div style="margin: 30px 0;">
@@ -163,8 +163,9 @@ export async function POST(request: NextRequest) {
               </p>
 
               <ul style="color: #444; font-size: 16px; line-height: 1.8;">
-                <li>Set your availability for office hours</li>
-                <li>Manage your calendar and bookings</li>
+                <li>Set your availability for calls</li>
+                <li>Get assigned to round-robin demo requests</li>
+                <li>Manage your bookings and calendar</li>
                 <li>Connect with customers via Google Meet</li>
               </ul>
 
