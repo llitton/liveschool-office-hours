@@ -32,9 +32,40 @@ export class AircallProvider implements SMSProviderInterface {
 
   async sendSMS(to: string, message: string): Promise<boolean> {
     try {
-      // Aircall SMS endpoint
-      // Note: Aircall's SMS functionality may require a specific number setup
-      const response = await fetch('https://api.aircall.io/v1/calls/sms', {
+      // Aircall SMS requires a number ID, not just a phone number
+      // First, we need to find the number ID for our sender phone
+      let numberId = this.senderPhone;
+
+      // If senderPhone looks like a phone number (not an ID), try to find the number ID
+      if (this.senderPhone && this.senderPhone.startsWith('+')) {
+        const numbersResponse = await fetch('https://api.aircall.io/v1/numbers', {
+          method: 'GET',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+
+        if (numbersResponse.ok) {
+          const numbersData = await numbersResponse.json();
+          const matchingNumber = numbersData.numbers?.find(
+            (n: { direct_link: string; id: number; is_sms_enabled?: boolean }) =>
+              n.direct_link === this.senderPhone ||
+              n.direct_link?.replace(/\D/g, '') === this.senderPhone?.replace(/\D/g, '')
+          );
+          if (matchingNumber) {
+            numberId = String(matchingNumber.id);
+            console.log('Found Aircall number ID:', numberId, 'SMS enabled:', matchingNumber.is_sms_enabled);
+          }
+        }
+      }
+
+      if (!numberId) {
+        console.error('Aircall SMS error: No sender number configured');
+        return false;
+      }
+
+      // Aircall SMS endpoint: POST /v1/numbers/{number_id}/messages
+      const response = await fetch(`https://api.aircall.io/v1/numbers/${numberId}/messages`, {
         method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
@@ -42,17 +73,18 @@ export class AircallProvider implements SMSProviderInterface {
         },
         body: JSON.stringify({
           to: to,
-          from: this.senderPhone,
           body: message,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        console.error('Aircall SMS error:', error);
+        const errorText = await response.text();
+        console.error('Aircall SMS error:', response.status, errorText);
         return false;
       }
 
+      const result = await response.json();
+      console.log('Aircall SMS sent:', result);
       return true;
     } catch (error) {
       console.error('Aircall SMS error:', error);
