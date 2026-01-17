@@ -29,8 +29,8 @@ export default function NewEventPage() {
     slug: '',
     description: '',
     duration_minutes: 30,
-    host_name: 'Hannah Kelly',
-    host_email: 'hannah@liveschoolinc.com',
+    host_name: '',
+    host_email: '',
     buffer_before: 15,
     buffer_after: 15,
   });
@@ -63,10 +63,27 @@ export default function NewEventPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
-  // Fetch templates on mount
+  // Fetch current user profile and templates on mount
   useEffect(() => {
     fetchTemplates();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/admin/me');
+      if (response.ok) {
+        const user = await response.json();
+        setFormData((prev) => ({
+          ...prev,
+          host_name: user.name || user.email.split('@')[0],
+          host_email: user.email,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch current user:', err);
+    }
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -593,22 +610,43 @@ export default function NewEventPage() {
                   <label className="block text-sm font-medium text-[#101E57] mb-1">
                     Duration
                   </label>
-                  <select
-                    value={formData.duration_minutes}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        duration_minutes: parseInt(e.target.value),
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  >
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
-                    <option value={45}>45 minutes</option>
-                    <option value={60}>60 minutes</option>
-                    <option value={90}>90 minutes</option>
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={5}
+                      max={480}
+                      value={formData.duration_minutes}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          duration_minutes: parseInt(e.target.value) || 30,
+                        }))
+                      }
+                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <span className="text-sm text-[#667085]">minutes</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[15, 25, 30, 45, 60, 90].map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            duration_minutes: mins,
+                          }))
+                        }
+                        className={`px-2 py-1 text-xs rounded ${
+                          formData.duration_minutes === mins
+                            ? 'bg-[#6F71EE] text-white'
+                            : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+                        }`}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
