@@ -44,6 +44,7 @@ export default function EventSettingsPage({
   const [maxWeeklyBookings, setMaxWeeklyBookings] = useState<string>('');
   const [bookingWindowDays, setBookingWindowDays] = useState(60);
   const [requireApproval, setRequireApproval] = useState(false);
+  const [startTimeIncrement, setStartTimeIncrement] = useState(30);
 
   // Timezone settings
   const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
@@ -93,6 +94,7 @@ export default function EventSettingsPage({
       setMaxWeeklyBookings(eventData.max_weekly_bookings?.toString() || '');
       setBookingWindowDays(eventData.booking_window_days ?? 60);
       setRequireApproval(eventData.require_approval ?? false);
+      setStartTimeIncrement(eventData.start_time_increment ?? 30);
 
       // Set timezone settings
       setDisplayTimezone(eventData.display_timezone || 'America/New_York');
@@ -162,6 +164,7 @@ export default function EventSettingsPage({
           max_weekly_bookings: maxWeeklyBookings ? parseInt(maxWeeklyBookings) : null,
           booking_window_days: bookingWindowDays,
           require_approval: requireApproval,
+          start_time_increment: startTimeIncrement,
           // Timezone settings
           display_timezone: displayTimezone,
           lock_timezone: lockTimezone,
@@ -836,6 +839,28 @@ export default function EventSettingsPage({
               </div>
               <p className="text-xs text-[#667085] mt-1">
                 How far in advance attendees can book sessions.
+              </p>
+            </div>
+
+            {/* Start Time Increments */}
+            <div>
+              <label className="block text-sm font-medium text-[#101E57] mb-2">
+                Start Time Increments
+              </label>
+              <div className="flex items-center gap-3">
+                <select
+                  value={startTimeIncrement}
+                  onChange={(e) => setStartTimeIncrement(parseInt(e.target.value))}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                >
+                  <option value={15}>15 minutes</option>
+                  <option value={30}>30 minutes</option>
+                  <option value={45}>45 minutes</option>
+                  <option value={60}>60 minutes</option>
+                </select>
+              </div>
+              <p className="text-xs text-[#667085] mt-1">
+                How often time slots appear. For example, with 30-minute increments, slots start at 9:00, 9:30, 10:00, etc.
               </p>
             </div>
 

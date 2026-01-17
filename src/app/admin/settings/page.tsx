@@ -17,6 +17,7 @@ interface AdminProfile {
   name: string | null;
   email: string;
   profile_image: string | null;
+  quick_links_token: string | null;
 }
 
 // Common US timezones for the dropdown
@@ -46,6 +47,7 @@ export default function SettingsPage() {
   // Profile state
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [quickLinkCopied, setQuickLinkCopied] = useState(false);
 
   // Editable patterns state
   const [editPatterns, setEditPatterns] = useState<PatternInput[]>([]);
@@ -410,6 +412,73 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Quick Links Section */}
+        {profile?.quick_links_token && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[#101E57]">My Booking Links</h2>
+                <p className="text-sm text-[#667085] mt-1">
+                  Access your scheduling links without logging in. Bookmark this page for quick access.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="flex items-center gap-3 bg-[#F6F6F9] rounded-lg p-3">
+                <svg className="w-5 h-5 text-[#6F71EE] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <code className="text-sm text-[#667085] flex-1 truncate">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/my-links/{profile.quick_links_token}
+                </code>
+                <button
+                  onClick={async () => {
+                    const url = `${window.location.origin}/my-links/${profile.quick_links_token}`;
+                    await navigator.clipboard.writeText(url);
+                    setQuickLinkCopied(true);
+                    setTimeout(() => setQuickLinkCopied(false), 2000);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1.5 flex-shrink-0 ${
+                    quickLinkCopied
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-white border border-gray-300 text-[#667085] hover:bg-gray-50'
+                  }`}
+                >
+                  {quickLinkCopied ? (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+                <a
+                  href={`/my-links/${profile.quick_links_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-[#6F71EE] text-white rounded-lg text-sm font-medium hover:bg-[#5a5cd0] transition flex items-center gap-1.5 flex-shrink-0"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  Open
+                </a>
+              </div>
+              <p className="text-xs text-[#667085] mt-2">
+                Tip: Add this link to your browser bookmarks or email signature for easy access to all your scheduling links.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Timezone Section - Always important */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">

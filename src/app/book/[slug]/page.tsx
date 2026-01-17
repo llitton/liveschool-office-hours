@@ -111,6 +111,15 @@ export default function BookingPage({
   // Countdown tick for real-time updates
   const [, setCountdownTick] = useState(0);
 
+  // Mutual availability - show visitor's calendar if logged in
+  const [visitorData, setVisitorData] = useState<{
+    logged_in: boolean;
+    user?: { name: string | null; email: string; profile_image: string | null };
+    google_connected?: boolean;
+    busy_times: { start: string; end: string; title?: string }[];
+  } | null>(null);
+  const [showMutualAvailability, setShowMutualAvailability] = useState(true);
+
   useEffect(() => {
     // Detect user's timezone
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -125,6 +134,29 @@ export default function BookingPage({
     }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Check if a slot is mutually available (both host and visitor are free)
+  const isSlotMutuallyAvailable = (slotStart: string, slotEnd: string): boolean => {
+    if (!visitorData?.logged_in || !visitorData?.busy_times?.length) {
+      return true; // If visitor not logged in or no busy times, don't show indicators
+    }
+
+    const slotStartTime = parseISO(slotStart).getTime();
+    const slotEndTime = parseISO(slotEnd).getTime();
+
+    // Check if slot overlaps with any of visitor's busy times
+    for (const busy of visitorData.busy_times) {
+      const busyStart = parseISO(busy.start).getTime();
+      const busyEnd = parseISO(busy.end).getTime();
+
+      // Check for overlap
+      if (slotStartTime < busyEnd && slotEndTime > busyStart) {
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   // Get countdown text for slots within 7 days
   const getCountdownText = (startTime: string): string | null => {
@@ -152,6 +184,22 @@ export default function BookingPage({
   useEffect(() => {
     fetchEventAndSlots();
   }, [slug]);
+
+  // Fetch visitor's availability for mutual availability feature
+  useEffect(() => {
+    const fetchVisitorAvailability = async () => {
+      try {
+        const res = await fetch('/api/availability/me');
+        if (res.ok) {
+          const data = await res.json();
+          setVisitorData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch visitor availability:', err);
+      }
+    };
+    fetchVisitorAvailability();
+  }, []);
 
   // Prefill question responses from routing form if available
   useEffect(() => {
@@ -862,6 +910,48 @@ export default function BookingPage({
               </div>
             </div>
 
+            {/* Mutual Availability Banner */}
+            {visitorData?.logged_in && showMutualAvailability && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      {visitorData.user?.profile_image ? (
+                        <img
+                          src={visitorData.user.profile_image}
+                          alt=""
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <span className="text-green-600 text-sm font-medium">
+                          {(visitorData.user?.name || visitorData.user?.email || 'Y')[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-green-800">
+                        Your calendar is connected
+                      </p>
+                      <p className="text-xs text-green-700">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 bg-green-500 rounded-full" />
+                          Green dots show times when you&apos;re both free
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowMutualAvailability(false)}
+                    className="text-green-600 hover:text-green-800 text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {Object.keys(groupedSlots).length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-[#667085]">
@@ -904,18 +994,26 @@ export default function BookingPage({
                             const isFull = slot.booking_count >= event.max_attendees;
                             const spotsLeft = event.max_attendees - slot.booking_count;
                             const showSpotsLeft = !isOneOnOne && event.max_attendees > 1 && spotsLeft < event.max_attendees && spotsLeft > 0;
+                            const isMutuallyFree = visitorData?.logged_in && isSlotMutuallyAvailable(slot.start_time, slot.end_time);
 
                             return (
                               <button
                                 key={slot.id}
                                 onClick={() => !isFull && setSelectedSlot(slot)}
                                 disabled={isFull}
-                                className={`px-4 py-2 rounded-lg border transition font-medium ${
+                                className={`relative px-4 py-2 rounded-lg border transition font-medium ${
                                   isFull
                                     ? 'bg-gray-100 text-[#667085] cursor-not-allowed border-gray-200'
                                     : 'border-[#6F71EE] text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white'
                                 }`}
                               >
+                                {/* Green dot for mutually available times */}
+                                {isMutuallyFree && !isFull && (
+                                  <span
+                                    className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"
+                                    title="You're both free at this time!"
+                                  />
+                                )}
                                 <span>{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
                                 {isFull && ' (Full)'}
                                 {showSpotsLeft && (

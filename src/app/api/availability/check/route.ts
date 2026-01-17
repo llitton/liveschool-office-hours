@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
   const durationMinutes = parseInt(searchParams.get('duration_minutes') || '30', 10);
   const bufferBefore = parseInt(searchParams.get('buffer_before') || '0', 10);
   const bufferAfter = parseInt(searchParams.get('buffer_after') || '0', 10);
+  const startTimeIncrement = parseInt(searchParams.get('start_time_increment') || '30', 10);
 
   const supabase = getServiceSupabase();
 
@@ -93,7 +94,8 @@ export async function GET(request: NextRequest) {
       bufferAfter,
       start,
       end,
-      eventId || undefined
+      eventId || undefined,
+      startTimeIncrement
     );
 
     return NextResponse.json({

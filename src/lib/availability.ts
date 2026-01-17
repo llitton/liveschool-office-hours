@@ -236,7 +236,8 @@ export async function getAvailableSlots(
   bufferAfter: number,
   startDate: Date,
   endDate: Date,
-  eventId?: string
+  eventId?: string,
+  startTimeIncrement: number = 30 // How often slots appear: 15, 30, 45, or 60 min
 ): Promise<TimeSlot[]> {
   const patterns = await getAvailabilityPatterns(adminId);
   const busyBlocks = await getBusyBlocks(adminId, startDate, endDate);
@@ -264,7 +265,7 @@ export async function getAvailableSlots(
 
         // Check if slot is in the past
         if (isBefore(slotStart, new Date())) {
-          slotStart = addMinutes(slotStart, 30); // Move in 30-min increments
+          slotStart = addMinutes(slotStart, startTimeIncrement);
           continue;
         }
 
@@ -294,7 +295,7 @@ export async function getAvailableSlots(
           availableSlots.push({ start: slotStart, end: slotEnd });
         }
 
-        slotStart = addMinutes(slotStart, 30); // Move in 30-min increments
+        slotStart = addMinutes(slotStart, startTimeIncrement);
       }
     }
 
@@ -340,7 +341,8 @@ export async function getCollectiveAvailableSlots(
   eventDurationMinutes: number,
   startDate: Date,
   endDate: Date,
-  eventId?: string
+  eventId?: string,
+  startTimeIncrement: number = 30
 ): Promise<TimeSlot[]> {
   if (hostIds.length === 0) {
     return [];

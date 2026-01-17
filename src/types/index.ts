@@ -72,6 +72,8 @@ export interface OHEvent {
   max_weekly_bookings: number | null;
   booking_window_days: number;
   require_approval: boolean;
+  // Start time increments (how often slots appear)
+  start_time_increment: number;
   // Timezone settings
   display_timezone: string;
   lock_timezone: boolean;
@@ -176,6 +178,8 @@ export interface OHAdmin {
   profile_image: string | null;
   // Onboarding progress
   onboarding_progress: OnboardingState | null;
+  // Quick links personal token
+  quick_links_token: string;
 }
 
 // Session Templates for quick event creation
@@ -498,3 +502,68 @@ export const DEFAULT_ONBOARDING_STATE: OnboardingState = {
   tooltipsDismissed: [],
   completedSteps: [],
 };
+
+// ============================================
+// MEETING POLLS
+// ============================================
+
+export type PollStatus = 'open' | 'closed' | 'booked';
+export type VoteType = 'yes' | 'maybe';
+
+export interface OHPoll {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  host_id: string;
+  duration_minutes: number;
+  location: string | null;
+  show_votes: boolean;
+  max_votes_per_person: number | null;
+  status: PollStatus;
+  closed_at: string | null;
+  booked_event_id: string | null;
+  booked_slot_id: string | null;
+  booked_at: string | null;
+  booked_option_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  host?: OHAdmin;
+  options?: OHPollOption[];
+}
+
+export interface OHPollOption {
+  id: string;
+  poll_id: string;
+  start_time: string;
+  end_time: string;
+  sort_order: number;
+  vote_count: number;
+  created_at: string;
+  // Joined data
+  votes?: OHPollVote[];
+}
+
+export interface OHPollVote {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  voter_name: string;
+  voter_email: string;
+  vote_type: VoteType;
+  created_at: string;
+}
+
+export interface OHPollInvitee {
+  id: string;
+  poll_id: string;
+  name: string;
+  email: string;
+  added_at: string;
+}
+
+export interface PollWithDetails extends OHPoll {
+  options: OHPollOption[];
+  total_participants: number;
+}

@@ -45,6 +45,7 @@ export default function NewEventPage() {
   const [maxDailyBookings, setMaxDailyBookings] = useState<string>('');
   const [maxWeeklyBookings, setMaxWeeklyBookings] = useState<string>('');
   const [requireApproval, setRequireApproval] = useState(false);
+  const [startTimeIncrement, setStartTimeIncrement] = useState(30);
 
   // Timezone
   const [displayTimezone, setDisplayTimezone] = useState('America/New_York');
@@ -185,6 +186,7 @@ export default function NewEventPage() {
           max_daily_bookings: maxDailyBookings ? parseInt(maxDailyBookings) : null,
           max_weekly_bookings: maxWeeklyBookings ? parseInt(maxWeeklyBookings) : null,
           require_approval: requireApproval,
+          start_time_increment: startTimeIncrement,
           display_timezone: displayTimezone,
           lock_timezone: lockTimezone,
           // Round-robin settings
@@ -768,6 +770,26 @@ export default function NewEventPage() {
                       How far into the future attendees can book.
                     </p>
                   </div>
+                </div>
+
+                {/* Start Time Increments */}
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Start Time Increments
+                  </label>
+                  <select
+                    value={startTimeIncrement}
+                    onChange={(e) => setStartTimeIncrement(parseInt(e.target.value))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                  <p className="text-xs text-[#667085] mt-1">
+                    How often time slots appear (e.g., 30-min = 9:00, 9:30, 10:00).
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

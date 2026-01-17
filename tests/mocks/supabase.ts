@@ -42,6 +42,7 @@ export function createMockEvent(overrides: Partial<OHEvent> = {}): OHEvent {
     max_weekly_bookings: null,
     booking_window_days: 60,
     require_approval: false,
+    start_time_increment: 30,
     display_timezone: 'America/New_York',
     lock_timezone: false,
     round_robin_strategy: null,
@@ -136,6 +137,7 @@ export function createMockAdmin(overrides: Partial<OHAdmin> = {}): OHAdmin {
     default_buffer_after: 0,
     profile_image: null,
     onboarding_progress: null,
+    quick_links_token: 'test-quick-links-token-123',
     ...overrides,
   };
 }

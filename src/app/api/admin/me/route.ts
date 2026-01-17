@@ -11,6 +11,7 @@ export async function GET() {
       name: session.name,
       email: session.email,
       profile_image: session.profile_image,
+      quick_links_token: session.quick_links_token,
     });
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
