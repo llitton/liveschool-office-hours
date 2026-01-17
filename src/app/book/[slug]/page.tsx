@@ -296,6 +296,42 @@ export default function BookingPage({
 
   if (!event) return null;
 
+  // Check if one-off meeting link is expired or already booked
+  const isOneOffExpired = event.is_one_off && event.one_off_expires_at && new Date(event.one_off_expires_at) < new Date();
+  const isOneOffBooked = event.is_one_off && event.single_use && event.one_off_booked_at;
+
+  if (isOneOffExpired || isOneOffBooked) {
+    return (
+      <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow text-center max-w-md">
+          <Image
+            src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+            alt="LiveSchool"
+            width={140}
+            height={36}
+            className="mx-auto mb-6"
+          />
+          <div className="w-16 h-16 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-[#101E57] mb-2">
+            {isOneOffBooked ? 'This link has already been used' : 'This link has expired'}
+          </h1>
+          <p className="text-[#667085]">
+            {isOneOffBooked
+              ? 'This meeting link was for a single use and has already been booked.'
+              : 'This meeting link is no longer available.'}
+          </p>
+          <p className="text-[#667085] mt-4">
+            Please contact the host if you need to schedule a meeting.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Booking complete screen
   if (bookingComplete && bookingResult) {
     const isWaitlisted = bookingResult.is_waitlisted;

@@ -97,6 +97,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Check if this is a single-use one-off meeting that has already been booked
+  if (slot.event.is_one_off && slot.event.single_use && slot.event.one_off_booked_at) {
+    return NextResponse.json(
+      { error: 'This meeting link has already been used' },
+      { status: 400 }
+    );
+  }
+
+  // Check if one-off meeting link has expired
+  if (slot.event.is_one_off && slot.event.one_off_expires_at) {
+    const expiresAt = new Date(slot.event.one_off_expires_at);
+    if (expiresAt < new Date()) {
+      return NextResponse.json(
+        { error: 'This meeting link has expired' },
+        { status: 400 }
+      );
+    }
+  }
+
   // === PHONE VALIDATION ===
   let formattedPhone: string | null = null;
 
@@ -357,6 +376,14 @@ export async function POST(request: NextRequest) {
 
   if (bookingError) {
     return NextResponse.json({ error: bookingError.message }, { status: 500 });
+  }
+
+  // Mark single-use one-off meetings as booked (only for confirmed, non-waitlisted bookings)
+  if (slot.event.is_one_off && slot.event.single_use && !isWaitlisted) {
+    await supabase
+      .from('oh_events')
+      .update({ one_off_booked_at: new Date().toISOString() })
+      .eq('id', slot.event.id);
   }
 
   // Get admin with tokens to send emails and add to calendar

@@ -59,6 +59,7 @@ const subNavConfig: Record<string, SubNavItem[]> = {
     { href: '/admin', label: 'Today', exact: true },
     { href: '/admin/upcoming', label: 'Upcoming' },
     { href: '/admin/past', label: 'Past' },
+    { href: '/admin/one-off', label: 'One-off' },
   ],
   prepare: [
     { href: '/admin/prepare', label: 'Overview', exact: true },
@@ -303,7 +304,8 @@ export default function AppShell({ children }: AppShellProps) {
       pathname === '/admin' ||
       pathname.startsWith('/admin/events') ||
       pathname === '/admin/upcoming' ||
-      pathname === '/admin/past'
+      pathname === '/admin/past' ||
+      pathname.startsWith('/admin/one-off')
     ) {
       return 'sessions';
     }

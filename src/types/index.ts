@@ -88,6 +88,11 @@ export interface OHEvent {
   // Waitlist settings
   waitlist_enabled: boolean;
   waitlist_limit: number | null;
+  // One-off meeting settings
+  is_one_off: boolean;
+  single_use: boolean;
+  one_off_expires_at: string | null;
+  one_off_booked_at: string | null;
 }
 
 export interface OHSlot {

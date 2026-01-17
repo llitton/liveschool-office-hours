@@ -52,6 +52,10 @@ export function createMockEvent(overrides: Partial<OHEvent> = {}): OHEvent {
     sms_reminder_1h_template: null,
     waitlist_enabled: false,
     waitlist_limit: null,
+    is_one_off: false,
+    single_use: false,
+    one_off_expires_at: null,
+    one_off_booked_at: null,
     ...overrides,
   };
 }
