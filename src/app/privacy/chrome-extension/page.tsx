@@ -12,7 +12,7 @@ export default function ChromeExtensionPrivacyPage() {
           Chrome Extension Privacy Policy
         </h1>
         <p className="text-sm text-[#667085] mb-8">
-          Last updated: January 2025
+          Last updated: January 2026
         </p>
 
         <div className="prose prose-sm max-w-none text-[#667085]">
