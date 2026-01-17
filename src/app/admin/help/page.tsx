@@ -654,20 +654,17 @@ export default function HelpPage() {
               </div>
             )}
 
-            {/* Contact support */}
+            {/* Contact Laura */}
             <div className="mt-10 p-5 bg-white rounded-xl border border-[#E0E0E0] flex items-center justify-between">
               <div>
                 <h3 className="font-medium text-[#101E57] mb-1">Need more help?</h3>
                 <p className="text-sm text-[#667085]">
-                  Can&apos;t find what you&apos;re looking for? Reach out to the LiveSchool team.
+                  Can&apos;t find what you&apos;re looking for? Ask Laura.
                 </p>
               </div>
-              <a
-                href="mailto:support@whyliveschool.com"
-                className="flex-shrink-0 px-4 py-2 bg-[#101E57] text-white text-sm font-medium rounded-lg hover:bg-[#1a2d6e] transition"
-              >
-                Contact support
-              </a>
+              <span className="flex-shrink-0 px-4 py-2 bg-[#F6F6F9] text-[#101E57] text-sm font-medium rounded-lg">
+                Ask Laura
+              </span>
             </div>
           </div>
         </div>
