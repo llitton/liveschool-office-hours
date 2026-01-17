@@ -81,9 +81,25 @@ const subNavConfig: Record<string, SubNavItem[]> = {
 // =============================================================================
 // USER MENU COMPONENT
 // =============================================================================
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string;
+  profile_image: string | null;
+}
+
 function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Fetch user data
+    fetch('/api/admin/me')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -95,6 +111,10 @@ function UserMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  const displayEmail = user?.email || '';
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -102,9 +122,17 @@ function UserMenu() {
         className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[#F6F6F9] transition"
         aria-label="User menu"
       >
-        <div className="w-8 h-8 rounded-full bg-[#101E57] text-white flex items-center justify-center text-sm font-medium">
-          U
-        </div>
+        {user?.profile_image ? (
+          <img
+            src={user.profile_image}
+            alt={displayName}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-[#101E57] text-white flex items-center justify-center text-sm font-medium">
+            {initial}
+          </div>
+        )}
         <svg
           className={`w-4 h-4 text-[#667085] transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -118,8 +146,8 @@ function UserMenu() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E0E0E0] py-2 z-50">
           <div className="px-4 py-2 border-b border-[#E0E0E0]">
-            <p className="text-sm font-medium text-[#101E57]">User</p>
-            <p className="text-xs text-[#667085] truncate">user@example.com</p>
+            <p className="text-sm font-medium text-[#101E57]">{displayName}</p>
+            <p className="text-xs text-[#667085] truncate">{displayEmail}</p>
           </div>
           <div className="py-1">
             <Link
