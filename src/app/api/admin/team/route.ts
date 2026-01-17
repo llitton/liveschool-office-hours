@@ -170,7 +170,11 @@ export async function POST(request: NextRequest) {
               </ul>
 
               <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                Questions? Just reply to this email to reach ${inviterName}.
+                I built this tool, so if there's anything you'd like to see improved, just let me know and I'll update it!
+              </p>
+
+              <p style="color: #666; font-size: 14px;">
+                — ${inviterName}
               </p>
             </div>
           `,
