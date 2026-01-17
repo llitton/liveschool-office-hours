@@ -94,6 +94,12 @@ export default function BookingPage({
     sms_consent: false,
   });
   const [questionResponses, setQuestionResponses] = useState<Record<string, string>>({});
+
+  // Email validation state
+  const [emailValidating, setEmailValidating] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phonePrefilled, setPhonePrefilled] = useState(false);
+  const [contactLookupDone, setContactLookupDone] = useState(false);
   const [booking, setBooking] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
@@ -258,6 +264,66 @@ export default function BookingPage({
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Email validation and HubSpot contact lookup on blur
+  const handleEmailBlur = async () => {
+    const email = formData.email.trim().toLowerCase();
+    if (!email) return;
+
+    setEmailValidating(true);
+    setEmailError(null);
+
+    try {
+      // Validate email format and check for disposable/MX
+      const validateRes = await fetch('/api/validate/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const validation = await validateRes.json();
+
+      if (!validation.valid) {
+        setEmailError(validation.error || 'Invalid email address');
+        setEmailValidating(false);
+        return;
+      }
+
+      // If phone field is visible and not already filled, check HubSpot for contact
+      const showPhoneField = event?.phone_required || event?.sms_reminders_enabled;
+      if (showPhoneField && !formData.phone && !contactLookupDone) {
+        try {
+          const lookupRes = await fetch('/api/contacts/lookup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const contact = await lookupRes.json();
+
+          if (contact.found) {
+            // Pre-fill phone if available
+            if (contact.phone) {
+              setFormData(prev => ({ ...prev, phone: contact.phone }));
+              setPhonePrefilled(true);
+            }
+            // Optionally pre-fill name if empty
+            if (!formData.first_name && contact.firstName) {
+              setFormData(prev => ({ ...prev, first_name: contact.firstName }));
+            }
+            if (!formData.last_name && contact.lastName) {
+              setFormData(prev => ({ ...prev, last_name: contact.lastName }));
+            }
+          }
+          setContactLookupDone(true);
+        } catch (lookupErr) {
+          console.error('Contact lookup failed:', lookupErr);
+        }
+      }
+    } catch (err) {
+      console.error('Email validation error:', err);
+    } finally {
+      setEmailValidating(false);
     }
   };
 
@@ -702,40 +768,68 @@ export default function BookingPage({
                   <label className="block text-sm font-medium text-[#101E57] mb-1">
                     Email *
                   </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, email: e.target.value }));
+                        setEmailError(null);
+                        setContactLookupDone(false);
+                      }}
+                      onBlur={handleEmailBlur}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] ${
+                        emailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    {emailValidating && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-[#6F71EE] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  {emailError && (
+                    <p className="text-xs text-red-600 mt-1">{emailError}</p>
+                  )}
                 </div>
 
-                {/* Phone Number and SMS Consent - only show if SMS enabled for this event */}
-                {event.sms_reminders_enabled && (
+                {/* Phone Number - show if phone_required OR sms_reminders_enabled */}
+                {(event.phone_required || event.sms_reminders_enabled) && (
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Phone Number {event.sms_phone_required && '*'}
+                        Phone Number {(event.phone_required || event.sms_phone_required) && '*'}
                       </label>
-                      <input
-                        type="tel"
-                        required={event.sms_phone_required}
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                        }
-                        placeholder="+1 (555) 123-4567"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                      />
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          required={event.phone_required || event.sms_phone_required}
+                          value={formData.phone}
+                          onChange={(e) => {
+                            setFormData((prev) => ({ ...prev, phone: e.target.value }));
+                            setPhonePrefilled(false);
+                          }}
+                          placeholder="+1 (555) 123-4567"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                        />
+                        {phonePrefilled && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <span className="text-xs text-[#417762] bg-green-50 px-2 py-1 rounded font-medium">
+                              From CRM
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <p className="text-xs text-[#667085] mt-1">
-                        For SMS reminders before your session
+                        {event.sms_reminders_enabled
+                          ? 'For SMS reminders before your session'
+                          : "We'll use this to reach you if we have trouble connecting"}
                       </p>
                     </div>
 
-                    {formData.phone && (
+                    {/* SMS Consent - only show if SMS enabled AND phone is provided */}
+                    {event.sms_reminders_enabled && formData.phone && (
                       <label className="flex items-start gap-2 cursor-pointer">
                         <input
                           type="checkbox"

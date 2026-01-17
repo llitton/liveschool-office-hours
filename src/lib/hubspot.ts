@@ -162,7 +162,7 @@ export async function findContactByEmail(email: string): Promise<HubSpotContact 
             ],
           },
         ],
-        properties: ['email', 'firstname', 'lastname', 'hs_object_id'],
+        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone'],
       }),
     });
 

@@ -87,6 +87,8 @@ export interface OHEvent {
   sms_phone_required: boolean;
   sms_reminder_24h_template: string | null;
   sms_reminder_1h_template: string | null;
+  // Phone requirement (independent of SMS)
+  phone_required: boolean;
   // Waitlist settings
   waitlist_enabled: boolean;
   waitlist_limit: number | null;

@@ -64,6 +64,9 @@ export default function EventSettingsPage({
   const [smsReminder24hTemplate, setSmsReminder24hTemplate] = useState('');
   const [smsReminder1hTemplate, setSmsReminder1hTemplate] = useState('');
 
+  // Phone requirement (independent of SMS)
+  const [phoneRequired, setPhoneRequired] = useState(false);
+
   // Waitlist settings
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistLimit, setWaitlistLimit] = useState<string>('');
@@ -117,6 +120,9 @@ export default function EventSettingsPage({
       setSmsPhoneRequired(eventData.sms_phone_required ?? false);
       setSmsReminder24hTemplate(eventData.sms_reminder_24h_template || '');
       setSmsReminder1hTemplate(eventData.sms_reminder_1h_template || '');
+
+      // Set phone requirement (independent of SMS)
+      setPhoneRequired(eventData.phone_required ?? false);
 
       // Set waitlist settings
       setWaitlistEnabled(eventData.waitlist_enabled ?? false);
@@ -187,6 +193,8 @@ export default function EventSettingsPage({
           sms_phone_required: smsPhoneRequired,
           sms_reminder_24h_template: smsReminder24hTemplate || null,
           sms_reminder_1h_template: smsReminder1hTemplate || null,
+          // Phone requirement (independent of SMS)
+          phone_required: phoneRequired,
           // Waitlist settings
           waitlist_enabled: waitlistEnabled,
           waitlist_limit: waitlistLimit ? parseInt(waitlistLimit) : null,
@@ -1101,6 +1109,40 @@ export default function EventSettingsPage({
                     {'{{first_name}}'}, {'{{last_name}}'}, {'{{event_name}}'}, {'{{time_with_timezone}}'}, {'{{date}}'}
                   </p>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Phone Requirement (independent of SMS) */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Phone Number Collection</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Collect phone numbers from attendees for contact purposes. This is separate from SMS reminder settings.
+          </p>
+
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={phoneRequired}
+                onChange={(e) => setPhoneRequired(e.target.checked)}
+                className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              />
+              <div>
+                <span className="font-medium text-[#101E57]">Require Phone Number</span>
+                <p className="text-sm text-[#667085] mt-0.5">
+                  Make phone number a required field on the booking form. Useful for reaching attendees if there are connection issues.
+                </p>
+              </div>
+            </label>
+
+            {phoneRequired && (
+              <div className="ml-7 pt-2 bg-[#F6F6F9] rounded-lg p-4">
+                <p className="text-sm text-[#667085]">
+                  <strong className="text-[#101E57]">How it works:</strong> When enabled, attendees must provide a phone number to complete their booking.
+                  If connected to HubSpot, the phone number will be auto-filled from their contact record when they enter their email.
+                </p>
               </div>
             )}
           </div>

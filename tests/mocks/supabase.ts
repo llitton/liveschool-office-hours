@@ -51,6 +51,7 @@ export function createMockEvent(overrides: Partial<OHEvent> = {}): OHEvent {
     sms_phone_required: false,
     sms_reminder_24h_template: null,
     sms_reminder_1h_template: null,
+    phone_required: false,
     waitlist_enabled: false,
     waitlist_limit: null,
     is_one_off: false,

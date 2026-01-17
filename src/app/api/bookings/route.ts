@@ -14,6 +14,7 @@ import { matchPrepResources, formatResourcesForEmail } from '@/lib/prep-matcher'
 import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
 import { formatPhoneE164 } from '@/lib/sms';
 import { checkTimeAvailability } from '@/lib/availability';
+import { validateEmail } from '@/lib/email-validation';
 import type { OHAdmin } from '@/types';
 import { parseISO, format, addHours, addDays, addMinutes, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import crypto from 'crypto';
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  // === EMAIL VALIDATION ===
+  // Validate email format, check for disposable domains, and verify MX records
+  const emailValidation = await validateEmail(email.trim().toLowerCase());
+  if (!emailValidation.valid) {
+    return NextResponse.json(
+      { error: emailValidation.error || 'Invalid email address' },
+      { status: 400 }
+    );
+  }
+  // === END EMAIL VALIDATION ===
 
   // Check if this is a dynamic slot that needs to be created
   if (!slot_id && !event_id) {
@@ -252,14 +264,13 @@ export async function POST(request: NextRequest) {
   // === PHONE VALIDATION ===
   let formattedPhone: string | null = null;
 
-  // Check if phone is required for this event
-  if (slot.event.sms_phone_required && slot.event.sms_reminders_enabled) {
-    if (!phone) {
-      return NextResponse.json(
-        { error: 'Phone number is required for this event' },
-        { status: 400 }
-      );
-    }
+  // Check if phone is required for this event (either via phone_required OR sms requirement)
+  const isPhoneRequired = slot.event.phone_required || (slot.event.sms_phone_required && slot.event.sms_reminders_enabled);
+  if (isPhoneRequired && !phone) {
+    return NextResponse.json(
+      { error: 'Phone number is required for this event' },
+      { status: 400 }
+    );
   }
 
   // Validate and format phone if provided
