@@ -152,6 +152,13 @@ function UserMenu() {
             >
               Account settings
             </Link>
+            <Link
+              href="/admin/how-we-built-this"
+              className="block px-4 py-2 text-sm text-[#101E57] hover:bg-[#F6F6F9] transition"
+              onClick={() => setIsOpen(false)}
+            >
+              How we built this
+            </Link>
           </div>
           <div className="border-t border-[#E0E0E0] py-1">
             <a
