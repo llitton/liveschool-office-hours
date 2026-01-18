@@ -7,6 +7,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
 import type { OHEvent, OHSlot, CustomQuestion } from '@/types';
 import { decodeResponses } from '@/lib/routing';
+import { TroubleshootModal } from '@/components/TroubleshootModal';
 
 interface SlotWithCount extends OHSlot {
   booking_count: number;
@@ -126,11 +127,23 @@ export default function BookingPage({
   } | null>(null);
   const [showMutualAvailability, setShowMutualAvailability] = useState(true);
 
+  // Admin troubleshoot modal
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
+
   useEffect(() => {
     // Detect user's timezone
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setTimezone(userTimezone);
     setDetectedTimezone(userTimezone);
+
+    // Check if user is an admin (for troubleshoot access)
+    fetch('/api/admin/me')
+      .then((res) => res.ok && res.json())
+      .then((data) => {
+        if (data?.email) setIsAdmin(true);
+      })
+      .catch(() => {});
   }, []);
 
   // Update countdown every minute
@@ -1056,6 +1069,17 @@ export default function BookingPage({
                 <p className="text-[#667085]">
                   No available times at the moment. Please check back later.
                 </p>
+                {isAdmin && event && (
+                  <button
+                    onClick={() => setShowTroubleshoot(true)}
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6F71EE] border border-[#6F71EE] rounded-lg hover:bg-[#6F71EE]/5 transition"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Troubleshoot Availability
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-6">
@@ -1278,6 +1302,15 @@ export default function BookingPage({
           </div>
         </div>
       </div>
+
+      {/* Troubleshoot Modal - Admin only */}
+      {event && (
+        <TroubleshootModal
+          eventId={event.id}
+          isOpen={showTroubleshoot}
+          onClose={() => setShowTroubleshoot(false)}
+        />
+      )}
     </div>
   );
 }
