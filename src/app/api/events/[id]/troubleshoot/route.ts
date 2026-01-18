@@ -63,7 +63,7 @@ export async function GET(
   // Get the event details
   const { data: event, error: eventError } = await supabase
     .from('oh_events')
-    .select('*, admin:oh_admins!host_email(id, email, google_access_token, google_refresh_token, max_meetings_per_day, max_meetings_per_week)')
+    .select('*')
     .eq('id', eventId)
     .single();
 
@@ -71,16 +71,12 @@ export async function GET(
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 
-  type AdminData = {
-    id: string;
-    email: string;
-    google_access_token: string | null;
-    google_refresh_token: string | null;
-    max_meetings_per_day: number | null;
-    max_meetings_per_week: number | null;
-  };
-  const adminData = event.admin as AdminData | AdminData[] | null;
-  const admin = Array.isArray(adminData) ? adminData[0] : adminData;
+  // Get the host admin separately
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id, email, google_access_token, google_refresh_token, max_meetings_per_day, max_meetings_per_week')
+    .eq('email', event.host_email)
+    .single();
 
   if (!admin) {
     return NextResponse.json({

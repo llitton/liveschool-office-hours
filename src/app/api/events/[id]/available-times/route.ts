@@ -42,13 +42,23 @@ export async function GET(
   // Get the event details
   const { data: event, error: eventError } = await supabase
     .from('oh_events')
-    .select('*, admin:oh_admins!host_email(id, google_access_token, google_refresh_token)')
+    .select('*')
     .eq('id', eventId)
     .single();
 
   if (eventError || !event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
+
+  // Get the host admin separately
+  const { data: adminData } = await supabase
+    .from('oh_admins')
+    .select('id, google_access_token, google_refresh_token')
+    .eq('email', event.host_email)
+    .single();
+
+  // Attach admin to event for compatibility
+  const eventWithAdmin = { ...event, admin: adminData };
 
   // Calculate constraint boundaries
   const now = new Date();
@@ -97,10 +107,8 @@ export async function GET(
   }
 
   // NON-WEBINARS: Generate dynamic availability
-  // Get the host admin for calendar sync
-  type AdminData = { id: string; google_access_token: string | null; google_refresh_token: string | null };
-  const adminData = event.admin as AdminData | AdminData[] | null;
-  const admin = Array.isArray(adminData) ? adminData[0] : adminData;
+  // Use the host admin we fetched earlier
+  const admin = adminData;
 
   if (!admin) {
     // No host found - return empty

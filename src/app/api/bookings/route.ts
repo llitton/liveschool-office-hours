@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     // Get the event details
     const { data: event, error: eventError } = await supabase
       .from('oh_events')
-      .select('*, admin:oh_admins!host_email(id, email, name, google_access_token, google_refresh_token)')
+      .select('*')
       .eq('id', event_id)
       .single();
 
@@ -156,10 +156,12 @@ export async function POST(request: NextRequest) {
     // Calculate end time based on event duration
     const endTime = addMinutes(startTime, event.duration_minutes);
 
-    // Get the host admin
-    type AdminData = { id: string; email: string; name: string | null; google_access_token: string | null; google_refresh_token: string | null };
-    const adminData = event.admin as AdminData | AdminData[] | null;
-    const admin = Array.isArray(adminData) ? adminData[0] : adminData;
+    // Get the host admin separately
+    const { data: admin } = await supabase
+      .from('oh_admins')
+      .select('id, email, name, google_access_token, google_refresh_token')
+      .eq('email', event.host_email)
+      .single();
 
     if (!admin) {
       return NextResponse.json(
