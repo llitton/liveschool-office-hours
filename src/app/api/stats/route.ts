@@ -83,7 +83,7 @@ export async function GET() {
   // Get all events to check for missing slots or templates
   const { data: events } = await supabase
     .from('oh_events')
-    .select('id, name, confirmation_subject')
+    .select('id, name, confirmation_subject, meeting_type')
     .eq('is_active', true);
 
   for (const event of events || []) {
@@ -95,7 +95,10 @@ export async function GET() {
       }
     );
 
-    if (!hasUpcomingSlots) {
+    // Only show "no slots" warning for webinar events
+    // Dynamic availability events (one_on_one, round_robin) create slots when booked
+    const needsManualSlots = event.meeting_type === 'webinar';
+    if (!hasUpcomingSlots && needsManualSlots) {
       actionItems.push({
         type: 'no_slots',
         title: `"${event.name}" has no upcoming time slots`,
@@ -237,6 +240,16 @@ export async function GET() {
     e => e.custom_questions && Array.isArray(e.custom_questions) && e.custom_questions.length > 0
   );
 
+  // Check if user has webinar events that need manual slots
+  const webinarEvents = events?.filter(e => e.meeting_type === 'webinar') || [];
+  const hasWebinarEvents = webinarEvents.length > 0;
+  const webinarHasSlots = hasWebinarEvents && (upcomingSlots || []).some(s => {
+    const eventData = Array.isArray(s.event) ? s.event[0] : s.event;
+    return webinarEvents.some(we => we.id === eventData?.id);
+  });
+  // Slots setup is complete if: no webinar events, OR webinar events have slots, OR there are any slots
+  const slotsComplete = !hasWebinarEvents || webinarHasSlots || (upcomingSlots?.length || 0) > 0;
+
   // Build setup checklist (consolidated)
   const setupItems: SetupItem[] = [
     {
@@ -251,12 +264,13 @@ export async function GET() {
       completed: (events?.length || 0) > 0,
       link: '/admin/events/new',
     },
-    {
+    // Only show "Add time slots" step if user has webinar events that need slots
+    ...(hasWebinarEvents ? [{
       id: 'slots',
       label: 'Add time slots to an event',
-      completed: (upcomingSlots?.length || 0) > 0,
-      link: events?.[0] ? `/admin/events/${events[0].id}` : '/admin/events/new',
-    },
+      completed: slotsComplete,
+      link: webinarEvents[0] ? `/admin/events/${webinarEvents[0].id}` : '/admin/events/new',
+    }] : []),
     {
       id: 'questions',
       label: 'Add booking questions',

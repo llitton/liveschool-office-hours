@@ -114,9 +114,13 @@ export default async function AdminPage({
               const capacityPercent = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
 
               // Determine status
+              // Non-webinar events (one_on_one, round_robin) use dynamic availability
+              const usesDynamicAvailability = event.meeting_type !== 'webinar';
               let status: { label: string; color: string; bg: string };
-              if (activeSlots.length === 0) {
+              if (activeSlots.length === 0 && !usesDynamicAvailability) {
                 status = { label: 'No slots', color: 'text-amber-700', bg: 'bg-amber-100' };
+              } else if (activeSlots.length === 0 && usesDynamicAvailability) {
+                status = { label: 'Available', color: 'text-[#417762]', bg: 'bg-[#417762]/10' };
               } else if (capacityPercent >= 100) {
                 status = { label: 'Fully booked', color: 'text-red-700', bg: 'bg-red-100' };
               } else if (capacityPercent >= 80) {
@@ -150,27 +154,35 @@ export default async function AdminPage({
                       </svg>
                     </div>
 
-                    {/* Capacity bar */}
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-[#667085]">
-                          {totalBookings} booked across {activeSlots.length} slot{activeSlots.length !== 1 ? 's' : ''}
-                        </span>
-                        <span className="text-[#101E57] font-medium">
-                          {totalCapacity > 0 ? `${capacityPercent}% full` : 'No capacity'}
-                        </span>
+                    {/* Capacity bar - only show for webinars or events with slots */}
+                    {(activeSlots.length > 0 || !usesDynamicAvailability) ? (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-[#667085]">
+                            {totalBookings} booked across {activeSlots.length} slot{activeSlots.length !== 1 ? 's' : ''}
+                          </span>
+                          <span className="text-[#101E57] font-medium">
+                            {totalCapacity > 0 ? `${capacityPercent}% full` : 'No capacity'}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-[#F6F6F9] rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              capacityPercent >= 100 ? 'bg-red-500' :
+                              capacityPercent >= 80 ? 'bg-amber-500' :
+                              capacityPercent > 0 ? 'bg-[#6F71EE]' : 'bg-gray-200'
+                            }`}
+                            style={{ width: `${Math.min(capacityPercent, 100)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-[#F6F6F9] rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            capacityPercent >= 100 ? 'bg-red-500' :
-                            capacityPercent >= 80 ? 'bg-amber-500' :
-                            capacityPercent > 0 ? 'bg-[#6F71EE]' : 'bg-gray-200'
-                          }`}
-                          style={{ width: `${Math.min(capacityPercent, 100)}%` }}
-                        />
+                    ) : (
+                      <div className="mt-4">
+                        <p className="text-sm text-[#667085]">
+                          Uses your availability · Slots created when booked
+                        </p>
                       </div>
-                    </div>
+                    )}
                   </Link>
 
                   {/* Quick actions bar */}
