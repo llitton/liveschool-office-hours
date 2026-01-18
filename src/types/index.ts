@@ -573,3 +573,9 @@ export interface PollWithDetails extends OHPoll {
   options: OHPollOption[];
   total_participants: number;
 }
+
+// Attendee calendar integration
+export interface BusyTimeBlock {
+  start: string; // ISO timestamp
+  end: string; // ISO timestamp
+}

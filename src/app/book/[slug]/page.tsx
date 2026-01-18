@@ -2,12 +2,13 @@
 
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, areIntervalsOverlapping } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
-import type { OHEvent, OHSlot, CustomQuestion } from '@/types';
+import type { OHEvent, OHSlot, CustomQuestion, BusyTimeBlock } from '@/types';
 import { decodeResponses } from '@/lib/routing';
 import { TroubleshootModal } from '@/components/TroubleshootModal';
+import { AttendeeCalendarConnect } from '@/components/AttendeeCalendarConnect';
 
 interface SlotWithCount extends OHSlot {
   booking_count: number;
@@ -126,6 +127,9 @@ export default function BookingPage({
   // Admin troubleshoot modal
   const [isAdmin, setIsAdmin] = useState(false);
   const [showTroubleshoot, setShowTroubleshoot] = useState(false);
+
+  // Attendee calendar overlay
+  const [attendeeBusyTimes, setAttendeeBusyTimes] = useState<BusyTimeBlock[]>([]);
 
   useEffect(() => {
     // Detect user's timezone
@@ -1145,6 +1149,15 @@ export default function BookingPage({
               </div>
             </div>
 
+            {/* Attendee calendar overlay - connect Outlook/Microsoft 365 */}
+            {Object.keys(groupedSlots).length > 0 && (
+              <AttendeeCalendarConnect
+                startDate={slots[0]?.start_time || new Date().toISOString()}
+                endDate={slots[slots.length - 1]?.end_time || new Date().toISOString()}
+                onBusyTimesChange={setAttendeeBusyTimes}
+              />
+            )}
+
             {Object.keys(groupedSlots).length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-[#667085]">
@@ -1200,17 +1213,33 @@ export default function BookingPage({
                             const spotsLeft = event.max_attendees - slot.booking_count;
                             const showSpotsLeft = !isOneOnOne && event.max_attendees > 1 && spotsLeft < event.max_attendees && spotsLeft > 0;
 
+                            // Check if slot conflicts with attendee's calendar
+                            const hasConflict = attendeeBusyTimes.length > 0 && attendeeBusyTimes.some(busy =>
+                              areIntervalsOverlapping(
+                                { start: parseISO(slot.start_time), end: parseISO(slot.end_time) },
+                                { start: parseISO(busy.start), end: parseISO(busy.end) }
+                              )
+                            );
+
                             return (
                               <button
                                 key={slot.id}
                                 onClick={() => !isFull && setSelectedSlot(slot)}
                                 disabled={isFull}
+                                title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
                                 className={`px-4 py-2.5 rounded-lg border-2 transition-all duration-150 font-medium min-h-[44px] ${
                                   isFull
                                     ? 'bg-gray-100 text-[#667085] cursor-not-allowed border-gray-200'
+                                    : hasConflict
+                                    ? 'border-amber-400 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:border-amber-500'
                                     : 'border-[#6F71EE] text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
                                 }`}
                               >
+                                {hasConflict && (
+                                  <svg className="w-3.5 h-3.5 inline mr-1 -mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                )}
                                 <span>{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
                                 {isFull && ' (Full)'}
                                 {showSpotsLeft && (
