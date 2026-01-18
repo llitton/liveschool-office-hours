@@ -95,6 +95,7 @@ export function createMockBooking(overrides: Partial<OHBooking> = {}): OHBooking
     confirmation_sent_at: null,
     calendar_invite_sent_at: null,
     cancelled_at: null,
+    cancellation_reason: null,
     created_at: new Date().toISOString(),
     reminder_24h_sent_at: null,
     reminder_1h_sent_at: null,

@@ -28,6 +28,17 @@ export default function ManageBookingPage({
   const [showReschedule, setShowReschedule] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [otherReason, setOtherReason] = useState('');
+
+  const cancellationReasons = [
+    'Schedule conflict',
+    'No longer needed',
+    'Booked wrong event',
+    'Found another solution',
+    'Other',
+  ];
 
   useEffect(() => {
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -55,7 +66,8 @@ export default function ManageBookingPage({
   };
 
   const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
+    const reason = cancellationReason === 'Other' ? otherReason : cancellationReason;
+    if (!reason) return;
 
     setProcessing(true);
     setError('');
@@ -63,6 +75,8 @@ export default function ManageBookingPage({
     try {
       const response = await fetch(`/api/manage/${token}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
       });
 
       if (!response.ok) {
@@ -70,6 +84,9 @@ export default function ManageBookingPage({
       }
 
       setSuccess('Your booking has been cancelled. You will receive a confirmation email.');
+      setShowCancelModal(false);
+      setCancellationReason('');
+      setOtherReason('');
       await fetchBooking();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to cancel booking');
@@ -374,14 +391,14 @@ export default function ManageBookingPage({
                     Reschedule
                   </button>
                   <button
-                    onClick={handleCancel}
+                    onClick={() => setShowCancelModal(true)}
                     disabled={processing}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 text-[#667085] rounded-lg font-medium hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-50"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    {processing ? 'Cancelling...' : 'Cancel'}
+                    Cancel
                   </button>
                 </div>
                 <p className="text-xs text-[#667085] text-center">
@@ -394,14 +411,14 @@ export default function ManageBookingPage({
             {!isCancelled && isWaitlisted && (
               <div className="text-center">
                 <button
-                  onClick={handleCancel}
+                  onClick={() => setShowCancelModal(true)}
                   disabled={processing}
                   className="inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-300 text-[#667085] rounded-lg font-medium hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition disabled:opacity-50"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  {processing ? 'Leaving...' : 'Leave Waitlist'}
+                  Leave Waitlist
                 </button>
                 <p className="text-xs text-[#667085] mt-2">
                   You can always book again if more sessions become available
@@ -487,6 +504,81 @@ export default function ManageBookingPage({
           />
         </div>
       </div>
+
+      {/* Cancellation Reason Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-[#101E57] mb-2">
+                {isWaitlisted ? 'Leave Waitlist?' : 'Cancel Booking?'}
+              </h3>
+              <p className="text-[#667085] text-sm mb-4">
+                {isWaitlisted
+                  ? 'Let us know why you\'re leaving the waitlist so we can improve.'
+                  : 'We\'re sorry to see you go! Let us know why so we can improve.'}
+              </p>
+
+              <div className="space-y-2 mb-4">
+                {cancellationReasons.map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => setCancellationReason(reason)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition ${
+                      cancellationReason === reason
+                        ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-[#101E57]">{reason}</span>
+                      {cancellationReason === reason && (
+                        <div className="w-5 h-5 bg-[#6F71EE] rounded-full flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {cancellationReason === 'Other' && (
+                <div className="mb-4">
+                  <textarea
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    placeholder="Please let us know why..."
+                    rows={3}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false);
+                    setCancellationReason('');
+                    setOtherReason('');
+                  }}
+                  className="flex-1 px-4 py-2.5 text-[#667085] text-sm font-medium hover:text-[#101E57] transition"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={processing || !cancellationReason || (cancellationReason === 'Other' && !otherReason.trim())}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition disabled:opacity-50"
+                >
+                  {processing ? 'Cancelling...' : (isWaitlisted ? 'Leave Waitlist' : 'Cancel Booking')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

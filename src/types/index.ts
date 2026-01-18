@@ -121,6 +121,7 @@ export interface OHBooking {
   confirmation_sent_at: string | null;
   calendar_invite_sent_at: string | null;
   cancelled_at: string | null;
+  cancellation_reason: string | null;
   created_at: string;
   reminder_24h_sent_at: string | null;
   reminder_1h_sent_at: string | null;

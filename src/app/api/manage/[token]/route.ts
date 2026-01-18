@@ -7,6 +7,7 @@ import {
   defaultTemplates,
   htmlifyEmailBody,
 } from '@/lib/email-templates';
+import { updateMeetingOutcome } from '@/lib/hubspot';
 
 // GET booking by manage token
 export async function GET(
@@ -191,6 +192,15 @@ export async function DELETE(
   const { token } = await params;
   const supabase = getServiceSupabase();
 
+  // Parse cancellation reason from body
+  let cancellationReason: string | null = null;
+  try {
+    const body = await request.json();
+    cancellationReason = body.reason || null;
+  } catch {
+    // Body might be empty for older clients
+  }
+
   // Get booking
   const { data: booking, error: bookingError } = await supabase
     .from('oh_bookings')
@@ -212,10 +222,13 @@ export async function DELETE(
 
   const wasWaitlisted = booking.is_waitlisted;
 
-  // Cancel the booking
+  // Cancel the booking with reason
   const { error: updateError } = await supabase
     .from('oh_bookings')
-    .update({ cancelled_at: new Date().toISOString() })
+    .update({
+      cancelled_at: new Date().toISOString(),
+      cancellation_reason: cancellationReason,
+    })
     .eq('id', booking.id);
 
   if (updateError) {
@@ -277,6 +290,23 @@ export async function DELETE(
       );
     } catch (err) {
       console.error('Failed to send cancellation confirmation:', err);
+    }
+  }
+
+  // Sync cancellation to HubSpot
+  if (booking.hubspot_contact_id) {
+    try {
+      const notes = cancellationReason
+        ? `Cancelled by attendee. Reason: ${cancellationReason}`
+        : 'Cancelled by attendee';
+      await updateMeetingOutcome(
+        booking.hubspot_contact_id,
+        booking.slot.event.name,
+        'CANCELED',
+        notes
+      );
+    } catch (err) {
+      console.error('Failed to sync cancellation to HubSpot:', err);
     }
   }
 
