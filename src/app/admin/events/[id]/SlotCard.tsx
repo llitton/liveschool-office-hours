@@ -115,6 +115,12 @@ export default function SlotCard({
   const [applyingTemplates, setApplyingTemplates] = useState(false);
   const [templatesApplied, setTemplatesApplied] = useState(false);
 
+  // HubSpot sync feedback state
+  const [hubspotSyncMessage, setHubspotSyncMessage] = useState<{
+    text: string;
+    type: 'success' | 'info';
+  } | null>(null);
+
   const isPastSlot = isPast(parseISO(slot.end_time));
   const confirmedBookings = bookings.filter((b) => !b.is_waitlisted && !b.cancelled_at);
   const waitlistedBookings = bookings.filter((b) => b.is_waitlisted && !b.cancelled_at);
@@ -171,7 +177,7 @@ export default function SlotCard({
     sendEmail = false
   ) => {
     try {
-      await fetch(`/api/bookings/${bookingId}`, {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -179,6 +185,19 @@ export default function SlotCard({
           send_no_show_email: sendEmail,
         }),
       });
+
+      if (response.ok && (status === 'attended' || status === 'no_show')) {
+        const data = await response.json();
+        // Show HubSpot sync feedback
+        if (data.hubspot_synced) {
+          setHubspotSyncMessage({ text: 'Synced to HubSpot', type: 'success' });
+        } else if (data.hubspot_contact_exists) {
+          setHubspotSyncMessage({ text: 'HubSpot meeting not found', type: 'info' });
+        }
+        // Auto-hide after 3 seconds
+        setTimeout(() => setHubspotSyncMessage(null), 3000);
+      }
+
       onRefresh();
     } catch (err) {
       console.error('Failed to update attendance:', err);
@@ -743,6 +762,28 @@ export default function SlotCard({
           </div>
         </div>
       </div>
+
+      {/* HubSpot Sync Toast */}
+      {hubspotSyncMessage && (
+        <div className="px-4 pb-2">
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+            hubspotSyncMessage.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            {hubspotSyncMessage.type === 'success' ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {hubspotSyncMessage.text}
+          </div>
+        </div>
+      )}
 
       {/* Post-Session Actions (for past slots) */}
       {isPastSlot && bookings && bookings.length > 0 && (

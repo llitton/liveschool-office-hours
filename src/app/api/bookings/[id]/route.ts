@@ -115,17 +115,26 @@ export async function PATCH(
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  // Sync attendance outcome to HubSpot (in background)
+  // Sync attendance outcome to HubSpot
+  let hubspotSynced = false;
   if ((body.status === 'attended' || body.status === 'no_show') && booking.hubspot_contact_id) {
     const hubspotOutcome = body.status === 'attended' ? 'COMPLETED' : 'NO_SHOW';
-    updateMeetingOutcome(
-      booking.hubspot_contact_id,
-      booking.slot.event.name,
-      hubspotOutcome
-    ).catch((err) => console.error('Failed to sync HubSpot outcome:', err));
+    try {
+      hubspotSynced = await updateMeetingOutcome(
+        booking.hubspot_contact_id,
+        booking.slot.event.name,
+        hubspotOutcome
+      );
+    } catch (err) {
+      console.error('Failed to sync HubSpot outcome:', err);
+    }
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json({
+    ...updated,
+    hubspot_synced: hubspotSynced,
+    hubspot_contact_exists: !!booking.hubspot_contact_id,
+  });
 }
 
 // GET single booking
