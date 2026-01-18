@@ -196,6 +196,14 @@ export default function EmailTemplatesPage({
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-[#101E57]">Email Templates</h1>
           <p className="text-[#667085] mt-1">Customize the emails sent to attendees</p>
+          <div className="mt-3 flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-blue-800">
+              These templates apply to <strong>all bookings</strong> for this event. Changes you make here will affect emails sent to everyone who books &ldquo;{event.name}&rdquo;.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
