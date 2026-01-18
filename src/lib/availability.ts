@@ -15,6 +15,7 @@ import {
   setMinutes,
   getDay,
 } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 
 interface TimeSlot {
   start: Date;
@@ -255,8 +256,13 @@ export async function getAvailableSlots(
       const [startHour, startMin] = pattern.start_time.split(':').map(Number);
       const [endHour, endMin] = pattern.end_time.split(':').map(Number);
 
-      let slotStart = setMinutes(setHours(currentDate, startHour), startMin);
-      const patternEnd = setMinutes(setHours(currentDate, endHour), endMin);
+      // Create local times in pattern's timezone, then convert to UTC
+      const localSlotStart = setMinutes(setHours(currentDate, startHour), startMin);
+      const localPatternEnd = setMinutes(setHours(currentDate, endHour), endMin);
+      const patternTz = pattern.timezone || 'America/New_York';
+
+      let slotStart = fromZonedTime(localSlotStart, patternTz);
+      const patternEnd = fromZonedTime(localPatternEnd, patternTz);
 
       // Generate slots within this pattern
       while (isBefore(addMinutes(slotStart, eventDurationMinutes), patternEnd) ||
@@ -404,13 +410,20 @@ export async function getCollectiveAvailableSlots(
       commonWindows = newCommon;
     }
 
+    // Get timezone from first host's patterns (assume all use same timezone)
+    const patternTz = hostDayPatterns[0]?.[0]?.timezone || 'America/New_York';
+
     // Generate slots within common windows
     for (const window of commonWindows) {
       const [startHour, startMin] = window.start.split(':').map(Number);
       const [endHour, endMin] = window.end.split(':').map(Number);
 
-      let slotStart = setMinutes(setHours(currentDate, startHour), startMin);
-      const windowEnd = setMinutes(setHours(currentDate, endHour), endMin);
+      // Create local times in pattern's timezone, then convert to UTC
+      const localSlotStart = setMinutes(setHours(currentDate, startHour), startMin);
+      const localWindowEnd = setMinutes(setHours(currentDate, endHour), endMin);
+
+      let slotStart = fromZonedTime(localSlotStart, patternTz);
+      const windowEnd = fromZonedTime(localWindowEnd, patternTz);
 
       while (
         isBefore(addMinutes(slotStart, eventDurationMinutes), windowEnd) ||

@@ -17,6 +17,7 @@ import {
   areIntervalsOverlapping,
   format,
 } from 'date-fns';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 // Reason codes for why a slot is unavailable
 type ReasonCode =
@@ -195,8 +196,10 @@ export async function GET(
   const troubleshootSlots: TroubleshootSlot[] = [];
 
   // Find earliest start and latest end from all patterns for this day
+  // Also get the timezone from patterns
   let dayEarliestStart = 23;
   let dayLatestEnd = 0;
+  let patternTimezone = 'America/New_York'; // Default timezone
 
   for (const { patterns } of hostsWithPatterns) {
     for (const pattern of patterns.filter((p) => p.day_of_week === dayOfWeek)) {
@@ -205,12 +208,19 @@ export async function GET(
       if (startHour < dayEarliestStart) dayEarliestStart = startHour;
       const endTime = endHour + (endMin > 0 ? 1 : 0);
       if (endTime > dayLatestEnd) dayLatestEnd = endTime;
+      // Use the timezone from the pattern
+      if (pattern.timezone) patternTimezone = pattern.timezone;
     }
   }
 
   // Generate slots from earliest to latest
-  let slotStart = setMinutes(setHours(targetDate, dayEarliestStart), 0);
-  const dayEndTime = setMinutes(setHours(targetDate, dayLatestEnd), 0);
+  // Create local times in the pattern's timezone, then convert to UTC
+  const localStart = setMinutes(setHours(targetDate, dayEarliestStart), 0);
+  const localEnd = setMinutes(setHours(targetDate, dayLatestEnd), 0);
+
+  // Convert from pattern timezone to UTC
+  let slotStart = fromZonedTime(localStart, patternTimezone);
+  const dayEndTime = fromZonedTime(localEnd, patternTimezone);
 
   while (isBefore(slotStart, dayEndTime)) {
     const slotEnd = addMinutes(slotStart, event.duration_minutes);
