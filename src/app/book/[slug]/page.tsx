@@ -455,157 +455,114 @@ export default function BookingPage({
       <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
         <div className="max-w-lg mx-auto">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Header - different for waitlisted vs confirmed */}
-            <div className={`${isWaitlisted ? 'bg-amber-500' : 'bg-[#417762]'} text-white p-6 text-center`}>
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                {isWaitlisted ? (
-                  <span className="text-2xl font-bold">#{bookingResult.waitlist_position}</span>
-                ) : (
-                  <svg
-                    className="w-8 h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-              </div>
-              <h1 className="text-2xl font-semibold mb-1">
-                {isWaitlisted
-                  ? `You're #${bookingResult.waitlist_position} on the waitlist`
-                  : `You're all set, ${formData.first_name}!`
-                }
-              </h1>
-              <p className="text-white/80">
-                {isWaitlisted
-                  ? "We'll notify you if a spot opens up"
-                  : "We're looking forward to meeting with you"
-                }
-              </p>
+            {/* Header */}
+            <div className={`${isWaitlisted ? 'bg-amber-50' : 'bg-[#417762]'} p-6`}>
+              {isWaitlisted ? (
+                // Waitlist header
+                <div className="text-center">
+                  <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-xl font-bold text-amber-600">#{bookingResult.waitlist_position}</span>
+                  </div>
+                  <h1 className="text-xl font-semibold text-amber-800">
+                    You&apos;re on the waitlist
+                  </h1>
+                  <p className="text-amber-700 mt-1">
+                    We&apos;ll email you at <strong>{formData.email}</strong> if a spot opens
+                  </p>
+                </div>
+              ) : (
+                // Confirmed booking header
+                <div className="text-center text-white">
+                  <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h1 className="text-xl font-semibold">
+                    You&apos;re booked, {formData.first_name}!
+                  </h1>
+                  <p className="text-white/90 mt-1">
+                    A calendar invite is on its way to <strong>{formData.email}</strong>
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="p-6">
               {/* Session details card */}
-              <div className="bg-[#F6F6F9] rounded-lg p-4 mb-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="font-semibold text-[#101E57]">
-                      {bookingResult.event.name}
-                    </h2>
-                    <p className="text-[#667085]">
-                      {formatInTimeZone(
-                        parseISO(bookingResult.slot.start_time),
-                        timezone,
-                        'EEEE, MMMM d, yyyy'
-                      )}
-                    </p>
-                    <p className="text-[#101E57] font-medium">
-                      {formatInTimeZone(
-                        parseISO(bookingResult.slot.start_time),
-                        timezone,
-                        'h:mm a'
-                      )}{' '}
-                      -{' '}
-                      {formatInTimeZone(
-                        parseISO(bookingResult.slot.end_time),
-                        timezone,
-                        'h:mm a'
-                      )}
-                    </p>
-                    <p className="text-[#667085] text-sm">{timezone}</p>
-                  </div>
+              <div className="border border-gray-200 rounded-lg p-4 mb-5">
+                <div className="flex items-center gap-2 text-[#667085] text-sm mb-3">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {formatInTimeZone(parseISO(bookingResult.slot.start_time), timezone, 'EEEE, MMMM d')}
                 </div>
-
-                {bookingResult.slot.google_meet_link && !isWaitlisted && (
-                  <a
-                    href={bookingResult.slot.google_meet_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 w-full bg-[#6F71EE] text-white py-2.5 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Join Google Meet
-                  </a>
-                )}
+                <div className="text-2xl font-semibold text-[#101E57] mb-1">
+                  {formatInTimeZone(parseISO(bookingResult.slot.start_time), timezone, 'h:mm a')}
+                  <span className="text-[#667085] font-normal"> – </span>
+                  {formatInTimeZone(parseISO(bookingResult.slot.end_time), timezone, 'h:mm a')}
+                </div>
+                <div className="text-sm text-[#667085] mb-3">{timezone.replace(/_/g, ' ')}</div>
+                <div className="text-[#101E57] font-medium">{bookingResult.event.name}</div>
               </div>
 
-              {/* What happens next */}
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-[#101E57] mb-3">
-                  {isWaitlisted ? "Here's how the waitlist works:" : "Here's what happens next:"}
-                </h3>
-                <div className="space-y-3">
-                  {isWaitlisted ? (
-                    <>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</div>
-                        <div>
-                          <p className="text-sm text-[#101E57] font-medium">Check your inbox</p>
-                          <p className="text-sm text-[#667085]">Waitlist confirmation sent to <strong>{formData.email}</strong></p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</div>
-                        <div>
-                          <p className="text-sm text-[#101E57] font-medium">We&apos;ll notify you</p>
-                          <p className="text-sm text-[#667085]">You&apos;ll get an email immediately if a spot opens</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</div>
-                        <div>
-                          <p className="text-sm text-[#101E57] font-medium">Your position may improve</p>
-                          <p className="text-sm text-[#667085]">As others cancel, you&apos;ll move up the list</p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</div>
-                        <div>
-                          <p className="text-sm text-[#101E57] font-medium">Check your inbox</p>
-                          <p className="text-sm text-[#667085]">Calendar invite sent to <strong>{formData.email}</strong></p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</div>
-                        <div>
-                          <p className="text-sm text-[#101E57] font-medium">Add to your calendar</p>
-                          <p className="text-sm text-[#667085]">Accept the invite to block the time</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-[#417762] text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</div>
-                        <div>
-                          <p className="text-sm text-[#101E57] font-medium">Join on time</p>
-                          <p className="text-sm text-[#667085]">Click the Google Meet link when it&apos;s time</p>
-                        </div>
-                      </div>
-                    </>
+              {/* Action buttons - only for confirmed bookings */}
+              {!isWaitlisted && (
+                <div className="flex gap-3 mb-5">
+                  {bookingResult.slot.google_meet_link && (
+                    <a
+                      href={bookingResult.slot.google_meet_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#6F71EE] text-white py-3 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Join Meeting
+                    </a>
                   )}
+                  {bookingResult.manage_token && (
+                    <a
+                      href={`/api/manage/${bookingResult.manage_token}/ical`}
+                      className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-[#101E57] rounded-lg hover:bg-gray-50 transition font-medium"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      .ics
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Next step - simplified */}
+              <div className="bg-[#F6F6F9] rounded-lg p-4 mb-5">
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 ${isWaitlisted ? 'bg-amber-100 text-amber-600' : 'bg-[#417762]/10 text-[#417762]'} rounded-full flex items-center justify-center flex-shrink-0`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#101E57]">
+                      {isWaitlisted ? 'Check your email' : 'Accept the calendar invite'}
+                    </p>
+                    <p className="text-sm text-[#667085]">
+                      {isWaitlisted
+                        ? "We sent a confirmation. You'll hear from us if a spot opens."
+                        : "It should arrive within a few minutes. This reserves your spot."}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Prep Materials - only show for confirmed bookings */}
               {event?.prep_materials && !isWaitlisted && (
-                <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mb-6">
+                <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mb-5">
                   <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
                     <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Before your session
                   </h3>
@@ -617,33 +574,31 @@ export default function BookingPage({
 
               {/* Manage booking link */}
               <div className="text-center pt-4 border-t border-gray-100">
-                <p className="text-sm text-[#667085] mb-2">
-                  {isWaitlisted ? "Changed your mind?" : "Plans change? No problem."}
-                </p>
                 {bookingResult.manage_token ? (
                   <a
                     href={`/manage/${bookingResult.manage_token}`}
-                    className="inline-flex items-center gap-2 text-[#6F71EE] hover:text-[#5a5cd0] font-medium text-sm"
+                    className="inline-flex items-center gap-1 text-[#667085] hover:text-[#101E57] text-sm"
                   >
+                    {isWaitlisted ? "Leave waitlist" : "Reschedule or cancel"}
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                    {isWaitlisted ? "Leave the waitlist" : "Reschedule or cancel your booking"}
                   </a>
                 ) : (
-                  <p className="text-sm text-[#667085]">Check your email for options</p>
+                  <p className="text-sm text-[#667085]">Check your email to manage this booking</p>
                 )}
               </div>
             </div>
           </div>
 
+          {/* Footer */}
           <div className="text-center mt-6">
             <Image
               src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
               alt="LiveSchool"
               width={100}
               height={26}
-              className="mx-auto opacity-60"
+              className="mx-auto opacity-50"
             />
           </div>
         </div>
