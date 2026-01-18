@@ -388,19 +388,35 @@ export default function ManageEventPage({
                 />
               )}
             </div>
-            <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-              upcomingSlots.length === 0
-                ? 'bg-amber-100 text-amber-700'
-                : totalBookings >= totalCapacity
-                ? 'bg-red-100 text-red-700'
-                : 'bg-[#417762]/10 text-[#417762]'
-            }`}>
-              {upcomingSlots.length === 0
-                ? 'No slots'
-                : totalBookings >= totalCapacity
-                ? 'Fully booked'
-                : 'Active'}
-            </span>
+            {/* Status badge - dynamic events show "Available" instead of "No slots" */}
+            {(() => {
+              const usesDynamicAvailability = event.meeting_type !== 'webinar';
+              if (upcomingSlots.length === 0 && usesDynamicAvailability) {
+                return (
+                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-[#417762]/10 text-[#417762]">
+                    Available
+                  </span>
+                );
+              } else if (upcomingSlots.length === 0) {
+                return (
+                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-amber-100 text-amber-700">
+                    No slots
+                  </span>
+                );
+              } else if (totalBookings >= totalCapacity) {
+                return (
+                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-700">
+                    Fully booked
+                  </span>
+                );
+              } else {
+                return (
+                  <span className="px-3 py-1 text-sm font-medium rounded-full bg-[#417762]/10 text-[#417762]">
+                    Active
+                  </span>
+                );
+              }
+            })()}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100">
             <p className="text-sm text-[#667085]">
