@@ -120,17 +120,8 @@ export default function BookingPage({
   const [timezone, setTimezone] = useState('America/New_York');
   const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
 
-  // Countdown tick for real-time updates
-  const [, setCountdownTick] = useState(0);
-
-  // Mutual availability - show visitor's calendar if logged in
-  const [visitorData, setVisitorData] = useState<{
-    logged_in: boolean;
-    user?: { name: string | null; email: string; profile_image: string | null };
-    google_connected?: boolean;
-    busy_times: { start: string; end: string; title?: string }[];
-  } | null>(null);
-  const [showMutualAvailability, setShowMutualAvailability] = useState(true);
+  // Progressive disclosure - show one week of slots at a time
+  const [visibleWeeks, setVisibleWeeks] = useState(1);
 
   // Admin troubleshoot modal
   const [isAdmin, setIsAdmin] = useState(false);
@@ -151,55 +142,6 @@ export default function BookingPage({
       .catch(() => {});
   }, []);
 
-  // Update countdown every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdownTick(t => t + 1);
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Check if a slot is mutually available (both host and visitor are free)
-  const isSlotMutuallyAvailable = (slotStart: string, slotEnd: string): boolean => {
-    if (!visitorData?.logged_in || !visitorData?.busy_times?.length) {
-      return true; // If visitor not logged in or no busy times, don't show indicators
-    }
-
-    const slotStartTime = parseISO(slotStart).getTime();
-    const slotEndTime = parseISO(slotEnd).getTime();
-
-    // Check if slot overlaps with any of visitor's busy times
-    for (const busy of visitorData.busy_times) {
-      const busyStart = parseISO(busy.start).getTime();
-      const busyEnd = parseISO(busy.end).getTime();
-
-      // Check for overlap
-      if (slotStartTime < busyEnd && slotEndTime > busyStart) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  // Get countdown text for slots within 7 days
-  const getCountdownText = (startTime: string): string | null => {
-    const now = new Date();
-    const start = parseISO(startTime);
-    const diffMs = start.getTime() - now.getTime();
-
-    if (diffMs <= 0) return null; // Already started
-
-    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (days > 7) return null; // Too far out
-    if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
-  };
-
   // Check if detected timezone is in our predefined list
   const isDetectedInList = TIMEZONE_OPTIONS.some(group =>
     group.zones.some(tz => tz.value === detectedTimezone)
@@ -208,22 +150,6 @@ export default function BookingPage({
   useEffect(() => {
     fetchEventAndSlots();
   }, [slug]);
-
-  // Fetch visitor's availability for mutual availability feature
-  useEffect(() => {
-    const fetchVisitorAvailability = async () => {
-      try {
-        const res = await fetch('/api/availability/me');
-        if (res.ok) {
-          const data = await res.json();
-          setVisitorData(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch visitor availability:', err);
-      }
-    };
-    fetchVisitorAvailability();
-  }, []);
 
   // Prefill question responses from routing form if available
   useEffect(() => {
@@ -1103,12 +1029,22 @@ export default function BookingPage({
     );
   }
 
+  // Progressive disclosure - calculate visible dates
+  const SLOTS_PER_WEEK = 7; // Show 7 days at a time
+  const sortedDates = Object.keys(groupedSlots).sort();
+  const visibleDates = sortedDates.slice(0, visibleWeeks * SLOTS_PER_WEEK);
+  const hasMoreDates = sortedDates.length > visibleDates.length;
+  const remainingDates = sortedDates.length - visibleDates.length;
+
+  // Check if this is a webinar (uses different layout)
+  const isWebinar = event.meeting_type === 'webinar';
+
   // Main slot selection screen
   return (
     <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* 1. Banner Image */}
+          {/* 1. Banner Image (both layouts) */}
           {event.banner_image && (
             <div className="relative w-full">
               <Image
@@ -1122,10 +1058,108 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* 2. Time slots / Scheduling buttons */}
+          {/* NON-WEBINAR: Hero Section - Event Context above calendar */}
+          {!isWebinar && (
+            <div className="p-6 border-b">
+              <Image
+                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+                alt="LiveSchool"
+                width={120}
+                height={32}
+                className="mb-4"
+              />
+
+              <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
+              {event.subtitle && (
+                <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
+              )}
+
+              <div className="flex flex-wrap gap-4 mt-4 text-[#667085]">
+                {/* Host info - hide for round-robin and collective */}
+                {event.meeting_type !== 'round_robin' && event.meeting_type !== 'collective' && (
+                  <span className="flex items-center gap-2">
+                    {event.host_profile_image ? (
+                      <img
+                        src={event.host_profile_image}
+                        alt={event.host_name}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    )}
+                    {event.host_name}
+                  </span>
+                )}
+                {event.meeting_type === 'round_robin' && (
+                  <span className="flex items-center gap-1 text-[#6F71EE]">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    LiveSchool Team
+                  </span>
+                )}
+                {event.meeting_type === 'collective' && (
+                  <span className="flex items-center gap-1 text-[#6F71EE]">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    All Hosts Join
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {event.duration_minutes} min
+                </span>
+                <span className="flex items-center gap-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Google Meet
+                </span>
+              </div>
+
+              {/* Description - show brief preview if present */}
+              {event.description && (
+                <div
+                  className="mt-4 text-[#667085] text-sm line-clamp-3 [&_a]:text-[#6F71EE] [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: event.description }}
+                />
+              )}
+
+              {/* Booking Rules Info */}
+              {(event.min_notice_hours > 0 || event.require_approval) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {event.min_notice_hours > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {event.min_notice_hours >= 24
+                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
+                        : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
+                    </span>
+                  )}
+                  {event.require_approval && (
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Requires approval
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Time slots / Scheduling section */}
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-              <h2 className="font-semibold text-[#101E57]">Select a date and time</h2>
+              <h2 className="font-semibold text-[#101E57]">Select a time</h2>
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1156,48 +1190,6 @@ export default function BookingPage({
               </div>
             </div>
 
-            {/* Mutual Availability Banner */}
-            {visitorData?.logged_in && showMutualAvailability && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      {visitorData.user?.profile_image ? (
-                        <img
-                          src={visitorData.user.profile_image}
-                          alt=""
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <span className="text-green-600 text-sm font-medium">
-                          {(visitorData.user?.name || visitorData.user?.email || 'Y')[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-green-800">
-                        Your calendar is connected
-                      </p>
-                      <p className="text-xs text-green-700">
-                        <span className="inline-flex items-center gap-1">
-                          <span className="w-2 h-2 bg-green-500 rounded-full" />
-                          Green dots show times when you&apos;re both free
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowMutualAvailability(false)}
-                    className="text-green-600 hover:text-green-800 text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
-
             {Object.keys(groupedSlots).length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-[#667085]">
@@ -1217,7 +1209,8 @@ export default function BookingPage({
               </div>
             ) : (
               <div className="space-y-6">
-                {Object.entries(groupedSlots).map(([date, dateSlots]) => {
+                {visibleDates.map((date) => {
+                  const dateSlots = groupedSlots[date];
                   // Group by time of day in user's timezone
                   const getTimeOfDay = (slot: SlotWithCount) => {
                     const hour = parseInt(formatInTimeZone(parseISO(slot.start_time), timezone, 'H'));
@@ -1230,7 +1223,7 @@ export default function BookingPage({
                   const afternoonSlots = dateSlots.filter(s => getTimeOfDay(s) === 'afternoon');
                   const eveningSlots = dateSlots.filter(s => getTimeOfDay(s) === 'evening');
 
-                  const renderSlots = (slotsGroup: SlotWithCount[], label: string, icon: string) => {
+                  const renderSlots = (slotsGroup: SlotWithCount[], label: string) => {
                     if (slotsGroup.length === 0) return null;
 
                     // For one-on-one, filter out booked slots entirely
@@ -1243,49 +1236,33 @@ export default function BookingPage({
 
                     return (
                       <div className="mb-3">
-                        <p className="text-xs text-[#667085] mb-2 flex items-center gap-1">
-                          <span>{icon}</span> {label}
+                        <p className="text-xs text-[#667085] mb-2 uppercase tracking-wide font-medium">
+                          {label}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {availableSlots.map((slot) => {
                             const isFull = slot.booking_count >= event.max_attendees;
                             const spotsLeft = event.max_attendees - slot.booking_count;
                             const showSpotsLeft = !isOneOnOne && event.max_attendees > 1 && spotsLeft < event.max_attendees && spotsLeft > 0;
-                            const isMutuallyFree = visitorData?.logged_in && isSlotMutuallyAvailable(slot.start_time, slot.end_time);
 
                             return (
                               <button
                                 key={slot.id}
                                 onClick={() => !isFull && setSelectedSlot(slot)}
                                 disabled={isFull}
-                                className={`relative px-4 py-2 rounded-lg border transition font-medium ${
+                                className={`px-4 py-2.5 rounded-lg border-2 transition-all duration-150 font-medium min-h-[44px] ${
                                   isFull
                                     ? 'bg-gray-100 text-[#667085] cursor-not-allowed border-gray-200'
-                                    : 'border-[#6F71EE] text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white'
+                                    : 'border-[#6F71EE] text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
                                 }`}
                               >
-                                {/* Green dot for mutually available times */}
-                                {isMutuallyFree && !isFull && (
-                                  <span
-                                    className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"
-                                    title="You're both free at this time!"
-                                  />
-                                )}
                                 <span>{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
                                 {isFull && ' (Full)'}
                                 {showSpotsLeft && (
                                   <span className="ml-1 text-xs opacity-75">
-                                    ({spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left)
+                                    ({spotsLeft} left)
                                   </span>
                                 )}
-                                {(() => {
-                                  const countdown = getCountdownText(slot.start_time);
-                                  return countdown && !isFull ? (
-                                    <span className="ml-2 text-xs bg-[#6F71EE]/10 px-1.5 py-0.5 rounded">
-                                      {countdown}
-                                    </span>
-                                  ) : null;
-                                })()}
                               </button>
                             );
                           })}
@@ -1300,20 +1277,35 @@ export default function BookingPage({
                         <svg className="w-5 h-5 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        {formatInTimeZone(parseISO(dateSlots[0].start_time), timezone, 'EEEE, MMMM d, yyyy')}
+                        {formatInTimeZone(parseISO(dateSlots[0].start_time), timezone, 'EEEE, MMMM d')}
                       </h3>
-                      {renderSlots(morningSlots, 'Morning', '☀️')}
-                      {renderSlots(afternoonSlots, 'Afternoon', '🌤️')}
-                      {renderSlots(eveningSlots, 'Evening', '🌙')}
+                      {renderSlots(morningSlots, 'Morning')}
+                      {renderSlots(afternoonSlots, 'Afternoon')}
+                      {renderSlots(eveningSlots, 'Evening')}
                     </div>
                   );
                 })}
+
+                {/* View more dates button */}
+                {hasMoreDates && (
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => setVisibleWeeks(prev => prev + 1)}
+                      className="inline-flex items-center gap-2 px-4 py-2 text-[#6F71EE] hover:bg-[#6F71EE]/5 rounded-lg transition font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Show {Math.min(remainingDates, SLOTS_PER_WEEK)} more {remainingDates === 1 ? 'day' : 'days'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* 3. Description */}
-          {event.description && (
+          {/* WEBINAR: Description section (after slots) */}
+          {isWebinar && event.description && (
             <div className="p-6 border-t">
               <div
                 className="prose prose-sm max-w-none text-[#667085] [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_p]:my-2 [&_strong]:text-[#101E57] [&_strong]:font-semibold"
@@ -1322,24 +1314,23 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* 4. Title and Event Details */}
-          <div className="p-6 border-t">
-            <Image
-              src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-              alt="LiveSchool"
-              width={140}
-              height={36}
-              className="mb-4"
-            />
+          {/* WEBINAR: Title and Event Details (after description) */}
+          {isWebinar && (
+            <div className="p-6 border-t">
+              <Image
+                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+                alt="LiveSchool"
+                width={140}
+                height={36}
+                className="mb-4"
+              />
 
-            <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
-            {event.subtitle && (
-              <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
-            )}
+              <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
+              {event.subtitle && (
+                <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
+              )}
 
-            <div className="flex flex-wrap gap-4 mt-3 text-[#667085]">
-              {/* Hide host name for round-robin and collective since multiple hosts are involved */}
-              {event.meeting_type !== 'round_robin' && event.meeting_type !== 'collective' && (
+              <div className="flex flex-wrap gap-4 mt-3 text-[#667085]">
                 <span className="flex items-center gap-2">
                   {event.host_profile_image ? (
                     <img
@@ -1354,84 +1345,60 @@ export default function BookingPage({
                   )}
                   {event.host_name}
                 </span>
-              )}
-              <span className="flex items-center gap-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {event.duration_minutes} min
-              </span>
-              <span className="flex items-center gap-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Google Meet
-              </span>
-              {event.meeting_type === 'one_on_one' && (
-                <span className="flex items-center gap-1 text-[#6F71EE]">
+                <span className="flex items-center gap-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  1-on-1 Session
+                  {event.duration_minutes} min
                 </span>
-              )}
-              {event.meeting_type === 'round_robin' && (
-                <span className="flex items-center gap-1 text-[#6F71EE]">
+                <span className="flex items-center gap-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
-                  LiveSchool Team
+                  Google Meet
                 </span>
-              )}
-              {event.meeting_type === 'collective' && (
-                <span className="flex items-center gap-1 text-[#6F71EE]">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  All Hosts Join
-                </span>
-              )}
-              {event.meeting_type === 'group' && event.max_attendees > 1 && (
                 <span className="flex items-center gap-1">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  Group Session
+                  {event.max_attendees > 1 ? `Up to ${event.max_attendees} attendees` : 'Webinar'}
                 </span>
+              </div>
+
+              {/* Booking Rules Info for webinars */}
+              {(event.min_notice_hours > 0 || event.require_approval) && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex flex-wrap gap-2">
+                    {event.min_notice_hours > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {event.min_notice_hours >= 24
+                          ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
+                          : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
+                      </span>
+                    )}
+                    {event.require_approval && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Requires approval
+                      </span>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
+          )}
 
-            {/* Booking Rules Info */}
-            {(event.min_notice_hours > 0 || event.require_approval) && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex flex-wrap gap-2">
-                  {event.min_notice_hours > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {event.min_notice_hours >= 24
-                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
-                        : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
-                    </span>
-                  )}
-                  {event.require_approval && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Requires approval
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer note */}
+          {/* Footer */}
           <div className="p-4 bg-[#F6F6F9] border-t text-center">
-            <p className="text-sm text-[#667085]">
-              Web conferencing details provided upon confirmation
+            <p className="text-xs text-[#667085]">
+              {isWebinar
+                ? 'Web conferencing details provided upon confirmation'
+                : "You'll receive a calendar invite with Google Meet link upon booking"}
             </p>
           </div>
         </div>
