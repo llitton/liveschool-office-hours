@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isPast, differenceInHours } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
 import type { OHEvent, OHSlot, OHBooking } from '@/types';
@@ -162,6 +162,10 @@ export default function ManageBookingPage({
   const { booking, slot, event } = data;
   const isCancelled = !!booking.cancelled_at;
   const isWaitlisted = booking.is_waitlisted;
+  const isAttended = !!booking.attended_at;
+  const hasPassed = isPast(parseISO(slot.end_time));
+  const isMissed = hasPassed && !isCancelled && !isWaitlisted && !isAttended;
+  const hoursSinceMeeting = hasPassed ? differenceInHours(new Date(), parseISO(slot.end_time)) : 0;
   const availableSlotsForReschedule = data.availableSlots.filter((s) => s.id !== slot.id);
 
   return (
@@ -170,14 +174,18 @@ export default function ManageBookingPage({
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header - changes color based on status */}
           <div className={`p-6 text-center ${
-            isCancelled ? 'bg-gray-500' : isWaitlisted ? 'bg-amber-500' : 'bg-[#101E57]'
-          } text-white`}>
+            isCancelled ? 'bg-gray-500 text-white'
+            : isMissed ? 'bg-[#F6F6F9]'
+            : isWaitlisted ? 'bg-amber-500 text-white'
+            : isAttended ? 'bg-[#417762] text-white'
+            : 'bg-[#101E57] text-white'
+          }`}>
             <Image
               src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
               alt="LiveSchool"
               width={120}
               height={32}
-              className="mx-auto mb-4 brightness-0 invert"
+              className={`mx-auto mb-4 ${isMissed ? 'opacity-60' : 'brightness-0 invert'}`}
             />
             {isCancelled ? (
               <>
@@ -188,6 +196,22 @@ export default function ManageBookingPage({
                   {isWaitlisted ? "You've left the waitlist" : 'This session has been cancelled'}
                 </p>
               </>
+            ) : isMissed ? (
+              <>
+                <div className="w-14 h-14 bg-[#667085]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-7 h-7 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h1 className="text-xl font-semibold text-[#101E57]">We missed you!</h1>
+                <p className="text-[#667085] mt-1">
+                  {hoursSinceMeeting < 24
+                    ? "Your session was earlier today"
+                    : hoursSinceMeeting < 48
+                    ? "Your session was yesterday"
+                    : `Your session was on ${formatInTimeZone(parseISO(slot.start_time), timezone, 'MMMM d')}`}
+                </p>
+              </>
             ) : isWaitlisted ? (
               <>
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -195,6 +219,16 @@ export default function ManageBookingPage({
                 </div>
                 <h1 className="text-xl font-semibold">You&apos;re on the waitlist</h1>
                 <p className="text-white/80 mt-1">We&apos;ll email you if a spot opens up</p>
+              </>
+            ) : isAttended ? (
+              <>
+                <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h1 className="text-xl font-semibold">Thanks for joining, {booking.first_name}!</h1>
+                <p className="text-white/80 mt-1">We hope it was helpful</p>
               </>
             ) : (
               <>
@@ -224,7 +258,8 @@ export default function ManageBookingPage({
               </div>
             )}
 
-            {/* Session details card */}
+            {/* Session details card - hide for missed meetings (shown differently there) */}
+            {!isMissed && (
             <div className={`bg-[#F6F6F9] rounded-lg p-4 mb-6 ${isCancelled ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -261,9 +296,10 @@ export default function ManageBookingPage({
                 </a>
               )}
             </div>
+            )}
 
-            {/* Add to Calendar - only for confirmed bookings */}
-            {!isCancelled && !isWaitlisted && !showReschedule && (
+            {/* Add to Calendar - only for confirmed, upcoming bookings */}
+            {!isCancelled && !isWaitlisted && !isMissed && !showReschedule && (
               <div className="mb-6">
                 <p className="text-sm font-medium text-[#101E57] mb-2">Add to your calendar:</p>
                 <div className="flex flex-wrap gap-2">
@@ -312,8 +348,8 @@ export default function ManageBookingPage({
               </div>
             )}
 
-            {/* Reschedule Section - only for confirmed bookings */}
-            {!isCancelled && !isWaitlisted && showReschedule && (
+            {/* Reschedule Section - only for confirmed, upcoming bookings */}
+            {!isCancelled && !isWaitlisted && !isMissed && showReschedule && (
               <div className="mb-6 p-4 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg">
                 <h3 className="font-medium text-[#101E57] mb-1">Pick a new time</h3>
                 <p className="text-sm text-[#667085] mb-4">Your current slot will be released for others to book.</p>
@@ -377,7 +413,7 @@ export default function ManageBookingPage({
             )}
 
             {/* Action Buttons for confirmed bookings */}
-            {!isCancelled && !isWaitlisted && !showReschedule && (
+            {!isCancelled && !isWaitlisted && !isMissed && !showReschedule && (
               <div className="space-y-3">
                 <p className="text-sm font-medium text-[#101E57]">Need to make changes?</p>
                 <div className="flex gap-3">
@@ -426,6 +462,65 @@ export default function ManageBookingPage({
               </div>
             )}
 
+            {/* Missed meeting state */}
+            {isMissed && (
+              <div className="space-y-5">
+                {/* Empathy message */}
+                <div className="bg-[#F6F6F9] rounded-lg p-4">
+                  <p className="text-[#101E57] font-medium mb-1">No worries—life happens!</p>
+                  <p className="text-sm text-[#667085]">
+                    We&apos;d still love to connect. Pick a new time that works better for you.
+                  </p>
+                </div>
+
+                {/* Session that was missed */}
+                <div className="border border-gray-200 rounded-lg p-4 opacity-60">
+                  <div className="flex items-center gap-2 text-[#667085] text-xs mb-2 uppercase tracking-wide">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Missed session
+                  </div>
+                  <p className="text-[#101E57] font-medium">{event.name}</p>
+                  <p className="text-sm text-[#667085]">
+                    {formatInTimeZone(parseISO(slot.start_time), timezone, 'EEEE, MMMM d')} at {formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}
+                  </p>
+                </div>
+
+                {/* Book new session CTA */}
+                <a
+                  href={`/book/${event.slug}`}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-[#6F71EE] text-white rounded-lg font-medium hover:bg-[#5a5cd0] transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Book a New Time
+                </a>
+
+                {/* Quick feedback */}
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-[#667085] text-center mb-3">
+                    Help us understand what happened (optional)
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {['Forgot', 'Conflict came up', 'Couldn\'t find link', 'Tech issues'].map((reason) => (
+                      <button
+                        key={reason}
+                        onClick={() => {
+                          // Could send feedback to analytics
+                          setSuccess(`Thanks for letting us know!`);
+                        }}
+                        className="px-3 py-1.5 text-xs border border-gray-200 text-[#667085] rounded-full hover:border-[#6F71EE] hover:text-[#6F71EE] transition"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Cancelled state - offer to rebook */}
             {isCancelled && (
               <div className="text-center py-4">
@@ -445,7 +540,7 @@ export default function ManageBookingPage({
             )}
 
             {/* Prep Materials - only for confirmed bookings */}
-            {event.prep_materials && !isCancelled && !isWaitlisted && (
+            {event.prep_materials && !isCancelled && !isWaitlisted && !isMissed && (
               <div className="mt-6 pt-6 border-t">
                 <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
