@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { getAvailabilityPatterns, getBusyBlocks } from '@/lib/availability';
+import { getAvailabilityPatterns, getBusyBlocks, syncGoogleCalendarBusy } from '@/lib/availability';
 import { getParticipatingHosts } from '@/lib/round-robin';
 import {
   addHours,
@@ -132,6 +132,21 @@ export async function GET(
         ? { code: 'OUTSIDEHOURS', reason: `No availability configured for ${format(targetDate, 'EEEE')}s` }
         : { code: 'NOAVAILABILITY', reason: 'No weekly availability configured. Go to Settings to add your available hours.' },
     });
+  }
+
+  // Sync calendar busy times first (if connected)
+  if (admin.google_access_token && admin.google_refresh_token) {
+    try {
+      await syncGoogleCalendarBusy(
+        admin.id,
+        admin.google_access_token,
+        admin.google_refresh_token,
+        dayStart,
+        dayEnd
+      );
+    } catch (err) {
+      console.warn('Failed to sync Google Calendar for troubleshoot:', err);
+    }
   }
 
   // Get busy blocks for all hosts
