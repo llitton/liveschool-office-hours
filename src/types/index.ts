@@ -152,6 +152,8 @@ export interface OHBooking {
   waitlist_position: number | null;
   promoted_from_waitlist_at: string | null;
   waitlist_notification_sent_at: string | null;
+  // Guest emails
+  guest_emails: string[];
 }
 
 export interface OHAttendeeNote {

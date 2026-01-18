@@ -101,6 +101,11 @@ export default function BookingPage({
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phonePrefilled, setPhonePrefilled] = useState(false);
   const [contactLookupDone, setContactLookupDone] = useState(false);
+
+  // Guest emails state
+  const [guestEmails, setGuestEmails] = useState<string[]>([]);
+  const [guestEmailInput, setGuestEmailInput] = useState('');
+  const [guestEmailError, setGuestEmailError] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
@@ -340,6 +345,57 @@ export default function BookingPage({
     }
   };
 
+  // Add a guest email with validation
+  const handleAddGuestEmail = async () => {
+    const email = guestEmailInput.trim().toLowerCase();
+    if (!email) return;
+
+    // Check if already added
+    if (guestEmails.includes(email)) {
+      setGuestEmailError('This email has already been added');
+      return;
+    }
+
+    // Check if it's the same as the booker's email
+    if (email === formData.email.trim().toLowerCase()) {
+      setGuestEmailError('This is your email - add a different guest');
+      return;
+    }
+
+    // Check guest limit
+    if (event?.guest_limit && guestEmails.length >= event.guest_limit) {
+      setGuestEmailError(`Maximum ${event.guest_limit} guests allowed`);
+      return;
+    }
+
+    setGuestEmailError(null);
+
+    // Validate email
+    try {
+      const validateRes = await fetch('/api/validate/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, quick: true }),
+      });
+      const validation = await validateRes.json();
+
+      if (!validation.valid) {
+        setGuestEmailError(validation.error || 'Invalid email address');
+        return;
+      }
+
+      // Add to list
+      setGuestEmails((prev) => [...prev, email]);
+      setGuestEmailInput('');
+    } catch (err) {
+      setGuestEmailError('Failed to validate email');
+    }
+  };
+
+  const handleRemoveGuestEmail = (email: string) => {
+    setGuestEmails((prev) => prev.filter((e) => e !== email));
+  };
+
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot || !event) return;
@@ -370,6 +426,7 @@ export default function BookingPage({
           question_responses: questionResponses,
           attendee_timezone: timezone,
           preferred_host_id: preferredHostId || undefined,
+          guest_emails: guestEmails.length > 0 ? guestEmails : undefined,
         }),
       });
 
@@ -857,6 +914,83 @@ export default function BookingPage({
                           Message & data rates may apply. Reply STOP to opt out.
                         </span>
                       </label>
+                    )}
+                  </div>
+                )}
+
+                {/* Guest Emails - allow adding team members */}
+                {event.allow_guests && (
+                  <div className="pt-4 border-t border-gray-200">
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Add colleagues to this meeting
+                    </label>
+                    <p className="text-xs text-[#667085] mb-3">
+                      Invite team members to join you. They&apos;ll receive the calendar invite.
+                      {event.guest_limit && ` (Max ${event.guest_limit} guests)`}
+                    </p>
+
+                    {/* Added guests list */}
+                    {guestEmails.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {guestEmails.map((email) => (
+                          <div
+                            key={email}
+                            className="flex items-center justify-between bg-[#F6F6F9] px-3 py-2 rounded-lg"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-[#6F71EE]/10 rounded-full flex items-center justify-center">
+                                <svg className="w-3 h-3 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                              <span className="text-sm text-[#101E57]">{email}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveGuestEmail(email)}
+                              className="text-[#667085] hover:text-red-500 transition"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add guest input */}
+                    {(!event.guest_limit || guestEmails.length < event.guest_limit) && (
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={guestEmailInput}
+                          onChange={(e) => {
+                            setGuestEmailInput(e.target.value);
+                            setGuestEmailError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddGuestEmail();
+                            }
+                          }}
+                          placeholder="colleague@company.com"
+                          className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] ${
+                            guestEmailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddGuestEmail}
+                          className="px-4 py-2 bg-[#6F71EE]/10 text-[#6F71EE] rounded-lg hover:bg-[#6F71EE]/20 transition font-medium"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                    {guestEmailError && (
+                      <p className="text-xs text-red-600 mt-1">{guestEmailError}</p>
                     )}
                   </div>
                 )}

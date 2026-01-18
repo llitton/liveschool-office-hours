@@ -119,6 +119,7 @@ export function createMockBooking(overrides: Partial<OHBooking> = {}): OHBooking
     waitlist_position: null,
     promoted_from_waitlist_at: null,
     waitlist_notification_sent_at: null,
+    guest_emails: [],
     ...overrides,
   };
 }

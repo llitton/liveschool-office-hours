@@ -66,7 +66,21 @@ async function syncBookingToHubSpot(
 // POST create booking (public)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  let { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent, event_id } = body;
+  let { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent, event_id, guest_emails } = body;
+
+  // Validate guest_emails if provided
+  let validatedGuestEmails: string[] = [];
+  if (guest_emails && Array.isArray(guest_emails)) {
+    for (const guestEmail of guest_emails) {
+      const trimmed = guestEmail.trim().toLowerCase();
+      if (trimmed && trimmed !== email.trim().toLowerCase()) {
+        const guestValidation = await validateEmail(trimmed);
+        if (guestValidation.valid) {
+          validatedGuestEmails.push(trimmed);
+        }
+      }
+    }
+  }
 
   if (!first_name || !last_name || !email) {
     return NextResponse.json(
@@ -514,6 +528,7 @@ export async function POST(request: NextRequest) {
       sms_consent: sms_consent || false,
       is_waitlisted: isWaitlisted,
       waitlist_position: waitlistPosition,
+      guest_emails: validatedGuestEmails.length > 0 ? validatedGuestEmails : [],
     })
     .select()
     .single();
@@ -547,12 +562,27 @@ export async function POST(request: NextRequest) {
     // Only add to calendar if booking is confirmed (not pending approval) AND not waitlisted
     if (slot.google_event_id && bookingStatus === 'confirmed' && !isWaitlisted) {
       try {
+        // Add the main booker to the calendar
         await addAttendeeToEvent(
           admin.google_access_token,
           admin.google_refresh_token,
           slot.google_event_id,
           email.toLowerCase()
         );
+
+        // Add any guest emails to the calendar as well
+        for (const guestEmail of validatedGuestEmails) {
+          try {
+            await addAttendeeToEvent(
+              admin.google_access_token,
+              admin.google_refresh_token,
+              slot.google_event_id,
+              guestEmail
+            );
+          } catch (guestErr) {
+            console.error(`Failed to add guest ${guestEmail} to calendar:`, guestErr);
+          }
+        }
 
         await supabase
           .from('oh_bookings')
@@ -755,6 +785,64 @@ export async function POST(request: NextRequest) {
         .from('oh_bookings')
         .update({ confirmation_sent_at: new Date().toISOString() })
         .eq('id', booking.id);
+
+      // Send notification emails to guests (non-blocking, don't fail the booking)
+      if (validatedGuestEmails.length > 0 && !isWaitlisted && bookingStatus === 'confirmed') {
+        const sessionTime = format(parseISO(slot.start_time), 'EEEE, MMMM d \'at\' h:mm a');
+        const guestSubject = `You've been invited to: ${slot.event.name}`;
+        const guestHtmlBody = `
+          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+            <div style="background: #E0F2FE; border-left: 4px solid #0EA5E9; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
+              <h2 style="margin: 0 0 8px 0; color: #0369A1; font-size: 18px;">You've been added to a meeting</h2>
+              <p style="margin: 0; color: #0369A1; font-size: 14px;">
+                ${first_name} ${last_name} invited you to join.
+              </p>
+            </div>
+
+            <div style="background: #F6F6F9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="margin: 0 0 8px 0; color: #101E57; font-size: 16px;">${slot.event.name}</h3>
+              <p style="margin: 0 0 4px 0; color: #667085;">${sessionTime}</p>
+              <p style="margin: 0; color: #667085;">Host: ${assignedHost?.name || slot.event.host_name}</p>
+            </div>
+
+            ${slot.google_meet_link ? `
+              <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
+                  Join Google Meet →
+                </a>
+              </div>
+            ` : ''}
+
+            <p style="color: #667085; font-size: 14px;">
+              A calendar invite has been sent separately. If you need to make changes to this booking,
+              please contact ${first_name} at ${email}.
+            </p>
+
+            <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
+              <p style="color: #98A2B3; font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
+            </div>
+          </div>
+        `;
+
+        for (const guestEmail of validatedGuestEmails) {
+          try {
+            await sendEmail(
+              admin.google_access_token,
+              admin.google_refresh_token,
+              {
+                to: guestEmail,
+                subject: guestSubject,
+                replyTo: slot.event.host_email,
+                htmlBody: guestHtmlBody,
+              }
+            );
+          } catch (guestEmailErr) {
+            console.error(`Failed to send guest email to ${guestEmail}:`, guestEmailErr);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to send confirmation email:', err);
     }
