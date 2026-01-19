@@ -14,7 +14,7 @@ interface SlotWithBookings extends OHSlot {
   booking_count: number;
 }
 
-type SlotCreationMode = 'single' | 'bulk' | 'recurring' | 'calendar';
+type SlotCreationMode = 'single' | 'bulk' | 'recurring' | 'calendar' | 'copy_week' | 'import_csv';
 
 export default function ManageEventPage({
   params,
@@ -49,6 +49,34 @@ export default function ManageEventPage({
   const [addingSlot, setAddingSlot] = useState(false);
   const [slotsToCreate, setSlotsToCreate] = useState<Date[]>([]);
   const [showWorkflowGuide, setShowWorkflowGuide] = useState(false);
+
+  // Save as Template modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateSuccess, setTemplateSuccess] = useState(false);
+
+  // Copy Week state
+  const [copySourceWeek, setCopySourceWeek] = useState('');
+  const [copyTargetWeek, setCopyTargetWeek] = useState('');
+  const [copyingWeek, setCopyingWeek] = useState(false);
+  const [copyWeekResult, setCopyWeekResult] = useState<{
+    message: string;
+    created: Array<{ start_time: string; end_time: string }>;
+    skipped: Array<{ start_time: string; reason: string }>;
+  } | null>(null);
+
+  // Import CSV state
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importingCsv, setImportingCsv] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    message: string;
+    created: Array<{ date: string; time: string }>;
+    skipped: Array<{ date: string; time: string; reason: string }>;
+    parseErrors?: string[];
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const slotsRef = useRef<HTMLDivElement>(null);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -237,6 +265,128 @@ export default function ManageEventPage({
     }
   };
 
+  const handleSaveAsTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!templateName.trim()) return;
+
+    setSavingTemplate(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/events/${id}/save-as-template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName.trim(),
+          description: templateDescription.trim() || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save template');
+      }
+
+      setTemplateSuccess(true);
+      setTimeout(() => {
+        setShowTemplateModal(false);
+        setTemplateName('');
+        setTemplateDescription('');
+        setTemplateSuccess(false);
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleCopyWeek = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!copySourceWeek || !copyTargetWeek) return;
+
+    setCopyingWeek(true);
+    setError('');
+    setCopyWeekResult(null);
+
+    try {
+      const response = await fetch('/api/slots/copy-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: id,
+          source_week_start: copySourceWeek,
+          target_week_start: copyTargetWeek,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to copy week');
+      }
+
+      setCopyWeekResult(data);
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to copy week');
+    } finally {
+      setCopyingWeek(false);
+    }
+  };
+
+  const handleImportCsv = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) return;
+
+    setImportingCsv(true);
+    setError('');
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('event_id', id);
+
+      const response = await fetch('/api/slots/import', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to import CSV');
+      }
+
+      setImportResult(data);
+      setImportFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to import CSV');
+    } finally {
+      setImportingCsv(false);
+    }
+  };
+
+  const downloadSampleCsv = () => {
+    const sample = `date,time
+2025-02-03,10:00
+2025-02-03,14:00
+2025-02-04,10:00
+2025-02-05,11:00`;
+    const blob = new Blob([sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample-slots.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
@@ -361,12 +511,112 @@ export default function ManageEventPage({
                   >
                     Topic Analytics
                   </Link>
+                  <div className="border-t border-gray-100 my-1" />
+                  <button
+                    onClick={() => setShowTemplateModal(true)}
+                    className="block w-full text-left px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    Save as Template
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Save as Template Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            {templateSuccess ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-[#101E57] mb-2">Template Saved!</h3>
+                <p className="text-sm text-[#667085]">
+                  You can find it in Settings → Templates
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-[#101E57]">Save as Template</h3>
+                  <button
+                    onClick={() => {
+                      setShowTemplateModal(false);
+                      setTemplateName('');
+                      setTemplateDescription('');
+                    }}
+                    className="text-[#667085] hover:text-[#101E57]"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <p className="text-sm text-[#667085] mb-6">
+                  Save this event&apos;s configuration as a reusable template. Settings like duration, booking rules, and email templates will be saved.
+                </p>
+
+                <form onSubmit={handleSaveAsTemplate}>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Template Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      placeholder="e.g., Weekly Strategy Call"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
+
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Description (optional)
+                    </label>
+                    <textarea
+                      value={templateDescription}
+                      onChange={(e) => setTemplateDescription(e.target.value)}
+                      placeholder="Brief description of when to use this template..."
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] resize-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTemplateModal(false);
+                        setTemplateName('');
+                        setTemplateDescription('');
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-[#667085] rounded-lg hover:bg-gray-50 transition font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingTemplate || !templateName.trim()}
+                      className="flex-1 px-4 py-2 bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] transition font-medium disabled:opacity-50"
+                    >
+                      {savingTemplate ? 'Saving...' : 'Save Template'}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         {error && (
@@ -663,6 +913,26 @@ export default function ManageEventPage({
             >
               Weekly Recurring
             </button>
+            <button
+              onClick={() => setCreationMode('copy_week')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'copy_week'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Copy Week
+            </button>
+            <button
+              onClick={() => setCreationMode('import_csv')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                creationMode === 'import_csv'
+                  ? 'bg-[#6F71EE] text-white'
+                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+              }`}
+            >
+              Import CSV
+            </button>
           </div>
           {/* Tab Helper Text */}
           <p className="text-sm text-[#667085] mb-6">
@@ -670,6 +940,8 @@ export default function ManageEventPage({
             {creationMode === 'single' && 'Add one specific date and time'}
             {creationMode === 'bulk' && 'Create multiple slots across a date range on selected days'}
             {creationMode === 'recurring' && 'Repeat on the same day each week'}
+            {creationMode === 'copy_week' && 'Copy slots from one week to another'}
+            {creationMode === 'import_csv' && 'Upload a CSV file with dates and times'}
           </p>
 
           {/* Single Slot Form */}
@@ -926,7 +1198,198 @@ export default function ManageEventPage({
             />
           )}
 
-          {creationMode !== 'calendar' && (
+          {/* Copy Week Form */}
+          {creationMode === 'copy_week' && (
+            <div>
+              <form onSubmit={handleCopyWeek} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Source Week (copy from)
+                    </label>
+                    <input
+                      type="week"
+                      required
+                      value={copySourceWeek}
+                      onChange={(e) => setCopySourceWeek(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <p className="text-xs text-[#667085] mt-1">Select the week with existing slots</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Target Week (copy to)
+                    </label>
+                    <input
+                      type="week"
+                      required
+                      value={copyTargetWeek}
+                      onChange={(e) => setCopyTargetWeek(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <p className="text-xs text-[#667085] mt-1">Select the week where slots will be created</p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={copyingWeek || !copySourceWeek || !copyTargetWeek}
+                  className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                >
+                  {copyingWeek ? 'Copying...' : 'Copy Slots'}
+                </button>
+              </form>
+
+              {copyWeekResult && (
+                <div className="mt-4 p-4 bg-[#F6F6F9] rounded-lg">
+                  <p className="text-sm font-medium text-[#101E57] mb-2">{copyWeekResult.message}</p>
+                  {copyWeekResult.created.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-xs text-green-600 font-medium mb-1">Created:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {copyWeekResult.created.slice(0, 10).map((slot, i) => (
+                          <span key={i} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                            {format(parseISO(slot.start_time), 'EEE, MMM d h:mm a')}
+                          </span>
+                        ))}
+                        {copyWeekResult.created.length > 10 && (
+                          <span className="text-xs text-[#667085]">+{copyWeekResult.created.length - 10} more</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {copyWeekResult.skipped.length > 0 && (
+                    <div>
+                      <p className="text-xs text-amber-600 font-medium mb-1">Skipped:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {copyWeekResult.skipped.slice(0, 5).map((slot, i) => (
+                          <span key={i} className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded" title={slot.reason}>
+                            {format(parseISO(slot.start_time), 'EEE, MMM d h:mm a')}
+                          </span>
+                        ))}
+                        {copyWeekResult.skipped.length > 5 && (
+                          <span className="text-xs text-[#667085]">+{copyWeekResult.skipped.length - 5} more</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Import CSV Form */}
+          {creationMode === 'import_csv' && (
+            <div>
+              <form onSubmit={handleImportCsv} className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="csv-upload"
+                  />
+                  <label
+                    htmlFor="csv-upload"
+                    className="cursor-pointer block"
+                  >
+                    <div className="w-12 h-12 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    {importFile ? (
+                      <p className="text-sm font-medium text-[#101E57]">{importFile.name}</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium text-[#101E57]">Click to upload CSV file</p>
+                        <p className="text-xs text-[#667085] mt-1">or drag and drop</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={downloadSampleCsv}
+                    className="text-sm text-[#6F71EE] hover:underline"
+                  >
+                    Download sample CSV
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={importingCsv || !importFile}
+                    className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                  >
+                    {importingCsv ? 'Importing...' : 'Import Slots'}
+                  </button>
+                </div>
+
+                <div className="text-xs text-[#667085] bg-[#F6F6F9] rounded-lg p-3">
+                  <p className="font-medium mb-1">CSV Format:</p>
+                  <code className="block bg-white p-2 rounded text-[#101E57]">
+                    date,time<br />
+                    2025-02-03,10:00<br />
+                    2025-02-03,14:00
+                  </code>
+                </div>
+              </form>
+
+              {importResult && (
+                <div className="mt-4 p-4 bg-[#F6F6F9] rounded-lg">
+                  <p className="text-sm font-medium text-[#101E57] mb-2">{importResult.message}</p>
+                  {importResult.created.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-xs text-green-600 font-medium mb-1">Created:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {importResult.created.slice(0, 10).map((slot, i) => (
+                          <span key={i} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                            {slot.date} {slot.time}
+                          </span>
+                        ))}
+                        {importResult.created.length > 10 && (
+                          <span className="text-xs text-[#667085]">+{importResult.created.length - 10} more</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {importResult.skipped.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-xs text-amber-600 font-medium mb-1">Skipped:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {importResult.skipped.slice(0, 5).map((slot, i) => (
+                          <span key={i} className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded" title={slot.reason}>
+                            {slot.date} {slot.time}
+                          </span>
+                        ))}
+                        {importResult.skipped.length > 5 && (
+                          <span className="text-xs text-[#667085]">+{importResult.skipped.length - 5} more</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {importResult.parseErrors && importResult.parseErrors.length > 0 && (
+                    <div>
+                      <p className="text-xs text-red-600 font-medium mb-1">Parse errors:</p>
+                      <ul className="text-xs text-red-600 list-disc pl-4">
+                        {importResult.parseErrors.slice(0, 3).map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                        {importResult.parseErrors.length > 3 && (
+                          <li>+{importResult.parseErrors.length - 3} more errors</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {creationMode !== 'calendar' && creationMode !== 'copy_week' && creationMode !== 'import_csv' && (
             <p className="text-sm text-[#667085] mt-4">
               Each slot is {event.duration_minutes} minutes. Google Calendar events with Meet links will be created automatically.
             </p>

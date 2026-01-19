@@ -203,6 +203,29 @@ export interface OHSessionTemplate {
   is_system: boolean;
   created_at: string;
   updated_at: string;
+  // Extended fields
+  buffer_before: number;
+  buffer_after: number;
+  start_time_increment: number;
+  require_approval: boolean;
+  display_timezone: string | null;
+  lock_timezone: boolean;
+  allow_guests: boolean;
+  guest_limit: number;
+  confirmation_subject: string | null;
+  confirmation_body: string | null;
+  reminder_subject: string | null;
+  reminder_body: string | null;
+  cancellation_subject: string | null;
+  cancellation_body: string | null;
+  waitlist_enabled: boolean;
+  waitlist_limit: number | null;
+  sms_reminders_enabled: boolean;
+  sms_phone_required: boolean;
+  phone_required: boolean;
+  round_robin_strategy: string | null;
+  round_robin_period: string | null;
+  created_by: string | null;
 }
 
 export interface SlotWithBookings extends OHSlot {

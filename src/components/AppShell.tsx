@@ -81,6 +81,10 @@ const subNavConfig: Record<string, SubNavItem[]> = {
     { href: '/admin/sms', label: 'Dashboard', exact: true },
     { href: '/admin/sms/logs', label: 'Logs' },
   ],
+  settings: [
+    { href: '/admin/settings', label: 'General', exact: true },
+    { href: '/admin/settings/templates', label: 'Templates' },
+  ],
 };
 
 // =============================================================================

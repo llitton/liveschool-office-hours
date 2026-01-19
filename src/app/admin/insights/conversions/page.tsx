@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageContainer, PageHeader } from '@/components/AppShell';
+import { ExportButton } from '@/components/ExportButton';
 
 interface FunnelStep {
   step: string;
@@ -215,20 +216,27 @@ export default function ConversionsPage() {
         title="Booking Conversions"
         description="Track how visitors move through your booking funnel and identify drop-off points."
         action={
-          <div className="flex items-center gap-1 bg-white rounded-lg border border-[#E0E0E0] p-1">
-            {(['week', 'month', 'all'] as Period[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                  period === p
-                    ? 'bg-[#101E57] text-white'
-                    : 'text-[#667085] hover:text-[#101E57]'
-                }`}
-              >
-                {p === 'all' ? 'All time' : p === 'week' ? 'Past week' : 'Past month'}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <ExportButton
+              endpoint="/api/analytics/conversions/export"
+              params={{ period }}
+              filename={`conversions-${period}.csv`}
+            />
+            <div className="flex items-center gap-1 bg-white rounded-lg border border-[#E0E0E0] p-1">
+              {(['week', 'month', 'all'] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                    period === p
+                      ? 'bg-[#101E57] text-white'
+                      : 'text-[#667085] hover:text-[#101E57]'
+                  }`}
+                >
+                  {p === 'all' ? 'All time' : p === 'week' ? 'Past week' : 'Past month'}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />

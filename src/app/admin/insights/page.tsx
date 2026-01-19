@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { PageContainer, PageHeader } from '@/components/AppShell';
+import { ExportButton } from '@/components/ExportButton';
 
 interface TeamMemberHealth {
   id: string;
@@ -82,20 +83,27 @@ export default function InsightsPage() {
         title="Insights"
         description="Understand how your sessions are performing and where to improve."
         action={
-          <div className="flex items-center gap-1 bg-white rounded-lg border border-[#E0E0E0] p-1">
-            {(['week', 'month', 'quarter', 'all'] as Period[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                  period === p
-                    ? 'bg-[#101E57] text-white'
-                    : 'text-[#667085] hover:text-[#101E57]'
-                }`}
-              >
-                {p === 'all' ? 'All time' : p.charAt(0).toUpperCase() + p.slice(1)}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <ExportButton
+              endpoint="/api/analytics/team-health/export"
+              params={{ period }}
+              filename={`team-health-${period}.csv`}
+            />
+            <div className="flex items-center gap-1 bg-white rounded-lg border border-[#E0E0E0] p-1">
+              {(['week', 'month', 'quarter', 'all'] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                    period === p
+                      ? 'bg-[#101E57] text-white'
+                      : 'text-[#667085] hover:text-[#101E57]'
+                  }`}
+                >
+                  {p === 'all' ? 'All time' : p.charAt(0).toUpperCase() + p.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />
