@@ -17,10 +17,11 @@ export function AttendeeCalendarConnect({
   const {
     isConnected,
     isLoading,
-    email,
+    connection,
     busyTimes,
     error,
-    connect,
+    connectGoogle,
+    connectMicrosoft,
     disconnect,
     fetchBusyTimes,
   } = useAttendeeCalendar();
@@ -48,21 +49,27 @@ export function AttendeeCalendarConnect({
     );
   }
 
-  if (isConnected) {
+  if (isConnected && connection) {
+    const isGoogle = connection.provider === 'google';
+    const providerName = isGoogle ? 'Google Calendar' : 'Outlook';
+    const bgColor = isGoogle ? 'bg-[#4285f4]/5' : 'bg-[#6F71EE]/5';
+    const borderColor = isGoogle ? 'border-[#4285f4]/20' : 'border-[#6F71EE]/20';
+    const iconBgColor = isGoogle ? 'bg-[#4285f4]' : 'bg-[#6F71EE]';
+
     return (
-      <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mb-4">
+      <div className={`${bgColor} border ${borderColor} rounded-lg p-4 mb-4`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#6F71EE] rounded flex items-center justify-center">
+            <div className={`w-8 h-8 ${iconBgColor} rounded flex items-center justify-center`}>
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div>
               <p className="text-sm font-medium text-[#101E57]">
-                Outlook connected
+                {providerName} connected
               </p>
-              <p className="text-xs text-[#667085]">{email}</p>
+              <p className="text-xs text-[#667085]">{connection.email}</p>
             </div>
           </div>
           <button
@@ -91,10 +98,8 @@ export function AttendeeCalendarConnect({
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 bg-[#F6F6F9] rounded flex items-center justify-center flex-shrink-0">
-          {/* Microsoft/Outlook icon */}
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#0078D4"/>
-            <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#0078D4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg className="w-5 h-5 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
         <div className="flex-1">
@@ -102,17 +107,40 @@ export function AttendeeCalendarConnect({
             See your availability
           </p>
           <p className="text-xs text-[#667085] mb-3">
-            Connect your Outlook calendar to see conflicts while booking.
+            Connect your calendar to see conflicts while booking.
           </p>
-          <button
-            onClick={connect}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-[#0078D4] text-white text-sm font-medium rounded-lg hover:bg-[#106EBE] transition"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M21.17 2.06A2 2 0 0019.5 2h-15a2 2 0 00-2 2v16a2 2 0 002 2h15a2 2 0 002-2V4a2 2 0 00-1.33-1.94zM12 17.5l-5-3 5-3 5 3-5 3z"/>
-            </svg>
-            Connect Outlook
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {/* Google Calendar button */}
+            <button
+              onClick={connectGoogle}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-[#101E57] text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 transition"
+            >
+              {/* Google Calendar icon */}
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10c5.52 0 10-4.48 10-10zM10.88 17.76l-4.26-4.26 1.42-1.42 2.84 2.84 5.66-5.66 1.42 1.42-7.08 7.08z"/>
+                <path fill="#34A853" d="M12 22c5.52 0 10-4.48 10-10h-4c0 3.31-2.69 6-6 6v4z"/>
+                <path fill="#FBBC05" d="M2 12c0 5.52 4.48 10 10 10v-4c-3.31 0-6-2.69-6-6H2z"/>
+                <path fill="#EA4335" d="M12 2C6.48 2 2 6.48 2 12h4c0-3.31 2.69-6 6-6V2z"/>
+                <path fill="#4285F4" d="M22 12c0-5.52-4.48-10-10-10v4c3.31 0 6 2.69 6 6h4z"/>
+              </svg>
+              Google
+            </button>
+
+            {/* Microsoft/Outlook button */}
+            <button
+              onClick={connectMicrosoft}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 text-[#101E57] text-sm font-medium rounded-lg hover:bg-gray-50 hover:border-gray-400 transition"
+            >
+              {/* Microsoft icon */}
+              <svg className="w-4 h-4" viewBox="0 0 21 21">
+                <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+                <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+                <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+                <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+              </svg>
+              Outlook
+            </button>
+          </div>
           <p className="text-[10px] text-[#667085] mt-2 flex items-center gap-1">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

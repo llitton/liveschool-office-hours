@@ -7,13 +7,21 @@ export interface BusyTimeBlock {
   end: string;
 }
 
+export type CalendarProvider = 'google' | 'microsoft';
+
+interface CalendarConnection {
+  provider: CalendarProvider;
+  email: string;
+}
+
 interface UseAttendeeCalendarReturn {
   isConnected: boolean;
   isLoading: boolean;
-  email: string | null;
+  connection: CalendarConnection | null;
   busyTimes: BusyTimeBlock[];
   error: string | null;
-  connect: () => void;
+  connectGoogle: () => void;
+  connectMicrosoft: () => void;
   disconnect: () => Promise<void>;
   fetchBusyTimes: (start: string, end: string) => Promise<void>;
 }
@@ -21,7 +29,7 @@ interface UseAttendeeCalendarReturn {
 export function useAttendeeCalendar(): UseAttendeeCalendarReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [email, setEmail] = useState<string | null>(null);
+  const [connection, setConnection] = useState<CalendarConnection | null>(null);
   const [busyTimes, setBusyTimes] = useState<BusyTimeBlock[]>([]);
   const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<Window | null>(null);
@@ -31,18 +39,36 @@ export function useAttendeeCalendar(): UseAttendeeCalendarReturn {
     checkStatus();
   }, []);
 
-  // Listen for OAuth callback message from popup
+  // Listen for OAuth callback messages from popup (both providers)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      // Handle Microsoft callback
       if (event.data?.type === 'microsoft-calendar-auth') {
         if (event.data.success) {
           setIsConnected(true);
-          setEmail(event.data.email || null);
+          setConnection({
+            provider: 'microsoft',
+            email: event.data.email || '',
+          });
           setError(null);
         } else {
           setError(event.data.error || 'Connection failed');
         }
-        // Close popup reference
+        popupRef.current = null;
+      }
+
+      // Handle Google callback
+      if (event.data?.type === 'google-calendar-auth') {
+        if (event.data.success) {
+          setIsConnected(true);
+          setConnection({
+            provider: 'google',
+            email: event.data.email || '',
+          });
+          setError(null);
+        } else {
+          setError(event.data.error || 'Connection failed');
+        }
         popupRef.current = null;
       }
     };
@@ -54,11 +80,33 @@ export function useAttendeeCalendar(): UseAttendeeCalendarReturn {
   const checkStatus = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/attendee-calendar/status');
-      const data = await response.json();
 
-      setIsConnected(data.connected);
-      setEmail(data.email || null);
+      // Check both providers in parallel
+      const [msResponse, googleResponse] = await Promise.all([
+        fetch('/api/attendee-calendar/status'),
+        fetch('/api/attendee-calendar/google?action=status'),
+      ]);
+
+      const msData = await msResponse.json();
+      const googleData = await googleResponse.json();
+
+      // Prefer whichever is connected (Microsoft first if both)
+      if (msData.connected) {
+        setIsConnected(true);
+        setConnection({
+          provider: 'microsoft',
+          email: msData.email || '',
+        });
+      } else if (googleData.connected) {
+        setIsConnected(true);
+        setConnection({
+          provider: 'google',
+          email: googleData.email || '',
+        });
+      } else {
+        setIsConnected(false);
+        setConnection(null);
+      }
     } catch (err) {
       console.error('Error checking calendar status:', err);
       setIsConnected(false);
@@ -67,16 +115,15 @@ export function useAttendeeCalendar(): UseAttendeeCalendarReturn {
     }
   };
 
-  const connect = useCallback(() => {
-    // Open popup for OAuth
+  const openPopup = (url: string) => {
     const width = 500;
     const height = 600;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     const popup = window.open(
-      '/api/attendee-calendar/auth',
-      'microsoft-calendar-auth',
+      url,
+      'calendar-auth',
       `width=${width},height=${height},left=${left},top=${top},popup=yes`
     );
 
@@ -86,35 +133,48 @@ export function useAttendeeCalendar(): UseAttendeeCalendarReturn {
     } else {
       setError('Popup blocked. Please allow popups for this site.');
     }
+  };
+
+  const connectGoogle = useCallback(() => {
+    openPopup('/api/attendee-calendar/google');
+  }, []);
+
+  const connectMicrosoft = useCallback(() => {
+    openPopup('/api/attendee-calendar/auth');
   }, []);
 
   const disconnect = useCallback(async () => {
     try {
-      await fetch('/api/attendee-calendar/disconnect', { method: 'POST' });
+      if (connection?.provider === 'google') {
+        await fetch('/api/attendee-calendar/google?action=disconnect', { method: 'POST' });
+      } else {
+        await fetch('/api/attendee-calendar/disconnect', { method: 'POST' });
+      }
       setIsConnected(false);
-      setEmail(null);
+      setConnection(null);
       setBusyTimes([]);
       setError(null);
     } catch (err) {
       console.error('Error disconnecting calendar:', err);
       setError('Failed to disconnect');
     }
-  }, []);
+  }, [connection]);
 
   const fetchBusyTimes = useCallback(async (start: string, end: string) => {
-    if (!isConnected) return;
+    if (!isConnected || !connection) return;
 
     try {
-      const response = await fetch(
-        `/api/attendee-calendar/busy?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
-      );
+      const url = connection.provider === 'google'
+        ? `/api/attendee-calendar/google?action=busy&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
+        : `/api/attendee-calendar/busy?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
         if (data.connected === false) {
-          // Session expired
           setIsConnected(false);
-          setEmail(null);
+          setConnection(null);
           setBusyTimes([]);
           setError(data.error || 'Session expired');
         } else {
@@ -126,23 +186,24 @@ export function useAttendeeCalendar(): UseAttendeeCalendarReturn {
       setBusyTimes(data.busy || []);
       setError(null);
 
-      // Update email if returned (in case token was refreshed)
-      if (data.email) {
-        setEmail(data.email);
+      // Update email if returned
+      if (data.email && connection) {
+        setConnection(prev => prev ? { ...prev, email: data.email } : null);
       }
     } catch (err) {
       console.error('Error fetching busy times:', err);
       setError('Failed to fetch calendar');
     }
-  }, [isConnected]);
+  }, [isConnected, connection]);
 
   return {
     isConnected,
     isLoading,
-    email,
+    connection,
     busyTimes,
     error,
-    connect,
+    connectGoogle,
+    connectMicrosoft,
     disconnect,
     fetchBusyTimes,
   };
