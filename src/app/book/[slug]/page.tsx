@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, parseISO, areIntervalsOverlapping } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -9,6 +9,7 @@ import type { OHEvent, OHSlot, CustomQuestion, BusyTimeBlock } from '@/types';
 import { decodeResponses } from '@/lib/routing';
 import { TroubleshootModal } from '@/components/TroubleshootModal';
 import { AttendeeCalendarConnect } from '@/components/AttendeeCalendarConnect';
+import { useBookingAnalytics } from '@/hooks/useBookingAnalytics';
 
 interface SlotWithCount extends OHSlot {
   booking_count: number;
@@ -131,6 +132,16 @@ export default function BookingPage({
   // Attendee calendar overlay
   const [attendeeBusyTimes, setAttendeeBusyTimes] = useState<BusyTimeBlock[]>([]);
 
+  // Form started tracking ref
+  const formStartedRef = useRef(false);
+
+  // Analytics tracking
+  const analytics = useBookingAnalytics({
+    eventSlug: slug,
+    eventId: event?.id,
+    eventName: event?.name,
+  });
+
   useEffect(() => {
     // Detect user's timezone
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -154,6 +165,13 @@ export default function BookingPage({
   useEffect(() => {
     fetchEventAndSlots();
   }, [slug]);
+
+  // Track page view when event data loads
+  useEffect(() => {
+    if (event) {
+      analytics.trackPageView();
+    }
+  }, [event, analytics]);
 
   // Prefill question responses from routing form if available
   useEffect(() => {
@@ -342,6 +360,9 @@ export default function BookingPage({
     setBooking(true);
     setError('');
 
+    // Track form submission
+    analytics.trackFormSubmit();
+
     try {
       // Check if this is a dynamic slot (non-webinar events use dynamic availability)
       const isDynamicSlot = selectedSlot.id.startsWith('dynamic-');
@@ -357,19 +378,28 @@ export default function BookingPage({
           attendee_timezone: timezone,
           preferred_host_id: preferredHostId || undefined,
           guest_emails: guestEmails.length > 0 ? guestEmails : undefined,
+          analytics_session_id: analytics.getSessionId(), // Link booking to analytics session
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to book');
+        const errorMessage = data.error || 'Failed to book';
+        analytics.trackBookingFailed('BOOKING_ERROR', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Track successful booking
+      if (data.booking?.id) {
+        analytics.trackBookingCreated(data.booking.id);
       }
 
       setBookingResult(data);
       setBookingComplete(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to complete booking');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to complete booking';
+      setError(errorMessage);
     } finally {
       setBooking(false);
     }
@@ -682,7 +712,7 @@ export default function BookingPage({
               )}
 
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-[#101E57] mb-1">
                       First Name *
@@ -697,6 +727,12 @@ export default function BookingPage({
                           first_name: e.target.value,
                         }))
                       }
+                      onFocus={() => {
+                        if (!formStartedRef.current) {
+                          formStartedRef.current = true;
+                          analytics.trackFormStart();
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                     />
                   </div>
@@ -714,6 +750,12 @@ export default function BookingPage({
                           last_name: e.target.value,
                         }))
                       }
+                      onFocus={() => {
+                        if (!formStartedRef.current) {
+                          formStartedRef.current = true;
+                          analytics.trackFormStart();
+                        }
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                     />
                   </div>
@@ -1224,7 +1266,12 @@ export default function BookingPage({
                             return (
                               <button
                                 key={slot.id}
-                                onClick={() => !isFull && setSelectedSlot(slot)}
+                                onClick={() => {
+                                  if (!isFull) {
+                                    analytics.trackSlotSelection(slot.id, slot.start_time);
+                                    setSelectedSlot(slot);
+                                  }
+                                }}
                                 disabled={isFull}
                                 title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
                                 className={`px-4 py-2.5 rounded-lg border-2 transition-all duration-150 font-medium min-h-[44px] ${

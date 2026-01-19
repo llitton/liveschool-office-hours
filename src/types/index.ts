@@ -597,6 +597,92 @@ export interface OHPollVote {
   created_at: string;
 }
 
+// ============================================
+// BOOKING ANALYTICS TYPES
+// ============================================
+
+export type BookingAnalyticsEventType =
+  | 'page_view'
+  | 'slot_selection'
+  | 'form_start'
+  | 'form_submit'
+  | 'booking_created'
+  | 'booking_failed';
+
+export interface BookingAnalyticsEvent {
+  id: string;
+  session_id: string;
+  event_id: string | null;
+  slot_id: string | null;
+  booking_id: string | null;
+  event_type: BookingAnalyticsEventType;
+  event_slug: string | null;
+  selected_slot_time: string | null;
+  referrer_url: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  device_type: string | null;
+  browser_name: string | null;
+  visitor_timezone: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  event_name: string | null;
+}
+
+export interface ConversionFunnelData {
+  pageViews: number;
+  slotSelections: number;
+  formStarts: number;
+  formSubmits: number;
+  bookingsCreated: number;
+  bookingsFailed: number;
+}
+
+export interface ConversionStats {
+  summary: {
+    period: string;
+    startDate: string;
+    endDate: string;
+    totalPageViews: number;
+    totalBookings: number;
+    overallConversionRate: number;
+  };
+  funnel: ConversionFunnelData & {
+    pageToSlotRate: number;
+    slotToFormRate: number;
+    formStartToSubmitRate: number;
+    submitToBookingRate: number;
+  };
+  byEvent: Array<{
+    eventId: string;
+    eventName: string;
+    eventSlug: string;
+    pageViews: number;
+    bookings: number;
+    conversionRate: number;
+  }>;
+  byDay: Array<{
+    date: string;
+    pageViews: number;
+    bookings: number;
+    conversionRate: number;
+  }>;
+  topDropOffs: Array<{
+    step: string;
+    fromStep: string;
+    toStep: string;
+    dropOffRate: number;
+    sessionsLost: number;
+  }>;
+  errors: Array<{
+    errorCode: string;
+    errorMessage: string;
+    count: number;
+  }>;
+}
+
 export interface OHPollInvitee {
   id: string;
   poll_id: string;

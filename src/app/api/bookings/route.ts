@@ -66,7 +66,7 @@ async function syncBookingToHubSpot(
 // POST create booking (public)
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  let { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent, event_id, guest_emails } = body;
+  let { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent, event_id, guest_emails, analytics_session_id } = body;
 
   // Validate guest_emails if provided
   let validatedGuestEmails: string[] = [];
@@ -871,8 +871,29 @@ export async function POST(request: NextRequest) {
     }
   ).catch((err) => console.error('Slack notification failed:', err));
 
+  // Track booking_created analytics event (non-blocking)
+  if (analytics_session_id) {
+    (async () => {
+      try {
+        await supabase.from('oh_booking_analytics').insert({
+          session_id: analytics_session_id,
+          event_type: 'booking_created',
+          event_id: slot.event_id,
+          event_slug: slot.event.slug,
+          event_name: slot.event.name,
+          slot_id: slot.id,
+          booking_id: booking.id,
+          selected_slot_time: slot.start_time,
+        });
+      } catch (err) {
+        console.error('Analytics tracking failed:', err);
+      }
+    })();
+  }
+
   return NextResponse.json({
     ...booking,
+    booking, // Include nested booking object for analytics tracking
     event: slot.event,
     slot: {
       start_time: slot.start_time,

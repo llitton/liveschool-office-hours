@@ -73,6 +73,7 @@ const subNavConfig: Record<string, SubNavItem[]> = {
   ],
   insights: [
     { href: '/admin/insights', label: 'Overview', exact: true },
+    { href: '/admin/insights/conversions', label: 'Conversions' },
     { href: '/admin/insights/attendance', label: 'Attendance' },
     { href: '/admin/insights/topics', label: 'Topics' },
   ],
