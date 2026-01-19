@@ -91,8 +91,8 @@ const helpSections: HelpSection[] = [
       {
         id: 'share-link',
         title: 'Sharing Your Booking Link',
-        description: 'Send your link to let people schedule sessions.',
-        body: 'Once your session has time slots, share the booking link with others via email, Slack, or your website.',
+        description: 'Send your link or QR code to let people schedule sessions.',
+        body: 'Share your booking link via email, Slack, your website, or print a QR code for in-person events.',
         steps: [
           'Go to the Sessions page',
           'Find your session and click Copy Link',
@@ -106,6 +106,15 @@ const helpSections: HelpSection[] = [
               'See your available time slots',
               'Select a time that works for them',
               'Fill in their information and book',
+            ],
+          },
+          {
+            label: 'QR codes for easy sharing',
+            items: [
+              'Open your event and click the menu (...)',
+              'Select QR Code to generate a scannable code',
+              'Download as PNG or SVG for printing',
+              'Great for classrooms, flyers, and events',
             ],
           },
         ],
@@ -195,8 +204,8 @@ const helpSections: HelpSection[] = [
       {
         id: 'templates',
         title: 'Session Templates',
-        description: 'Quickly create common session types with pre-filled settings.',
-        body: 'Templates save time when creating sessions you run often.',
+        description: 'Save and reuse event configurations for quick setup.',
+        body: 'Templates save time when creating sessions you run often. Use built-in templates or save your own.',
         lists: [
           {
             label: 'Built-in templates',
@@ -207,12 +216,20 @@ const helpSections: HelpSection[] = [
               'Training Workshop — hands-on learning',
             ],
           },
+          {
+            label: 'Save your own templates',
+            items: [
+              'Configure an event exactly how you want it',
+              'Click the menu (...) and choose Save as Template',
+              'Name your template and add a description',
+              'Reuse it from Settings → Templates',
+            ],
+          },
         ],
         steps: [
-          'Click Create New Session',
-          'Choose a template from Quick Start',
-          'The form will be pre-filled with common settings',
-          'Customize as needed',
+          'To use a template: Click Create New Session → Choose a template',
+          'To save a template: Open any event → Menu → Save as Template',
+          'To manage templates: Go to Settings → Templates',
         ],
       },
     ],
@@ -321,6 +338,32 @@ const helpSections: HelpSection[] = [
         ],
       },
       {
+        id: 'conversions',
+        title: 'Booking Conversions',
+        description: 'Track how visitors become bookings through your funnel.',
+        body: 'The Conversions dashboard shows how people move from viewing your booking page to completing a booking.',
+        lists: [
+          {
+            label: 'Funnel stages tracked',
+            items: [
+              'Page views — visitors who saw your booking page',
+              'Time selected — visitors who clicked a time slot',
+              'Form started — visitors who began entering details',
+              'Bookings completed — successful bookings',
+            ],
+          },
+          {
+            label: 'Use this data to',
+            items: [
+              'Identify drop-off points in your booking flow',
+              'Compare conversion rates across events',
+              'Spot trends over time (daily, weekly, monthly)',
+              'Optimize your booking page and questions',
+            ],
+          },
+        ],
+      },
+      {
         id: 'insights',
         title: 'Team Insights',
         description: 'Monitor session performance across your team.',
@@ -359,6 +402,31 @@ const helpSections: HelpSection[] = [
               'Follow up with no-shows to reschedule',
             ],
           },
+        ],
+      },
+      {
+        id: 'export-data',
+        title: 'Exporting Data',
+        description: 'Download analytics and booking data as CSV files.',
+        body: 'Export your data for reporting, analysis in spreadsheets, or integration with other tools.',
+        lists: [
+          {
+            label: 'What you can export',
+            items: [
+              'Booking conversions — funnel data and trends',
+              'Team health metrics — host performance data',
+              'Event bookings — attendee list for any event',
+            ],
+          },
+        ],
+        steps: [
+          'Go to Insights → Conversions or Team Health',
+          'Click the Export CSV button in the header',
+          'Open the downloaded file in Excel or Google Sheets',
+        ],
+        tips: [
+          'Exports include all data for the selected time period',
+          'Event booking exports are available from the event menu',
         ],
       },
     ],
@@ -445,8 +513,8 @@ const helpSections: HelpSection[] = [
       {
         id: 'webinars',
         title: 'Webinars',
-        description: 'Scheduled sessions at specific times with specific capacity.',
-        body: 'Webinars are different from other event types — they require manually created time slots instead of using dynamic availability.',
+        description: 'Scheduled sessions at specific times with bulk creation tools.',
+        body: 'Webinars require manually created time slots. Use bulk tools to create many slots quickly.',
         lists: [
           {
             label: 'How webinars differ',
@@ -457,6 +525,21 @@ const helpSections: HelpSection[] = [
               'Supports high attendee counts',
             ],
           },
+          {
+            label: 'Bulk creation tools',
+            items: [
+              'Calendar View — click to create slots visually',
+              'Bulk Create — set a date range and days of week',
+              'Weekly Recurring — repeat slots every week',
+              'Copy Week — duplicate slots from one week to another',
+              'Import CSV — upload a file with dates and times',
+            ],
+          },
+        ],
+        tips: [
+          'Use Copy Week to quickly replicate your schedule',
+          'CSV import format: date,time (e.g., 2025-02-03,10:00)',
+          'Download a sample CSV from the Import tab',
         ],
       },
     ],

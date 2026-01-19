@@ -193,6 +193,7 @@ export default function HowWeBuiltThisPage() {
           {[
             { feature: 'Event booking system', desc: 'Public booking pages with custom questions' },
             { feature: 'Google Calendar sync', desc: 'Reads availability, creates events' },
+            { feature: 'Outlook calendar overlay', desc: 'Attendees can see their calendar when booking' },
             { feature: 'Email confirmations', desc: 'Automated emails with calendar links' },
             { feature: 'SMS reminders', desc: 'Text notifications with delivery tracking dashboard' },
             { feature: 'HubSpot integration', desc: 'Contacts and meetings sync automatically' },
@@ -203,6 +204,12 @@ export default function HowWeBuiltThisPage() {
             { feature: 'Meeting polls', desc: 'Find times that work for groups' },
             { feature: 'Routing forms', desc: 'Direct people to right event type' },
             { feature: 'Quick Links', desc: 'Personal booking URLs for team' },
+            { feature: 'Booking conversion analytics', desc: 'Track funnel from view to booking' },
+            { feature: 'CSV export', desc: 'Download analytics and booking data' },
+            { feature: 'Event templates', desc: 'Save and reuse event configurations' },
+            { feature: 'Bulk slot creation', desc: 'Copy weeks, import CSV files' },
+            { feature: 'QR code generator', desc: 'Print codes for easy booking' },
+            { feature: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
           ].map((item) => (
             <div key={item.feature} className="bg-white rounded-xl border border-gray-200 p-4">
               <h3 className="font-medium text-[#101E57] mb-1">{item.feature}</h3>
