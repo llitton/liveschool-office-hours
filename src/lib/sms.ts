@@ -183,3 +183,97 @@ export async function isSMSConfigured(): Promise<boolean> {
   const config = await getSMSConfig();
   return config !== null && config.is_active;
 }
+
+/**
+ * Calculate the number of SMS segments for a message
+ * GSM-7 encoding: 160 chars for single, 153 chars per segment for multi
+ * Unicode (emojis, etc): 70 chars for single, 67 chars per segment for multi
+ */
+export function calculateSMSSegments(message: string): { segments: number; encoding: 'gsm' | 'unicode' } {
+  // Check if message contains non-GSM characters (Unicode)
+  // GSM-7 basic character set (simplified check)
+  const gsmRegex = /^[@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-.\/0-9:;<=>?¡A-ZÄÖÑܧ¿a-zäöñüà\r\n]*$/;
+  const isGSM = gsmRegex.test(message);
+
+  const length = message.length;
+
+  if (isGSM) {
+    if (length <= 160) return { segments: 1, encoding: 'gsm' };
+    return { segments: Math.ceil(length / 153), encoding: 'gsm' };
+  } else {
+    if (length <= 70) return { segments: 1, encoding: 'unicode' };
+    return { segments: Math.ceil(length / 67), encoding: 'unicode' };
+  }
+}
+
+/**
+ * Log an SMS message to the database for tracking
+ */
+export async function logSMSSend(params: {
+  bookingId?: string | null;
+  eventId?: string | null;
+  recipientPhone: string;
+  recipientName?: string | null;
+  messageType: 'reminder_24h' | 'reminder_1h' | 'test' | 'custom';
+  messageBody: string;
+  provider: string;
+  providerMessageId?: string | null;
+  status: 'sent' | 'delivered' | 'failed';
+  errorMessage?: string | null;
+}): Promise<string | null> {
+  const supabase = getServiceSupabase();
+
+  const { segments } = calculateSMSSegments(params.messageBody);
+
+  const { data, error } = await supabase
+    .from('oh_sms_logs')
+    .insert({
+      booking_id: params.bookingId || null,
+      event_id: params.eventId || null,
+      recipient_phone: params.recipientPhone,
+      recipient_name: params.recipientName || null,
+      message_type: params.messageType,
+      message_body: params.messageBody,
+      character_count: params.messageBody.length,
+      segment_count: segments,
+      status: params.status,
+      provider: params.provider,
+      provider_message_id: params.providerMessageId || null,
+      error_message: params.errorMessage || null,
+      sent_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Failed to log SMS:', error);
+    return null;
+  }
+
+  return data?.id || null;
+}
+
+/**
+ * Update an SMS log entry (e.g., for delivery status updates)
+ */
+export async function updateSMSLog(
+  logId: string,
+  updates: {
+    status?: 'sent' | 'delivered' | 'failed';
+    providerMessageId?: string;
+    errorMessage?: string;
+  }
+): Promise<boolean> {
+  const supabase = getServiceSupabase();
+
+  const { error } = await supabase
+    .from('oh_sms_logs')
+    .update({
+      status: updates.status,
+      provider_message_id: updates.providerMessageId,
+      error_message: updates.errorMessage,
+    })
+    .eq('id', logId);
+
+  return !error;
+}

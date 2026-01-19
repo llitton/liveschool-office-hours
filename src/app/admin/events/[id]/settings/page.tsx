@@ -12,6 +12,9 @@ import HostSelector from '@/components/HostSelector';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import TaskTemplatesManager from '@/components/TaskTemplatesManager';
 import PrepResourcesManager from '@/components/PrepResourcesManager';
+import { SMSPreview } from '@/components/SMSPreview';
+import { SMSTestButton } from '@/components/SMSTestButton';
+import { SMSProviderWarning } from '@/components/SMSProviderWarning';
 
 export default function EventSettingsPage({
   params,
@@ -63,6 +66,7 @@ export default function EventSettingsPage({
   const [smsPhoneRequired, setSmsPhoneRequired] = useState(false);
   const [smsReminder24hTemplate, setSmsReminder24hTemplate] = useState('');
   const [smsReminder1hTemplate, setSmsReminder1hTemplate] = useState('');
+  const [smsProviderConnected, setSmsProviderConnected] = useState(false);
 
   // Phone requirement (independent of SMS)
   const [phoneRequired, setPhoneRequired] = useState(false);
@@ -78,7 +82,20 @@ export default function EventSettingsPage({
 
   useEffect(() => {
     fetchEvent();
+    fetchSMSStatus();
   }, [id]);
+
+  const fetchSMSStatus = async () => {
+    try {
+      const res = await fetch('/api/sms/status');
+      if (res.ok) {
+        const data = await res.json();
+        setSmsProviderConnected(data.connected);
+      }
+    } catch (err) {
+      console.error('Failed to fetch SMS status:', err);
+    }
+  };
 
   const fetchEvent = async () => {
     try {
@@ -1054,6 +1071,11 @@ export default function EventSettingsPage({
 
             {smsRemindersEnabled && (
               <div className="ml-7 space-y-4 pt-2">
+                {/* Warning if no SMS provider configured */}
+                {!smsProviderConnected && (
+                  <SMSProviderWarning className="mb-2" />
+                )}
+
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1069,38 +1091,50 @@ export default function EventSettingsPage({
                   </div>
                 </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    24-Hour Reminder Message
-                  </label>
-                  <textarea
-                    value={smsReminder24hTemplate}
-                    onChange={(e) => setSmsReminder24hTemplate(e.target.value)}
-                    rows={2}
-                    maxLength={160}
-                    placeholder="Hi {{first_name}}, reminder: {{event_name}} tomorrow at {{time_with_timezone}}. Reply STOP to opt out."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                {/* 24-Hour Reminder with Preview */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      24-Hour Reminder Message
+                    </label>
+                    <textarea
+                      value={smsReminder24hTemplate}
+                      onChange={(e) => setSmsReminder24hTemplate(e.target.value)}
+                      rows={3}
+                      placeholder="Hi {{first_name}}, reminder: {{event_name}} tomorrow at {{time_with_timezone}}. Reply STOP to opt out."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <p className="text-xs text-[#667085] mt-1">
+                      Leave empty to use the default template.
+                    </p>
+                  </div>
+                  <SMSPreview
+                    template={smsReminder24hTemplate || `Hi {{first_name}}, reminder: {{event_name}} tomorrow at {{time_with_timezone}}. Reply STOP to opt out.`}
+                    eventId={id}
                   />
-                  <p className="text-xs text-[#667085] mt-1">
-                    {smsReminder24hTemplate.length}/160 characters. Leave empty to use default.
-                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    1-Hour Reminder Message
-                  </label>
-                  <textarea
-                    value={smsReminder1hTemplate}
-                    onChange={(e) => setSmsReminder1hTemplate(e.target.value)}
-                    rows={2}
-                    maxLength={160}
-                    placeholder="Hi {{first_name}}, your {{event_name}} session starts in 1 hour at {{time_with_timezone}}."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                {/* 1-Hour Reminder with Preview */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      1-Hour Reminder Message
+                    </label>
+                    <textarea
+                      value={smsReminder1hTemplate}
+                      onChange={(e) => setSmsReminder1hTemplate(e.target.value)}
+                      rows={3}
+                      placeholder="Hi {{first_name}}, your {{event_name}} session starts in 1 hour at {{time_with_timezone}}."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                    <p className="text-xs text-[#667085] mt-1">
+                      Leave empty to use the default template.
+                    </p>
+                  </div>
+                  <SMSPreview
+                    template={smsReminder1hTemplate || `Hi {{first_name}}, your {{event_name}} session starts in 1 hour at {{time_with_timezone}}.`}
+                    eventId={id}
                   />
-                  <p className="text-xs text-[#667085] mt-1">
-                    {smsReminder1hTemplate.length}/160 characters. Leave empty to use default.
-                  </p>
                 </div>
 
                 <div className="bg-[#F6F6F9] rounded-lg p-3">
@@ -1108,6 +1142,20 @@ export default function EventSettingsPage({
                   <p className="text-xs text-[#667085]">
                     {'{{first_name}}'}, {'{{last_name}}'}, {'{{event_name}}'}, {'{{time_with_timezone}}'}, {'{{date}}'}
                   </p>
+                </div>
+
+                {/* Test SMS Button */}
+                <div className="flex items-center gap-4 pt-2">
+                  <SMSTestButton
+                    eventId={id}
+                    templateType="24h"
+                    disabled={!smsProviderConnected}
+                  />
+                  {!smsProviderConnected && (
+                    <p className="text-xs text-[#667085]">
+                      Connect an SMS provider to send test messages
+                    </p>
+                  )}
                 </div>
               </div>
             )}

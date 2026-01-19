@@ -7,7 +7,7 @@ import {
   defaultTemplates,
   htmlifyEmailBody,
 } from '@/lib/email-templates';
-import { getSMSConfig, sendSMS, processSMSTemplate, defaultSMSTemplates } from '@/lib/sms';
+import { getSMSConfig, sendSMS, processSMSTemplate, defaultSMSTemplates, logSMSSend } from '@/lib/sms';
 import { addHours, isAfter, isBefore } from 'date-fns';
 
 // This endpoint is designed to be called by Vercel Cron
@@ -175,15 +175,15 @@ export async function GET(request: NextRequest) {
           const smsSentAt = booking[smsFieldToCheck];
 
           if (!smsSentAt) {
+            // Get the SMS template and message (outside try so catch can access it)
+            const smsTemplate = reminderType === '24h'
+              ? (slot.event.sms_reminder_24h_template || defaultSMSTemplates.reminder_24h)
+              : (slot.event.sms_reminder_1h_template || defaultSMSTemplates.reminder_1h);
+
+            // Process the template with variables (cast to Record type for SMS)
+            const smsMessage = processSMSTemplate(smsTemplate, variables as unknown as Record<string, string | undefined>);
+
             try {
-              // Get the SMS template
-              const smsTemplate = reminderType === '24h'
-                ? (slot.event.sms_reminder_24h_template || defaultSMSTemplates.reminder_24h)
-                : (slot.event.sms_reminder_1h_template || defaultSMSTemplates.reminder_1h);
-
-              // Process the template with variables (cast to Record type for SMS)
-              const smsMessage = processSMSTemplate(smsTemplate, variables as unknown as Record<string, string | undefined>);
-
               // Send the SMS
               const smsSent = await sendSMS(booking.phone, smsMessage);
 
@@ -196,11 +196,52 @@ export async function GET(request: NextRequest) {
                   .update({ [smsUpdateField]: new Date().toISOString() })
                   .eq('id', booking.id);
 
+                // Log successful SMS send
+                await logSMSSend({
+                  bookingId: booking.id,
+                  eventId: slot.event.id,
+                  recipientPhone: booking.phone,
+                  recipientName: `${booking.first_name} ${booking.last_name}`,
+                  messageType: reminderType === '24h' ? 'reminder_24h' : 'reminder_1h',
+                  messageBody: smsMessage,
+                  provider: smsConfig.provider,
+                  status: 'sent',
+                });
+
                 smsRemindersSent++;
                 console.log(`Sent ${reminderType} SMS reminder to ${booking.phone} for slot ${slot.id}`);
+              } else {
+                // Log failed SMS send
+                await logSMSSend({
+                  bookingId: booking.id,
+                  eventId: slot.event.id,
+                  recipientPhone: booking.phone,
+                  recipientName: `${booking.first_name} ${booking.last_name}`,
+                  messageType: reminderType === '24h' ? 'reminder_24h' : 'reminder_1h',
+                  messageBody: smsMessage,
+                  provider: smsConfig.provider,
+                  status: 'failed',
+                  errorMessage: 'SMS send returned false',
+                });
               }
             } catch (smsErr) {
               console.error(`Failed to send SMS reminder to ${booking.phone}:`, smsErr);
+              // Log the error
+              try {
+                await logSMSSend({
+                  bookingId: booking.id,
+                  eventId: slot.event.id,
+                  recipientPhone: booking.phone,
+                  recipientName: `${booking.first_name} ${booking.last_name}`,
+                  messageType: reminderType === '24h' ? 'reminder_24h' : 'reminder_1h',
+                  messageBody: smsMessage,
+                  provider: smsConfig?.provider || 'unknown',
+                  status: 'failed',
+                  errorMessage: smsErr instanceof Error ? smsErr.message : String(smsErr),
+                });
+              } catch {
+                // Ignore logging errors
+              }
               // Don't fail the whole job for SMS errors
             }
           }

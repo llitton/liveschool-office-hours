@@ -387,6 +387,42 @@ export interface OHSMSConfig {
   updated_at: string;
 }
 
+export type SMSMessageType = 'reminder_24h' | 'reminder_1h' | 'test' | 'custom';
+export type SMSStatus = 'sent' | 'delivered' | 'failed';
+
+export interface OHSMSLog {
+  id: string;
+  booking_id: string | null;
+  event_id: string | null;
+  recipient_phone: string;
+  recipient_name: string | null;
+  message_type: SMSMessageType;
+  message_body: string;
+  character_count: number;
+  segment_count: number;
+  status: SMSStatus;
+  provider: SMSProvider;
+  provider_message_id: string | null;
+  error_message: string | null;
+  sent_at: string | null;
+  created_at: string;
+  // Joined data
+  event?: OHEvent;
+  booking?: OHBooking;
+}
+
+export interface SMSUsageStats {
+  period: { start: string; end: string };
+  totalSent: number;
+  totalDelivered: number;
+  totalFailed: number;
+  deliveryRate: number;
+  totalSegments: number;
+  byEvent: Array<{ eventId: string; eventName: string; count: number }>;
+  byDay: Array<{ date: string; sent: number; delivered: number; failed: number }>;
+  byType: Record<SMSMessageType, number>;
+}
+
 // ============================================
 // PREP RESOURCES
 // ============================================

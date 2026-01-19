@@ -194,7 +194,7 @@ export default function HowWeBuiltThisPage() {
             { feature: 'Event booking system', desc: 'Public booking pages with custom questions' },
             { feature: 'Google Calendar sync', desc: 'Reads availability, creates events' },
             { feature: 'Email confirmations', desc: 'Automated emails with calendar links' },
-            { feature: 'SMS reminders', desc: 'Text notifications before sessions' },
+            { feature: 'SMS reminders', desc: 'Text notifications with delivery tracking dashboard' },
             { feature: 'HubSpot integration', desc: 'Contacts and meetings sync automatically' },
             { feature: 'Round-robin scheduling', desc: 'Distribute bookings across team' },
             { feature: 'Waitlist management', desc: 'Auto-promote when spots open' },

@@ -48,6 +48,11 @@ const primaryNavItems = [
     matchPaths: ['/admin/integrations'],
   },
   {
+    href: '/admin/sms',
+    label: 'SMS',
+    matchPaths: ['/admin/sms'],
+  },
+  {
     href: '/admin/settings',
     label: 'Settings',
     matchPaths: ['/admin/settings'],
@@ -70,6 +75,10 @@ const subNavConfig: Record<string, SubNavItem[]> = {
     { href: '/admin/insights', label: 'Overview', exact: true },
     { href: '/admin/insights/attendance', label: 'Attendance' },
     { href: '/admin/insights/topics', label: 'Topics' },
+  ],
+  sms: [
+    { href: '/admin/sms', label: 'Dashboard', exact: true },
+    { href: '/admin/sms/logs', label: 'Logs' },
   ],
 };
 

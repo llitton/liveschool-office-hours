@@ -549,16 +549,31 @@ const helpSections: HelpSection[] = [
         id: 'sms-reminders',
         title: 'SMS Reminders',
         description: 'Send text message reminders before sessions.',
-        body: 'SMS reminders can significantly reduce no-shows. Enable them per event to send texts before sessions.',
+        body: 'SMS reminders can significantly reduce no-shows (up to 30%). Enable them per event to send texts before sessions. View delivery stats and logs in the SMS dashboard.',
         steps: [
+          'Connect an SMS provider (Twilio or Aircall) in Integrations',
           'Enable SMS reminders in event settings',
           'Optionally require phone numbers from attendees',
-          'Customize reminder templates',
-          'Reminders are sent 24 hours and 1 hour before',
+          'Customize reminder templates with variables like {{first_name}}',
+          'Test your templates with the "Send Test SMS" button',
+          'Monitor delivery in the SMS dashboard',
+        ],
+        lists: [
+          {
+            label: 'SMS Dashboard features',
+            items: [
+              'View total messages sent, delivered, and failed',
+              'See delivery rates and segment counts',
+              'Track messages by event and type',
+              'Search logs by phone number or name',
+            ],
+          },
         ],
         tips: [
-          'SMS has higher open rates than email',
-          'Attendees must consent to receive texts',
+          'SMS has 98% open rate vs 20% for email',
+          'Attendees must opt-in to receive texts',
+          'Preview messages in real-time before saving',
+          'Use the dashboard to monitor delivery rates',
         ],
       },
       {
@@ -627,6 +642,45 @@ const helpSections: HelpSection[] = [
               'Session starting soon',
             ],
           },
+        ],
+      },
+      {
+        id: 'sms-provider',
+        title: 'SMS Provider Setup',
+        description: 'Connect Twilio or Aircall to send SMS reminders.',
+        body: 'SMS reminders require a provider like Twilio or Aircall. Both offer reliable delivery and support international numbers.',
+        steps: [
+          'Go to Integrations',
+          'Click Set Up SMS in the SMS Reminders section',
+          'Choose your provider (Twilio or Aircall)',
+          'Follow the step-by-step guide to get your API credentials',
+          'Enter your credentials and sender phone number',
+          'Click Connect SMS',
+        ],
+        lists: [
+          {
+            label: 'Twilio setup',
+            items: [
+              'Create a Twilio account at twilio.com',
+              'Find your Account SID and Auth Token in the Console',
+              'Purchase an SMS-capable phone number',
+              'Enter the credentials in Integrations',
+            ],
+          },
+          {
+            label: 'Aircall setup',
+            items: [
+              'Log in to your Aircall account',
+              'Go to Integrations → Public API',
+              'Generate an API key with SMS permissions',
+              'Enter the API key and phone number in Integrations',
+            ],
+          },
+        ],
+        tips: [
+          'Twilio is recommended for high-volume sending',
+          'Both providers support international numbers',
+          'Test your connection with the Send Test SMS button',
         ],
       },
     ],

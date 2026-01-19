@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PageContainer, PageHeader } from '@/components/AppShell';
 
@@ -643,6 +644,80 @@ function IntegrationsContent() {
                     </select>
                   </div>
 
+                  {/* Setup Guide */}
+                  <div className="bg-[#F6F6F9] rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-[#101E57] mb-3">
+                      {smsProvider === 'twilio' ? 'Twilio' : 'Aircall'} Setup Guide
+                    </h4>
+                    {smsProvider === 'twilio' ? (
+                      <ol className="space-y-3">
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">1</span>
+                          <div className="text-sm text-[#667085]">
+                            <a href="https://www.twilio.com/try-twilio" target="_blank" rel="noopener noreferrer" className="text-[#6F71EE] hover:underline font-medium">Create a Twilio account</a> if you don&apos;t have one
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">2</span>
+                          <div className="text-sm text-[#667085]">
+                            Go to <strong className="text-[#101E57]">Console → Account → API Keys &amp; Tokens</strong>
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">3</span>
+                          <div className="text-sm text-[#667085]">
+                            Copy your <strong className="text-[#101E57]">Account SID</strong> and <strong className="text-[#101E57]">Auth Token</strong>
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">4</span>
+                          <div className="text-sm text-[#667085]">
+                            Go to <strong className="text-[#101E57]">Phone Numbers → Manage → Buy a number</strong> and purchase an SMS-capable number
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">5</span>
+                          <div className="text-sm text-[#667085]">
+                            Enter the credentials below to connect
+                          </div>
+                        </li>
+                      </ol>
+                    ) : (
+                      <ol className="space-y-3">
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">1</span>
+                          <div className="text-sm text-[#667085]">
+                            <a href="https://www.aircall.io" target="_blank" rel="noopener noreferrer" className="text-[#6F71EE] hover:underline font-medium">Log in to Aircall</a> or create an account
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">2</span>
+                          <div className="text-sm text-[#667085]">
+                            Go to <strong className="text-[#101E57]">Integrations → Public API</strong>
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">3</span>
+                          <div className="text-sm text-[#667085]">
+                            Generate a new <strong className="text-[#101E57]">API Key</strong> with SMS permissions
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">4</span>
+                          <div className="text-sm text-[#667085]">
+                            Ensure you have an SMS-capable phone number in your Aircall account
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <span className="flex-shrink-0 w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-xs font-medium">5</span>
+                          <div className="text-sm text-[#667085]">
+                            Enter the API key and phone number below to connect
+                          </div>
+                        </li>
+                      </ol>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-[#101E57] mb-1">
                       {smsProvider === 'twilio' ? 'Account SID' : 'API Key'}
@@ -746,6 +821,21 @@ function IntegrationsContent() {
                   <p className="text-xs text-[#667085] mt-2">
                     Enable SMS reminders for individual events in Event Settings.
                   </p>
+
+                  <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
+                    <Link
+                      href="/admin/sms"
+                      className="text-sm text-[#6F71EE] hover:underline font-medium"
+                    >
+                      View SMS Dashboard →
+                    </Link>
+                    <Link
+                      href="/admin/sms/logs"
+                      className="text-sm text-[#667085] hover:text-[#101E57]"
+                    >
+                      View All Logs
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
