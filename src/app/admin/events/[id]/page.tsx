@@ -9,6 +9,7 @@ import SlotCard from './SlotCard';
 import Breadcrumb from '@/components/Breadcrumb';
 import DayTimeline from '@/components/DayTimeline';
 import WeekCalendar from '@/components/WeekCalendar';
+import QRCodeModal from '@/components/QRCodeModal';
 
 interface SlotWithBookings extends OHSlot {
   booking_count: number;
@@ -52,6 +53,9 @@ export default function ManageEventPage({
 
   // Save as Template modal
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+
+  // QR Code modal
+  const [showQRModal, setShowQRModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
@@ -499,6 +503,12 @@ export default function ManageEventPage({
                   >
                     Embed on Website
                   </Link>
+                  <button
+                    onClick={() => setShowQRModal(true)}
+                    className="block w-full text-left px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
+                  >
+                    QR Code
+                  </button>
                   <a
                     href={`/api/events/${id}/export`}
                     className="block px-4 py-2 text-sm text-[#101E57] hover:bg-gray-50"
@@ -616,6 +626,15 @@ export default function ManageEventPage({
             )}
           </div>
         </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && event && (
+        <QRCodeModal
+          url={`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.liveschoolhelp.com'}/book/${event.slug}`}
+          title={event.name}
+          onClose={() => setShowQRModal(false)}
+        />
       )}
 
       <main className="max-w-5xl mx-auto px-4 py-8">
