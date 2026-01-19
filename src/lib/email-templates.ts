@@ -18,6 +18,7 @@ export interface EmailTemplateVariables {
   assigned_host_email?: string;
   is_round_robin?: string;
   rebook_link?: string;
+  booking_link?: string;
 }
 
 export const defaultTemplates = {
@@ -53,7 +54,8 @@ Looking forward to our conversation!
 
 Your {{event_name}} session scheduled for {{date}} at {{time_with_timezone}} has been cancelled.
 
-If you'd like to book another time, I'd love to still connect with you. Just head back to the booking page to find a time that works.
+If you'd like to book another time, I'd love to still connect with you:
+{{booking_link}}
 
 Best,
 {{host_name}}`,
@@ -126,11 +128,12 @@ function getTimezoneName(tz: string): string {
 
 export function createEmailVariables(
   booking: { first_name: string; last_name: string; email: string },
-  event: { name: string; host_name: string; meeting_type?: string },
+  event: { name: string; host_name: string; meeting_type?: string; slug?: string },
   slot: { start_time: string; end_time: string; google_meet_link: string | null },
   timezone: string = 'America/New_York',
   reminderTiming?: string,
-  assignedHost?: { name: string | null; email: string } | null
+  assignedHost?: { name: string | null; email: string } | null,
+  options?: { bookingLink?: string; rebookLink?: string }
 ): EmailTemplateVariables {
   const startDate = parseISO(slot.start_time);
   const timezoneAbbr = getTimezoneAbbr(timezone);
@@ -140,6 +143,11 @@ export function createEmailVariables(
   const effectiveHostName = isRoundRobin && assignedHost
     ? assignedHost.name || assignedHost.email.split('@')[0]
     : event.host_name;
+
+  // Generate default booking link if slug is available
+  const defaultBookingLink = event.slug
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/book/${event.slug}`
+    : undefined;
 
   return {
     first_name: booking.first_name,
@@ -157,6 +165,8 @@ export function createEmailVariables(
     assigned_host_name: assignedHost ? (assignedHost.name || assignedHost.email.split('@')[0]) : undefined,
     assigned_host_email: assignedHost?.email,
     is_round_robin: isRoundRobin ? 'true' : undefined,
+    booking_link: options?.bookingLink || defaultBookingLink,
+    rebook_link: options?.rebookLink || defaultBookingLink,
   };
 }
 

@@ -267,13 +267,15 @@ export async function DELETE(
         ? (assignedHost.name || assignedHost.email.split('@')[0])
         : booking.slot.event.host_name;
 
+      const bookingLink = `${process.env.NEXT_PUBLIC_APP_URL}/book/${booking.slot.event.slug}`;
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
           <h2>${wasWaitlisted ? 'Waitlist Spot Removed' : 'Booking Cancelled'}</h2>
           <p>Hi ${booking.first_name},</p>
           <p>Your ${wasWaitlisted ? 'waitlist spot' : 'booking'} for <strong>${booking.slot.event.name}</strong> has been cancelled as requested.</p>
           ${!wasWaitlisted ? '<p>The calendar event has been removed from your calendar.</p>' : ''}
-          <p>If you'd like to book another time, please visit our booking page.</p>
+          <p>If you'd like to book another time, I'd love to still connect with you:</p>
+          <p><a href="${bookingLink}" style="color: #6F71EE; text-decoration: none;">${bookingLink}</a></p>
           <p>Best,<br>${hostName}</p>
         </div>
       `;
