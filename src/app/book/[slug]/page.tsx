@@ -1243,7 +1243,7 @@ export default function BookingPage({
                         }}
                         disabled={isFull}
                         title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
-                        className={`px-3 py-2.5 rounded-lg border transition-all duration-150 text-sm ${
+                        className={`px-3 py-2.5 rounded-lg border transition-all duration-150 text-sm whitespace-nowrap ${
                           isFull
                             ? 'bg-gray-50 text-[#98A2B3] cursor-not-allowed border-gray-100'
                             : hasConflict
