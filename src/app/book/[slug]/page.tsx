@@ -1243,7 +1243,7 @@ export default function BookingPage({
                         }}
                         disabled={isFull}
                         title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
-                        className={`px-3 py-2.5 rounded-lg border transition-all duration-150 text-sm whitespace-nowrap ${
+                        className={`px-3 py-2 rounded-lg border transition-all duration-150 text-center ${
                           isFull
                             ? 'bg-gray-50 text-[#98A2B3] cursor-not-allowed border-gray-100'
                             : hasConflict
@@ -1251,7 +1251,8 @@ export default function BookingPage({
                             : 'border-gray-200 text-[#101E57] bg-white hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 hover:text-[#6F71EE] active:bg-[#6F71EE] active:text-white'
                         }`}
                       >
-                        <span className="font-medium">{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
+                        <span className="block text-sm font-medium leading-tight">{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm')}</span>
+                        <span className="block text-xs opacity-70">{formatInTimeZone(parseISO(slot.start_time), timezone, 'a')}</span>
                       </button>
                     );
                   };
