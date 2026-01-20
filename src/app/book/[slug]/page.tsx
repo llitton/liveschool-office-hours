@@ -1029,14 +1029,16 @@ export default function BookingPage({
     );
   }
 
-  // Progressive disclosure - show fewer days by default for calmer experience
-  const INITIAL_DAYS = 2; // Start with just 2 days for less overwhelm
+  // Progressive disclosure - scroll-free first screen
+  const INITIAL_DAYS = 1; // Show only 1 day - fits in viewport
+  const MAX_INITIAL_SLOTS = 5; // Cap slots to prevent scrolling
   const DAYS_PER_EXPAND = 3; // Show 3 more days each expansion
   const sortedDates = Object.keys(groupedSlots).sort();
   const totalVisibleDays = INITIAL_DAYS + (visibleWeeks - 1) * DAYS_PER_EXPAND;
   const visibleDates = sortedDates.slice(0, totalVisibleDays);
   const hasMoreDates = sortedDates.length > visibleDates.length;
   const remainingDates = sortedDates.length - visibleDates.length;
+  const isFirstView = visibleWeeks === 1; // Track if showing initial compact view
 
   // Timezone display helper - get short label
   const getTimezoneLabel = (tz: string) => {
@@ -1047,14 +1049,14 @@ export default function BookingPage({
   // Check if this is a webinar (uses different layout)
   const isWebinar = event.meeting_type === 'webinar';
 
-  // Main slot selection screen
+  // Main slot selection screen - designed to fit in one viewport
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F6F6F9] to-[#EEEEF4] py-8 sm:py-12 px-4">
-      <div className="max-w-xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-[#F6F6F9] to-[#EEEEF4] py-6 px-4">
+      <div className="max-w-md mx-auto">
         {/* Card with subtle brand accent */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
           {/* Brand accent line */}
-          <div className="h-1 bg-gradient-to-r from-[#6F71EE] to-[#417762]" />
+          <div className="h-0.5 bg-gradient-to-r from-[#6F71EE] to-[#417762]" />
 
           {/* Banner Image (both layouts) */}
           {event.banner_image && (
@@ -1070,91 +1072,51 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* NON-WEBINAR: Hero Section - Tier 1 Primary Info */}
+          {/* NON-WEBINAR: Compact Hero Section */}
           {!isWebinar && (
-            <div className="p-6 sm:p-8">
-              {/* Logo */}
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={100}
-                height={26}
-                className="mb-5 opacity-80"
-              />
-
-              {/* Tier 1: Primary - Title and key info (calm, anchored) */}
-              <h1 className="text-xl sm:text-2xl font-semibold text-[#101E57] leading-tight">{event.name}</h1>
-
-              {/* Key session details - compact, single line */}
-              <div className="flex items-center gap-3 mt-3 text-sm text-[#667085]">
-                {/* Host with avatar */}
-                {event.meeting_type !== 'round_robin' && event.meeting_type !== 'collective' && (
-                  <span className="flex items-center gap-1.5">
-                    {event.host_profile_image ? (
-                      <img
-                        src={event.host_profile_image}
-                        alt={event.host_name}
-                        className="w-5 h-5 rounded-full object-cover"
-                      />
-                    ) : null}
-                    <span className="text-[#101E57] font-medium">{event.host_name}</span>
-                  </span>
-                )}
-                {event.meeting_type === 'round_robin' && (
-                  <span className="text-[#101E57] font-medium">LiveSchool Team</span>
-                )}
-                {event.meeting_type === 'collective' && (
-                  <span className="text-[#101E57] font-medium">All Hosts Join</span>
-                )}
-                <span className="text-gray-300">|</span>
-                <span>{event.duration_minutes} min</span>
-                <span className="text-gray-300">|</span>
-                <span>Google Meet</span>
+            <div className="p-5">
+              {/* Logo + Title row */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h1 className="text-lg font-semibold text-[#101E57] leading-tight">{event.name}</h1>
+                  {/* Host always visible */}
+                  <p className="text-sm text-[#667085] mt-1">
+                    {event.meeting_type === 'round_robin' ? 'with LiveSchool Team' :
+                     event.meeting_type === 'collective' ? 'with LiveSchool Team' :
+                     `with ${event.host_name}`} · {event.duration_minutes} min
+                  </p>
+                </div>
+                <Image
+                  src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+                  alt="LiveSchool"
+                  width={80}
+                  height={20}
+                  className="opacity-60 flex-shrink-0"
+                />
               </div>
 
-              {/* Description - Full content with good typography */}
+              {/* Description - collapsible on first view for space */}
               {event.description && (
                 <div
-                  className="mt-5 prose prose-sm max-w-none text-[#667085] leading-relaxed [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_p]:my-2 [&_strong]:text-[#101E57] [&_strong]:font-medium"
+                  className="text-sm text-[#667085] leading-relaxed [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1 [&_li]:my-0.5 [&_p]:my-1"
                   dangerouslySetInnerHTML={{ __html: event.description }}
                 />
-              )}
-
-              {/* Booking Rules - subtle badges */}
-              {(event.min_notice_hours > 0 || event.require_approval) && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {event.min_notice_hours > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs text-[#667085] px-2 py-1 rounded bg-gray-50">
-                      {event.min_notice_hours >= 24
-                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} notice required`
-                        : `${event.min_notice_hours}h notice required`}
-                    </span>
-                  )}
-                  {event.require_approval && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 px-2 py-1 rounded bg-amber-50">
-                      Requires approval
-                    </span>
-                  )}
-                </div>
               )}
             </div>
           )}
 
-          {/* Divider with brand accent */}
-          <div className="h-px bg-gradient-to-r from-transparent via-[#6F71EE]/20 to-transparent" />
-
           {/* Time slots / Scheduling section */}
-          <div className="p-6 sm:p-8 bg-[#FAFAFC]">
+          <div className="p-5 bg-[#FAFAFC]">
             {/* Section header with inline timezone */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-[#101E57] mb-1">Select a time</h2>
-              {/* Tier 2: Context - Timezone as subtle inline text */}
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="text-base font-semibold text-[#101E57]">Choose a time</h2>
+              {/* Timezone as subtle inline text */}
               <div className="relative">
                 <button
                   onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
-                  className="text-sm text-[#667085] hover:text-[#6F71EE] transition flex items-center gap-1"
+                  className="text-xs text-[#98A2B3] hover:text-[#6F71EE] transition flex items-center gap-1"
                 >
-                  Times shown in {getTimezoneLabel(timezone)}
+                  {getTimezoneLabel(timezone)}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -1215,98 +1177,82 @@ export default function BookingPage({
                 )}
               </div>
             ) : (
-              <div className="space-y-8">
-                {visibleDates.map((date) => {
+              <div className="space-y-5">
+                {visibleDates.map((date, dateIndex) => {
                   const dateSlots = groupedSlots[date];
-                  // Group by time of day in user's timezone
-                  const getTimeOfDay = (slot: SlotWithCount) => {
-                    const hour = parseInt(formatInTimeZone(parseISO(slot.start_time), timezone, 'H'));
-                    if (hour < 12) return 'morning';
-                    if (hour < 17) return 'afternoon';
-                    return 'evening';
-                  };
+                  const isOneOnOne = event.meeting_type === 'one_on_one';
 
-                  const morningSlots = dateSlots.filter(s => getTimeOfDay(s) === 'morning');
-                  const afternoonSlots = dateSlots.filter(s => getTimeOfDay(s) === 'afternoon');
-                  const eveningSlots = dateSlots.filter(s => getTimeOfDay(s) === 'evening');
+                  // Filter available slots
+                  let availableSlots = isOneOnOne
+                    ? dateSlots.filter(s => s.booking_count === 0)
+                    : dateSlots;
 
-                  const renderSlots = (slotsGroup: SlotWithCount[], label: string) => {
-                    if (slotsGroup.length === 0) return null;
+                  // On first view, cap total slots shown to keep it scroll-free
+                  let hiddenSlotCount = 0;
+                  if (isFirstView && dateIndex === 0 && availableSlots.length > MAX_INITIAL_SLOTS) {
+                    hiddenSlotCount = availableSlots.length - MAX_INITIAL_SLOTS;
+                    availableSlots = availableSlots.slice(0, MAX_INITIAL_SLOTS);
+                  }
 
-                    // For one-on-one, filter out booked slots entirely
-                    const isOneOnOne = event.meeting_type === 'one_on_one';
-                    const availableSlots = isOneOnOne
-                      ? slotsGroup.filter(s => s.booking_count === 0)
-                      : slotsGroup;
+                  if (availableSlots.length === 0) return null;
 
-                    if (availableSlots.length === 0) return null;
+                  // Render a single slot button
+                  const renderSlotButton = (slot: SlotWithCount) => {
+                    const isFull = slot.booking_count >= event.max_attendees;
+
+                    // Check if slot conflicts with attendee's calendar
+                    const hasConflict = attendeeBusyTimes.length > 0 && attendeeBusyTimes.some(busy =>
+                      areIntervalsOverlapping(
+                        { start: parseISO(slot.start_time), end: parseISO(slot.end_time) },
+                        { start: parseISO(busy.start), end: parseISO(busy.end) }
+                      )
+                    );
 
                     return (
-                      <div className="mb-4">
-                        <p className="text-xs text-[#98A2B3] mb-2 uppercase tracking-wider">
-                          {label}
-                        </p>
-                        {/* Tier 3: Options - Calmer buttons, max 3-4 per row */}
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {availableSlots.map((slot) => {
-                            const isFull = slot.booking_count >= event.max_attendees;
-                            const spotsLeft = event.max_attendees - slot.booking_count;
-                            const showSpotsLeft = !isOneOnOne && event.max_attendees > 1 && spotsLeft < event.max_attendees && spotsLeft > 0;
-
-                            // Check if slot conflicts with attendee's calendar
-                            const hasConflict = attendeeBusyTimes.length > 0 && attendeeBusyTimes.some(busy =>
-                              areIntervalsOverlapping(
-                                { start: parseISO(slot.start_time), end: parseISO(slot.end_time) },
-                                { start: parseISO(busy.start), end: parseISO(busy.end) }
-                              )
-                            );
-
-                            return (
-                              <button
-                                key={slot.id}
-                                onClick={() => {
-                                  if (!isFull) {
-                                    analytics.trackSlotSelection(slot.id, slot.start_time);
-                                    setSelectedSlot(slot);
-                                  }
-                                }}
-                                disabled={isFull}
-                                title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
-                                className={`px-3 py-3 rounded-lg border transition-all duration-150 text-sm ${
-                                  isFull
-                                    ? 'bg-gray-50 text-[#98A2B3] cursor-not-allowed border-gray-100'
-                                    : hasConflict
-                                    ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:border-amber-300'
-                                    : 'border-gray-200 text-[#101E57] bg-white hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 hover:text-[#6F71EE] active:bg-[#6F71EE] active:text-white'
-                                }`}
-                              >
-                                <span className="font-medium">{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
-                                {isFull && <span className="block text-xs mt-0.5">Full</span>}
-                                {showSpotsLeft && (
-                                  <span className="block text-xs mt-0.5 opacity-60">
-                                    {spotsLeft} left
-                                  </span>
-                                )}
-                                {hasConflict && !isFull && (
-                                  <span className="block text-xs mt-0.5">Conflict</span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      <button
+                        key={slot.id}
+                        onClick={() => {
+                          if (!isFull) {
+                            analytics.trackSlotSelection(slot.id, slot.start_time);
+                            setSelectedSlot(slot);
+                          }
+                        }}
+                        disabled={isFull}
+                        title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
+                        className={`px-3 py-2.5 rounded-lg border transition-all duration-150 text-sm ${
+                          isFull
+                            ? 'bg-gray-50 text-[#98A2B3] cursor-not-allowed border-gray-100'
+                            : hasConflict
+                            ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:border-amber-300'
+                            : 'border-gray-200 text-[#101E57] bg-white hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 hover:text-[#6F71EE] active:bg-[#6F71EE] active:text-white'
+                        }`}
+                      >
+                        <span className="font-medium">{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
+                      </button>
                     );
                   };
 
                   return (
-                    <div key={date} className="bg-white rounded-xl p-5 border border-gray-100">
-                      {/* Tier 2: Context - Date header (quieter, not bold anchor) */}
-                      <h3 className="text-sm font-medium text-[#667085] mb-4">
+                    <div key={date}>
+                      {/* Date header - compact on first view */}
+                      <p className="text-sm text-[#667085] mb-3">
                         {formatInTimeZone(parseISO(dateSlots[0].start_time), timezone, 'EEEE, MMMM d')}
-                      </h3>
-                      {renderSlots(morningSlots, 'Morning')}
-                      {renderSlots(afternoonSlots, 'Afternoon')}
-                      {renderSlots(eveningSlots, 'Evening')}
+                      </p>
+
+                      {/* Flat grid of times - no morning/afternoon labels on first view */}
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {availableSlots.map(renderSlotButton)}
+                      </div>
+
+                      {/* Show more times for this day */}
+                      {hiddenSlotCount > 0 && (
+                        <button
+                          onClick={() => setVisibleWeeks(2)}
+                          className="mt-3 text-sm text-[#6F71EE] hover:underline"
+                        >
+                          + {hiddenSlotCount} more times
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -1415,33 +1361,11 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* Reassurance footer - confidence cues close to action */}
-          <div className="px-6 sm:px-8 pb-6 sm:pb-8 bg-[#FAFAFC]">
-            <div className="flex items-center justify-center gap-6 text-xs text-[#667085]">
-              <span className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-[#417762]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Calendar invite sent instantly
-              </span>
-              <span className="flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-[#417762]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Easy to reschedule
-              </span>
-            </div>
-          </div>
-
-          {/* Brand footer */}
-          <div className="p-4 border-t border-gray-100 text-center">
-            <Image
-              src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-              alt="LiveSchool"
-              width={80}
-              height={20}
-              className="mx-auto opacity-40"
-            />
+          {/* Compact reassurance footer */}
+          <div className="px-5 py-3 bg-[#FAFAFC] border-t border-gray-100">
+            <p className="text-xs text-[#98A2B3] text-center">
+              You&apos;ll receive a calendar invite with Google Meet link
+            </p>
           </div>
         </div>
       </div>
