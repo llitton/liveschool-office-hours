@@ -334,10 +334,13 @@ export async function getAvailableSlots(
           continue;
         }
 
-        // Check if slot conflicts with busy blocks
+        // Check if slot (including buffer) conflicts with busy blocks
+        // Buffer ensures you have time before/after the meeting
+        const slotWithBufferStart = bufferBefore > 0 ? addMinutes(slotStart, -bufferBefore) : slotStart;
+        const slotWithBufferEnd = bufferAfter > 0 ? addMinutes(slotEnd, bufferAfter) : slotEnd;
         const conflictsWithBusy = busyBlocks.some((block) =>
           areIntervalsOverlapping(
-            { start: slotStart, end: slotEnd },
+            { start: slotWithBufferStart, end: slotWithBufferEnd },
             { start: parseISO(block.start_time), end: parseISO(block.end_time) }
           )
         );
