@@ -132,6 +132,9 @@ export default function BookingPage({
   // Attendee calendar overlay
   const [attendeeBusyTimes, setAttendeeBusyTimes] = useState<BusyTimeBlock[]>([]);
 
+  // Timezone dropdown visibility
+  const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
+
   // Form started tracking ref
   const formStartedRef = useRef(false);
 
@@ -1040,9 +1043,6 @@ export default function BookingPage({
     const found = TIMEZONE_OPTIONS.flatMap(g => g.zones).find(z => z.value === tz);
     return found?.label || tz.replace(/_/g, ' ');
   };
-
-  // State for timezone dropdown expansion
-  const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
 
   // Check if this is a webinar (uses different layout)
   const isWebinar = event.meeting_type === 'webinar';
