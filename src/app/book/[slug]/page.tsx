@@ -685,8 +685,9 @@ export default function BookingPage({
               </div>
             </div>
 
-            {/* Selected time */}
+            {/* Selected time with meeting context */}
             <div className="p-6 border-b bg-[#F6F6F9]">
+              <p className="text-sm font-medium text-[#6F71EE] mb-1">{event.name}</p>
               <p className="font-medium text-[#101E57]">
                 {formatInTimeZone(
                   parseISO(selectedSlot.start_time),
@@ -907,7 +908,7 @@ export default function BookingPage({
                           handleAddGuestEmail();
                         }
                       }}
-                      placeholder="colleague@company.com"
+                      placeholder="colleague@school.edu"
                       className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] ${
                         guestEmailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
                       }`}
@@ -1130,21 +1131,24 @@ export default function BookingPage({
           )}
 
           {/* Time slots / Scheduling section */}
-          <div className="p-5 bg-[#FAFAFC]">
-            {/* Section header with inline timezone */}
-            <div className="flex items-baseline justify-between mb-4">
-              <h2 className="text-base font-semibold text-[#101E57]">Choose a time</h2>
-              {/* Timezone as subtle inline text */}
-              <div className="relative">
+          <div className="pt-6 pb-5 px-5 bg-[#FAFAFC] border-t border-gray-100">
+            {/* Section header - feels like "now let's do this" */}
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-[#101E57] mb-1">Choose a time</h2>
+              {/* Timezone as human-readable inline text */}
+              <p className="text-sm text-[#667085]">
+                Times shown in{' '}
                 <button
                   onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
-                  className="text-xs text-[#98A2B3] hover:text-[#6F71EE] transition flex items-center gap-1"
+                  className="text-[#6F71EE] hover:underline inline-flex items-center gap-0.5"
                 >
                   {getTimezoneLabel(timezone)}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
+              </p>
+              <div className="relative">
                 {showTimezoneDropdown && (
                   <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto w-64">
                     {detectedTimezone && !isDetectedInList && (
@@ -1221,8 +1225,9 @@ export default function BookingPage({
                   if (availableSlots.length === 0) return null;
 
                   // Render a single slot button
-                  const renderSlotButton = (slot: SlotWithCount) => {
+                  const renderSlotButton = (slot: SlotWithCount, slotIndex: number) => {
                     const isFull = slot.booking_count >= event.max_attendees;
+                    const isFirstSlot = dateIndex === 0 && slotIndex === 0;
 
                     // Check if slot conflicts with attendee's calendar
                     const hasConflict = attendeeBusyTimes.length > 0 && attendeeBusyTimes.some(busy =>
@@ -1243,14 +1248,21 @@ export default function BookingPage({
                         }}
                         disabled={isFull}
                         title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
-                        className={`px-3 py-2 rounded-lg border transition-all duration-150 text-center ${
+                        className={`relative px-3 py-2 rounded-lg border transition-all duration-200 text-center ${
                           isFull
                             ? 'bg-gray-50 text-[#98A2B3] cursor-not-allowed border-gray-100'
                             : hasConflict
                             ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:border-amber-300'
-                            : 'border-gray-200 text-[#101E57] bg-white hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 hover:text-[#6F71EE] active:bg-[#6F71EE] active:text-white'
+                            : isFirstSlot
+                            ? 'border-[#6F71EE]/30 text-[#101E57] bg-[#6F71EE]/5 hover:border-[#6F71EE] hover:bg-[#6F71EE]/10 hover:shadow-sm active:bg-[#6F71EE] active:text-white'
+                            : 'border-gray-150 text-[#101E57] bg-white hover:border-[#6F71EE]/50 hover:bg-[#6F71EE]/5 hover:shadow-sm active:bg-[#6F71EE] active:text-white'
                         }`}
                       >
+                        {isFirstSlot && !isFull && !hasConflict && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-medium text-[#6F71EE] bg-white px-1.5 rounded-full border border-[#6F71EE]/20">
+                            Next
+                          </span>
+                        )}
                         <span className="block text-sm font-medium leading-tight">{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm')}</span>
                         <span className="block text-xs opacity-70">{formatInTimeZone(parseISO(slot.start_time), timezone, 'a')}</span>
                       </button>
@@ -1266,7 +1278,7 @@ export default function BookingPage({
 
                       {/* Flat grid of times - no morning/afternoon labels on first view */}
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                        {availableSlots.map(renderSlotButton)}
+                        {availableSlots.map((slot, idx) => renderSlotButton(slot, idx))}
                       </div>
 
                       {/* Show more times for this day */}
@@ -1311,11 +1323,11 @@ export default function BookingPage({
                   </button>
                 </div>
 
-                {/* Date picker calendar */}
+                {/* Date picker calendar - muted utility, not a destination */}
                 {showDatePicker && (
-                  <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-sm font-medium text-[#101E57]">Select a date</p>
+                  <div className="mt-3 p-3 bg-[#FAFAFC] rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-[#667085]">Jump to a date</p>
                       {selectedDate && (
                         <button
                           onClick={() => {
@@ -1323,16 +1335,16 @@ export default function BookingPage({
                             setShowDatePicker(false);
                             setVisibleWeeks(1);
                           }}
-                          className="text-xs text-[#667085] hover:text-[#6F71EE]"
+                          className="text-xs text-[#98A2B3] hover:text-[#6F71EE]"
                         >
-                          Clear selection
+                          Clear
                         </button>
                       )}
                     </div>
-                    <div className="grid grid-cols-7 gap-1">
+                    <div className="grid grid-cols-7 gap-0.5">
                       {/* Day headers */}
-                      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                        <div key={day} className="text-xs text-[#98A2B3] text-center py-1">
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                        <div key={`${day}-${i}`} className="text-[10px] text-[#C0C5D0] text-center py-0.5">
                           {day}
                         </div>
                       ))}
@@ -1363,14 +1375,14 @@ export default function BookingPage({
                               }}
                               disabled={!isAvailable || isPast}
                               className={`
-                                text-sm py-1.5 rounded transition
+                                text-xs py-1 rounded transition
                                 ${isSelected
-                                  ? 'bg-[#6F71EE] text-white font-medium'
+                                  ? 'bg-[#6F71EE] text-white'
                                   : isAvailable && !isPast
-                                  ? 'text-[#101E57] hover:bg-[#6F71EE]/10 font-medium'
-                                  : 'text-[#D0D5DD] cursor-not-allowed'
+                                  ? 'text-[#667085] hover:bg-white hover:text-[#101E57]'
+                                  : 'text-[#E0E0E0] cursor-not-allowed'
                                 }
-                                ${isToday && !isSelected ? 'ring-1 ring-[#6F71EE]' : ''}
+                                ${isToday && !isSelected ? 'ring-1 ring-[#6F71EE]/30' : ''}
                               `}
                             >
                               {date.getDate()}
@@ -1380,11 +1392,20 @@ export default function BookingPage({
                         return days;
                       })()}
                     </div>
-                    <p className="text-xs text-[#98A2B3] mt-3 text-center">
-                      Dates with availability are highlighted
-                    </p>
                   </div>
                 )}
+
+                {/* Confidence cue - reassurance at the moment it matters */}
+                <div className="mt-5 pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-sm text-[#667085]">
+                    <div className="w-5 h-5 bg-[#417762]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3 h-3 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span>Calendar invite with Google Meet link sent instantly</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1478,12 +1499,6 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* Compact reassurance footer */}
-          <div className="px-5 py-3 bg-[#FAFAFC] border-t border-gray-100">
-            <p className="text-xs text-[#98A2B3] text-center">
-              You&apos;ll receive a calendar invite with Google Meet link
-            </p>
-          </div>
         </div>
       </div>
 
