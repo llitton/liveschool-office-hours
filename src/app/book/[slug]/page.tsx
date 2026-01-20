@@ -672,7 +672,7 @@ export default function BookingPage({
                 />
                 <span className="text-white/60 text-sm">{event.duration_minutes} min</span>
               </div>
-              <h1 className="text-lg font-medium">{event.name}</h1>
+              <h1 className="text-lg font-medium text-white">{event.name}</h1>
               <div className="flex items-center gap-2 mt-1 text-white/70 text-sm">
                 {event.host_profile_image ? (
                   <img
