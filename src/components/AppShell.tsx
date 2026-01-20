@@ -55,7 +55,7 @@ const primaryNavItems = [
   {
     href: '/admin/settings',
     label: 'Settings',
-    matchPaths: ['/admin/settings'],
+    matchPaths: ['/admin/settings', '/admin/settings/templates', '/admin/settings/holidays'],
   },
 ];
 
@@ -84,6 +84,7 @@ const subNavConfig: Record<string, SubNavItem[]> = {
   settings: [
     { href: '/admin/settings', label: 'General', exact: true },
     { href: '/admin/settings/templates', label: 'Templates' },
+    { href: '/admin/settings/holidays', label: 'Holidays' },
   ],
 };
 
@@ -335,6 +336,12 @@ export default function AppShell({ children }: AppShellProps) {
     }
     if (pathname.startsWith('/admin/insights') || pathname.startsWith('/admin/team-health')) {
       return 'insights';
+    }
+    if (pathname.startsWith('/admin/sms')) {
+      return 'sms';
+    }
+    if (pathname.startsWith('/admin/settings')) {
+      return 'settings';
     }
     return null;
   };

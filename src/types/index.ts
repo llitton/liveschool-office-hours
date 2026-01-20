@@ -724,3 +724,15 @@ export interface BusyTimeBlock {
   start: string; // ISO timestamp
   end: string; // ISO timestamp
 }
+
+// ============================================
+// COMPANY HOLIDAYS
+// ============================================
+
+export interface OHCompanyHoliday {
+  id: string;
+  date: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+}

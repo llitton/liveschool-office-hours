@@ -1,6 +1,6 @@
 import { getServiceSupabase } from './supabase';
 import { getFreeBusy } from './google';
-import type { OHAvailabilityPattern, OHBusyBlock } from '@/types';
+import type { OHAvailabilityPattern, OHBusyBlock, OHCompanyHoliday } from '@/types';
 import {
   addDays,
   addMinutes,
@@ -106,6 +106,47 @@ export async function getBusyBlocks(
 }
 
 /**
+ * Get company holidays within a date range
+ */
+export async function getCompanyHolidays(
+  startDate: Date,
+  endDate: Date
+): Promise<OHCompanyHoliday[]> {
+  const supabase = getServiceSupabase();
+
+  const { data, error } = await supabase
+    .from('oh_company_holidays')
+    .select('*')
+    .gte('date', format(startDate, 'yyyy-MM-dd'))
+    .lte('date', format(endDate, 'yyyy-MM-dd'))
+    .order('date', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Check if a specific date is a company holiday
+ */
+export async function isCompanyHoliday(date: Date): Promise<{ isHoliday: boolean; holidayName?: string }> {
+  const supabase = getServiceSupabase();
+  const dateStr = format(date, 'yyyy-MM-dd');
+
+  const { data, error } = await supabase
+    .from('oh_company_holidays')
+    .select('name')
+    .eq('date', dateStr)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116 = no rows returned, which is fine
+    throw error;
+  }
+
+  return data ? { isHoliday: true, holidayName: data.name } : { isHoliday: false };
+}
+
+/**
  * Get existing slots for an admin/event within a date range
  */
 async function getExistingSlots(
@@ -147,7 +188,14 @@ export async function checkTimeAvailability(
   bufferBefore: number = 0,
   bufferAfter: number = 0
 ): Promise<{ available: boolean; reason?: string }> {
-  const supabase = getServiceSupabase();
+  // Check for company holiday FIRST - blocks all employees
+  const holidayCheck = await isCompanyHoliday(startTime);
+  if (holidayCheck.isHoliday) {
+    return {
+      available: false,
+      reason: `Company holiday: ${holidayCheck.holidayName}`,
+    };
+  }
 
   // Add buffer to the check window
   const checkStart = bufferBefore > 0 ? addMinutes(startTime, -bufferBefore) : startTime;
@@ -244,10 +292,21 @@ export async function getAvailableSlots(
   const busyBlocks = await getBusyBlocks(adminId, startDate, endDate);
   const existingSlots = await getExistingSlots(adminId, eventId || null, startDate, endDate);
 
+  // Get company holidays in date range
+  const companyHolidays = await getCompanyHolidays(startDate, endDate);
+  const holidayDates = new Set(companyHolidays.map(h => h.date));
+
   const availableSlots: TimeSlot[] = [];
   let currentDate = startOfDay(startDate);
 
   while (isBefore(currentDate, endDate)) {
+    // Skip company holidays
+    const dateStr = format(currentDate, 'yyyy-MM-dd');
+    if (holidayDates.has(dateStr)) {
+      currentDate = addDays(currentDate, 1);
+      continue;
+    }
+
     const dayOfWeek = getDay(currentDate);
     const dayPatterns = patterns.filter((p) => p.day_of_week === dayOfWeek);
 
@@ -365,10 +424,21 @@ export async function getCollectiveAvailableSlots(
     hostIds.map((id) => getExistingSlots(id, eventId || null, startDate, endDate))
   );
 
+  // Get company holidays in date range
+  const companyHolidays = await getCompanyHolidays(startDate, endDate);
+  const holidayDates = new Set(companyHolidays.map(h => h.date));
+
   const availableSlots: TimeSlot[] = [];
   let currentDate = startOfDay(startDate);
 
   while (isBefore(currentDate, endDate)) {
+    // Skip company holidays
+    const dateStr = format(currentDate, 'yyyy-MM-dd');
+    if (holidayDates.has(dateStr)) {
+      currentDate = addDays(currentDate, 1);
+      continue;
+    }
+
     const dayOfWeek = getDay(currentDate);
 
     // Find the intersection of all hosts' patterns for this day
