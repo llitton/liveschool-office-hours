@@ -202,6 +202,8 @@ export async function POST(request: NextRequest) {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             hostEmail: admin.email,
+            attendeeEmail: email,
+            guestEmails: validatedGuestEmails,
           }
         );
         googleEventId = calendarResult.eventId || null;

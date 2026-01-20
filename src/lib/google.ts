@@ -78,6 +78,7 @@ export async function createCalendarEvent(
     attendeeEmail?: string;
     hostEmail: string;
     coHostEmails?: string[]; // For collective events - all hosts as attendees
+    guestEmails?: string[]; // Additional guests invited by the booker
   }
 ) {
   const calendar = getCalendarClient(accessToken, refreshToken);
@@ -93,8 +94,19 @@ export async function createCalendarEvent(
     }
   }
 
+  // Add the primary booker
   if (event.attendeeEmail) {
     attendees.push({ email: event.attendeeEmail });
+  }
+
+  // Add additional guests invited by the booker
+  if (event.guestEmails && event.guestEmails.length > 0) {
+    for (const guest of event.guestEmails) {
+      // Avoid duplicates
+      if (!attendees.some(a => a.email === guest)) {
+        attendees.push({ email: guest });
+      }
+    }
   }
 
   const response = await calendar.events.insert({
