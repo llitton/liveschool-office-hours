@@ -325,12 +325,12 @@ export default function BookingPage({
 
     setGuestEmailError(null);
 
-    // Validate email
+    // Validate email (full check including MX records for typo detection)
     try {
       const validateRes = await fetch('/api/validate/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, quick: true }),
+        body: JSON.stringify({ email }),
       });
       const validation = await validateRes.json();
 
