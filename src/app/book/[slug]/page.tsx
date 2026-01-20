@@ -135,6 +135,10 @@ export default function BookingPage({
   // Timezone dropdown visibility
   const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
 
+  // Date picker for jumping to specific dates
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
   // Form started tracking ref
   const formStartedRef = useRef(false);
 
@@ -1034,11 +1038,31 @@ export default function BookingPage({
   const MAX_INITIAL_SLOTS = 5; // Cap slots to prevent scrolling
   const DAYS_PER_EXPAND = 3; // Show 3 more days each expansion
   const sortedDates = Object.keys(groupedSlots).sort();
-  const totalVisibleDays = INITIAL_DAYS + (visibleWeeks - 1) * DAYS_PER_EXPAND;
-  const visibleDates = sortedDates.slice(0, totalVisibleDays);
-  const hasMoreDates = sortedDates.length > visibleDates.length;
-  const remainingDates = sortedDates.length - visibleDates.length;
-  const isFirstView = visibleWeeks === 1; // Track if showing initial compact view
+
+  // If user selected a specific date, show that date
+  // Otherwise use progressive disclosure
+  let visibleDates: string[];
+  let hasMoreDates: boolean;
+  let remainingDates: number;
+  let isFirstView: boolean;
+
+  if (selectedDate && sortedDates.includes(selectedDate)) {
+    // User picked a specific date - show just that date
+    visibleDates = [selectedDate];
+    hasMoreDates = sortedDates.length > 1;
+    remainingDates = sortedDates.length - 1;
+    isFirstView = false; // Show all slots for selected date
+  } else {
+    // Default progressive disclosure
+    const totalVisibleDays = INITIAL_DAYS + (visibleWeeks - 1) * DAYS_PER_EXPAND;
+    visibleDates = sortedDates.slice(0, totalVisibleDays);
+    hasMoreDates = sortedDates.length > visibleDates.length;
+    remainingDates = sortedDates.length - visibleDates.length;
+    isFirstView = visibleWeeks === 1 && !selectedDate;
+  }
+
+  // Available dates set for the date picker
+  const availableDatesSet = new Set(sortedDates);
 
   // Timezone display helper - get short label
   const getTimezoneLabel = (tz: string) => {
@@ -1257,15 +1281,107 @@ export default function BookingPage({
                   );
                 })}
 
-                {/* View more dates button - subtle, not aggressive */}
-                {hasMoreDates && (
-                  <div className="text-center">
+                {/* Actions: More dates + Pick specific date */}
+                <div className="flex items-center justify-between pt-2">
+                  {/* Show more dates */}
+                  {hasMoreDates ? (
                     <button
-                      onClick={() => setVisibleWeeks(prev => prev + 1)}
+                      onClick={() => {
+                        setSelectedDate(null);
+                        setVisibleWeeks(prev => prev + 1);
+                      }}
                       className="text-sm text-[#667085] hover:text-[#6F71EE] transition"
                     >
-                      + Show {Math.min(remainingDates, DAYS_PER_EXPAND)} more {remainingDates === 1 ? 'day' : 'days'}
+                      + Show more days
                     </button>
+                  ) : (
+                    <span />
+                  )}
+
+                  {/* Pick a specific date */}
+                  <button
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className="text-sm text-[#6F71EE] hover:underline flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {selectedDate ? 'Change date' : 'Pick a date'}
+                  </button>
+                </div>
+
+                {/* Date picker calendar */}
+                {showDatePicker && (
+                  <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-medium text-[#101E57]">Select a date</p>
+                      {selectedDate && (
+                        <button
+                          onClick={() => {
+                            setSelectedDate(null);
+                            setShowDatePicker(false);
+                            setVisibleWeeks(1);
+                          }}
+                          className="text-xs text-[#667085] hover:text-[#6F71EE]"
+                        >
+                          Clear selection
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {/* Day headers */}
+                      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                        <div key={day} className="text-xs text-[#98A2B3] text-center py-1">
+                          {day}
+                        </div>
+                      ))}
+                      {/* Calendar days - show 5 weeks starting from today */}
+                      {(() => {
+                        const today = new Date();
+                        const startOfWeek = new Date(today);
+                        startOfWeek.setDate(today.getDate() - today.getDay());
+
+                        const days = [];
+                        for (let i = 0; i < 35; i++) {
+                          const date = new Date(startOfWeek);
+                          date.setDate(startOfWeek.getDate() + i);
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          const isAvailable = availableDatesSet.has(dateStr);
+                          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+                          const isSelected = selectedDate === dateStr;
+                          const isToday = format(new Date(), 'yyyy-MM-dd') === dateStr;
+
+                          days.push(
+                            <button
+                              key={dateStr}
+                              onClick={() => {
+                                if (isAvailable && !isPast) {
+                                  setSelectedDate(dateStr);
+                                  setShowDatePicker(false);
+                                }
+                              }}
+                              disabled={!isAvailable || isPast}
+                              className={`
+                                text-sm py-1.5 rounded transition
+                                ${isSelected
+                                  ? 'bg-[#6F71EE] text-white font-medium'
+                                  : isAvailable && !isPast
+                                  ? 'text-[#101E57] hover:bg-[#6F71EE]/10 font-medium'
+                                  : 'text-[#D0D5DD] cursor-not-allowed'
+                                }
+                                ${isToday && !isSelected ? 'ring-1 ring-[#6F71EE]' : ''}
+                              `}
+                            >
+                              {date.getDate()}
+                            </button>
+                          );
+                        }
+                        return days;
+                      })()}
+                    </div>
+                    <p className="text-xs text-[#98A2B3] mt-3 text-center">
+                      Dates with availability are highlighted
+                    </p>
                   </div>
                 )}
               </div>
