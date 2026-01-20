@@ -1030,22 +1030,37 @@ export default function BookingPage({
     );
   }
 
-  // Progressive disclosure - calculate visible dates
-  const SLOTS_PER_WEEK = 7; // Show 7 days at a time
+  // Progressive disclosure - show fewer days by default for calmer experience
+  const INITIAL_DAYS = 2; // Start with just 2 days for less overwhelm
+  const DAYS_PER_EXPAND = 3; // Show 3 more days each expansion
   const sortedDates = Object.keys(groupedSlots).sort();
-  const visibleDates = sortedDates.slice(0, visibleWeeks * SLOTS_PER_WEEK);
+  const totalVisibleDays = INITIAL_DAYS + (visibleWeeks - 1) * DAYS_PER_EXPAND;
+  const visibleDates = sortedDates.slice(0, totalVisibleDays);
   const hasMoreDates = sortedDates.length > visibleDates.length;
   const remainingDates = sortedDates.length - visibleDates.length;
+
+  // Timezone display helper - get short label
+  const getTimezoneLabel = (tz: string) => {
+    const found = TIMEZONE_OPTIONS.flatMap(g => g.zones).find(z => z.value === tz);
+    return found?.label || tz.replace(/_/g, ' ');
+  };
+
+  // State for timezone dropdown expansion
+  const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
 
   // Check if this is a webinar (uses different layout)
   const isWebinar = event.meeting_type === 'webinar';
 
   // Main slot selection screen
   return (
-    <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* 1. Banner Image (both layouts) */}
+    <div className="min-h-screen bg-gradient-to-b from-[#F6F6F9] to-[#EEEEF4] py-8 sm:py-12 px-4">
+      <div className="max-w-xl mx-auto">
+        {/* Card with subtle brand accent */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+          {/* Brand accent line */}
+          <div className="h-1 bg-gradient-to-r from-[#6F71EE] to-[#417762]" />
+
+          {/* Banner Image (both layouts) */}
           {event.banner_image && (
             <div className="relative w-full">
               <Image
@@ -1059,96 +1074,68 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* NON-WEBINAR: Hero Section - Event Context above calendar */}
+          {/* NON-WEBINAR: Hero Section - Tier 1 Primary Info */}
           {!isWebinar && (
-            <div className="p-6 border-b">
+            <div className="p-6 sm:p-8">
+              {/* Logo */}
               <Image
                 src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
                 alt="LiveSchool"
-                width={120}
-                height={32}
-                className="mb-4"
+                width={100}
+                height={26}
+                className="mb-5 opacity-80"
               />
 
-              <h1 className="text-2xl font-semibold text-[#101E57]">{event.name}</h1>
-              {event.subtitle && (
-                <p className="text-lg text-[#667085] mt-1">{event.subtitle}</p>
-              )}
+              {/* Tier 1: Primary - Title and key info (calm, anchored) */}
+              <h1 className="text-xl sm:text-2xl font-semibold text-[#101E57] leading-tight">{event.name}</h1>
 
-              <div className="flex flex-wrap gap-4 mt-4 text-[#667085]">
-                {/* Host info - hide for round-robin and collective */}
+              {/* Key session details - compact, single line */}
+              <div className="flex items-center gap-3 mt-3 text-sm text-[#667085]">
+                {/* Host with avatar */}
                 {event.meeting_type !== 'round_robin' && event.meeting_type !== 'collective' && (
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
                     {event.host_profile_image ? (
                       <img
                         src={event.host_profile_image}
                         alt={event.host_name}
-                        className="w-6 h-6 rounded-full object-cover"
+                        className="w-5 h-5 rounded-full object-cover"
                       />
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    )}
-                    {event.host_name}
+                    ) : null}
+                    <span className="text-[#101E57] font-medium">{event.host_name}</span>
                   </span>
                 )}
                 {event.meeting_type === 'round_robin' && (
-                  <span className="flex items-center gap-1 text-[#6F71EE]">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    LiveSchool Team
-                  </span>
+                  <span className="text-[#101E57] font-medium">LiveSchool Team</span>
                 )}
                 {event.meeting_type === 'collective' && (
-                  <span className="flex items-center gap-1 text-[#6F71EE]">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    All Hosts Join
-                  </span>
+                  <span className="text-[#101E57] font-medium">All Hosts Join</span>
                 )}
-                <span className="flex items-center gap-1">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {event.duration_minutes} min
-                </span>
-                <span className="flex items-center gap-1">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Google Meet
-                </span>
+                <span className="text-gray-300">|</span>
+                <span>{event.duration_minutes} min</span>
+                <span className="text-gray-300">|</span>
+                <span>Google Meet</span>
               </div>
 
-              {/* Description */}
+              {/* Description - Full content with good typography */}
               {event.description && (
                 <div
-                  className="mt-4 prose prose-sm max-w-none text-[#667085] [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_p]:my-2 [&_strong]:text-[#101E57] [&_strong]:font-semibold"
+                  className="mt-5 prose prose-sm max-w-none text-[#667085] leading-relaxed [&_a]:text-[#6F71EE] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2 [&_li]:my-1 [&_p]:my-2 [&_strong]:text-[#101E57] [&_strong]:font-medium"
                   dangerouslySetInnerHTML={{ __html: event.description }}
                 />
               )}
 
-              {/* Booking Rules Info */}
+              {/* Booking Rules - subtle badges */}
               {(event.min_notice_hours > 0 || event.require_approval) && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {event.min_notice_hours > 0 && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-[#F6F6F9] text-[#667085] px-2 py-1 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                    <span className="inline-flex items-center gap-1 text-xs text-[#667085] px-2 py-1 rounded bg-gray-50">
                       {event.min_notice_hours >= 24
-                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} advance notice`
-                        : `${event.min_notice_hours} hour${event.min_notice_hours > 1 ? 's' : ''} advance notice`}
+                        ? `${Math.floor(event.min_notice_hours / 24)} day${event.min_notice_hours >= 48 ? 's' : ''} notice required`
+                        : `${event.min_notice_hours}h notice required`}
                     </span>
                   )}
                   {event.require_approval && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-700 px-2 py-1 rounded bg-amber-50">
                       Requires approval
                     </span>
                   )}
@@ -1157,37 +1144,54 @@ export default function BookingPage({
             </div>
           )}
 
+          {/* Divider with brand accent */}
+          <div className="h-px bg-gradient-to-r from-transparent via-[#6F71EE]/20 to-transparent" />
+
           {/* Time slots / Scheduling section */}
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-              <h2 className="font-semibold text-[#101E57]">Select a time</h2>
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <select
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 text-[#101E57] focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] bg-white"
+          <div className="p-6 sm:p-8 bg-[#FAFAFC]">
+            {/* Section header with inline timezone */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-[#101E57] mb-1">Select a time</h2>
+              {/* Tier 2: Context - Timezone as subtle inline text */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
+                  className="text-sm text-[#667085] hover:text-[#6F71EE] transition flex items-center gap-1"
                 >
-                  {/* Show detected timezone at top if not in predefined list */}
-                  {detectedTimezone && !isDetectedInList && (
-                    <optgroup label="Your Timezone">
-                      <option value={detectedTimezone}>
-                        {detectedTimezone.replace(/_/g, ' ')}
-                      </option>
-                    </optgroup>
-                  )}
-                  {TIMEZONE_OPTIONS.map((group) => (
-                    <optgroup key={group.group} label={group.group}>
-                      {group.zones.map((tz) => (
-                        <option key={tz.value} value={tz.value}>
-                          {tz.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  Times shown in {getTimezoneLabel(timezone)}
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showTimezoneDropdown && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto w-64">
+                    {detectedTimezone && !isDetectedInList && (
+                      <div className="p-2 border-b border-gray-100">
+                        <p className="text-xs text-[#667085] px-2 mb-1">Your timezone</p>
+                        <button
+                          onClick={() => { setTimezone(detectedTimezone); setShowTimezoneDropdown(false); }}
+                          className={`w-full text-left px-2 py-1.5 rounded text-sm hover:bg-[#6F71EE]/5 ${timezone === detectedTimezone ? 'bg-[#6F71EE]/10 text-[#6F71EE]' : 'text-[#101E57]'}`}
+                        >
+                          {detectedTimezone.replace(/_/g, ' ')}
+                        </button>
+                      </div>
+                    )}
+                    {TIMEZONE_OPTIONS.map((group) => (
+                      <div key={group.group} className="p-2 border-b border-gray-100 last:border-0">
+                        <p className="text-xs text-[#667085] px-2 mb-1">{group.group}</p>
+                        {group.zones.map((tz) => (
+                          <button
+                            key={tz.value}
+                            onClick={() => { setTimezone(tz.value); setShowTimezoneDropdown(false); }}
+                            className={`w-full text-left px-2 py-1.5 rounded text-sm hover:bg-[#6F71EE]/5 ${timezone === tz.value ? 'bg-[#6F71EE]/10 text-[#6F71EE]' : 'text-[#101E57]'}`}
+                          >
+                            {tz.label}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1210,15 +1214,12 @@ export default function BookingPage({
                     onClick={() => setShowTroubleshoot(true)}
                     className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6F71EE] border border-[#6F71EE] rounded-lg hover:bg-[#6F71EE]/5 transition"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
                     Troubleshoot Availability
                   </button>
                 )}
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {visibleDates.map((date) => {
                   const dateSlots = groupedSlots[date];
                   // Group by time of day in user's timezone
@@ -1245,11 +1246,12 @@ export default function BookingPage({
                     if (availableSlots.length === 0) return null;
 
                     return (
-                      <div className="mb-3">
-                        <p className="text-xs text-[#667085] mb-2 uppercase tracking-wide font-medium">
+                      <div className="mb-4">
+                        <p className="text-xs text-[#98A2B3] mb-2 uppercase tracking-wider">
                           {label}
                         </p>
-                        <div className="flex flex-wrap gap-2">
+                        {/* Tier 3: Options - Calmer buttons, max 3-4 per row */}
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {availableSlots.map((slot) => {
                             const isFull = slot.booking_count >= event.max_attendees;
                             const spotsLeft = event.max_attendees - slot.booking_count;
@@ -1274,25 +1276,23 @@ export default function BookingPage({
                                 }}
                                 disabled={isFull}
                                 title={hasConflict ? 'You have a calendar conflict at this time' : undefined}
-                                className={`px-4 py-2.5 rounded-lg border-2 transition-all duration-150 font-medium min-h-[44px] ${
+                                className={`px-3 py-3 rounded-lg border transition-all duration-150 text-sm ${
                                   isFull
-                                    ? 'bg-gray-100 text-[#667085] cursor-not-allowed border-gray-200'
+                                    ? 'bg-gray-50 text-[#98A2B3] cursor-not-allowed border-gray-100'
                                     : hasConflict
-                                    ? 'border-amber-400 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:border-amber-500'
-                                    : 'border-[#6F71EE] text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'
+                                    ? 'border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:border-amber-300'
+                                    : 'border-gray-200 text-[#101E57] bg-white hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 hover:text-[#6F71EE] active:bg-[#6F71EE] active:text-white'
                                 }`}
                               >
-                                {hasConflict && (
-                                  <svg className="w-3.5 h-3.5 inline mr-1 -mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                                <span>{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
-                                {isFull && ' (Full)'}
+                                <span className="font-medium">{formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}</span>
+                                {isFull && <span className="block text-xs mt-0.5">Full</span>}
                                 {showSpotsLeft && (
-                                  <span className="ml-1 text-xs opacity-75">
-                                    ({spotsLeft} left)
+                                  <span className="block text-xs mt-0.5 opacity-60">
+                                    {spotsLeft} left
                                   </span>
+                                )}
+                                {hasConflict && !isFull && (
+                                  <span className="block text-xs mt-0.5">Conflict</span>
                                 )}
                               </button>
                             );
@@ -1303,11 +1303,9 @@ export default function BookingPage({
                   };
 
                   return (
-                    <div key={date}>
-                      <h3 className="font-medium text-[#101E57] mb-3 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                    <div key={date} className="bg-white rounded-xl p-5 border border-gray-100">
+                      {/* Tier 2: Context - Date header (quieter, not bold anchor) */}
+                      <h3 className="text-sm font-medium text-[#667085] mb-4">
                         {formatInTimeZone(parseISO(dateSlots[0].start_time), timezone, 'EEEE, MMMM d')}
                       </h3>
                       {renderSlots(morningSlots, 'Morning')}
@@ -1317,17 +1315,14 @@ export default function BookingPage({
                   );
                 })}
 
-                {/* View more dates button */}
+                {/* View more dates button - subtle, not aggressive */}
                 {hasMoreDates && (
-                  <div className="text-center pt-2">
+                  <div className="text-center">
                     <button
                       onClick={() => setVisibleWeeks(prev => prev + 1)}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-[#6F71EE] hover:bg-[#6F71EE]/5 rounded-lg transition font-medium"
+                      className="text-sm text-[#667085] hover:text-[#6F71EE] transition"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                      Show {Math.min(remainingDates, SLOTS_PER_WEEK)} more {remainingDates === 1 ? 'day' : 'days'}
+                      + Show {Math.min(remainingDates, DAYS_PER_EXPAND)} more {remainingDates === 1 ? 'day' : 'days'}
                     </button>
                   </div>
                 )}
@@ -1424,13 +1419,33 @@ export default function BookingPage({
             </div>
           )}
 
-          {/* Footer */}
-          <div className="p-4 bg-[#F6F6F9] border-t text-center">
-            <p className="text-xs text-[#667085]">
-              {isWebinar
-                ? 'Web conferencing details provided upon confirmation'
-                : "You'll receive a calendar invite with Google Meet link upon booking"}
-            </p>
+          {/* Reassurance footer - confidence cues close to action */}
+          <div className="px-6 sm:px-8 pb-6 sm:pb-8 bg-[#FAFAFC]">
+            <div className="flex items-center justify-center gap-6 text-xs text-[#667085]">
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-[#417762]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Calendar invite sent instantly
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-[#417762]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Easy to reschedule
+              </span>
+            </div>
+          </div>
+
+          {/* Brand footer */}
+          <div className="p-4 border-t border-gray-100 text-center">
+            <Image
+              src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+              alt="LiveSchool"
+              width={80}
+              height={20}
+              className="mx-auto opacity-40"
+            />
           </div>
         </div>
       </div>
