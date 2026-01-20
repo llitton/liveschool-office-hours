@@ -659,71 +659,71 @@ export default function BookingPage({
             ← Back to times
           </button>
 
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="bg-[#101E57] text-white p-6">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={120}
-                height={32}
-                className="mb-4 brightness-0 invert"
-              />
-              <h1 className="text-xl font-semibold">{event.name}</h1>
-              {event.subtitle && (
-                <p className="text-white/80 mt-1">{event.subtitle}</p>
-              )}
-              <div className="flex items-center gap-2 mt-2 text-white/80">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            {/* Softer header - reassuring, not formal */}
+            <div className="bg-gradient-to-br from-[#1a2a6c] to-[#2d3a7c] text-white p-5">
+              <div className="flex items-center justify-between mb-3">
+                <Image
+                  src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
+                  alt="LiveSchool"
+                  width={90}
+                  height={24}
+                  className="brightness-0 invert opacity-80"
+                />
+                <span className="text-white/60 text-sm">{event.duration_minutes} min</span>
+              </div>
+              <h1 className="text-lg font-medium">{event.name}</h1>
+              <div className="flex items-center gap-2 mt-1 text-white/70 text-sm">
                 {event.host_profile_image ? (
                   <img
                     src={event.host_profile_image}
                     alt={event.host_name}
-                    className="w-6 h-6 rounded-full object-cover border border-white/30"
+                    className="w-5 h-5 rounded-full object-cover"
                   />
                 ) : null}
-                <span>{event.duration_minutes} min · {event.host_name}</span>
+                <span>with {event.host_name}</span>
               </div>
             </div>
 
-            {/* Selected time with meeting context */}
-            <div className="p-6 border-b bg-[#F6F6F9]">
-              <p className="text-sm font-medium text-[#6F71EE] mb-1">{event.name}</p>
-              <p className="font-medium text-[#101E57]">
+            {/* Selected time - the hero of this screen */}
+            <div className="p-5 border-b border-gray-100 bg-white">
+              <p className="text-xl font-semibold text-[#101E57]">
                 {formatInTimeZone(
                   parseISO(selectedSlot.start_time),
                   timezone,
-                  'EEEE, MMMM d, yyyy'
+                  'EEEE, MMMM d'
                 )}
               </p>
-              <p className="text-[#667085]">
+              <p className="text-lg text-[#101E57] mt-0.5">
                 {formatInTimeZone(
                   parseISO(selectedSlot.start_time),
                   timezone,
                   'h:mm a'
-                )}{' '}
-                -{' '}
+                )}
+                {' – '}
                 {formatInTimeZone(
                   parseISO(selectedSlot.end_time),
                   timezone,
                   'h:mm a'
                 )}
               </p>
-              <p className="text-[#667085] text-sm mt-1">{timezone}</p>
+              <p className="text-sm text-[#98A2B3] mt-1">{timezone.replace(/_/g, ' ')}</p>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleBooking} className="p-6">
+            {/* Form - organized by intent, not by field type */}
+            <form onSubmit={handleBooking} className="p-5">
               {error && (
-                <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">
+                <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">
                   {error}
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Group 1: Essentials - who you are */}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      First Name *
+                    <label className="block text-sm text-[#667085] mb-1">
+                      First name
                     </label>
                     <input
                       type="text"
@@ -741,12 +741,12 @@ export default function BookingPage({
                           analytics.trackFormStart();
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      Last Name *
+                    <label className="block text-sm text-[#667085] mb-1">
+                      Last name
                     </label>
                     <input
                       type="text"
@@ -764,14 +764,14 @@ export default function BookingPage({
                           analytics.trackFormStart();
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Email *
+                  <label className="block text-sm text-[#667085] mb-1">
+                    Email
                   </label>
                   <div className="relative">
                     <input
@@ -784,8 +784,8 @@ export default function BookingPage({
                         setContactLookupDone(false);
                       }}
                       onBlur={handleEmailBlur}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] ${
-                        emailError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] ${
+                        emailError ? 'border-red-300 bg-red-50' : 'border-gray-200'
                       }`}
                     />
                     {emailValidating && (
@@ -799,68 +799,71 @@ export default function BookingPage({
                   )}
                 </div>
 
-                {/* Phone Number - show if phone_required OR sms_reminders_enabled */}
+              </div>
+
+              {/* Group 2: Optional / helpful - with subtle visual break */}
+              <div className="mt-6 pt-5 border-t border-gray-100 space-y-4">
+                {/* Phone Number - friendlier framing */}
                 {(event.phone_required || event.sms_reminders_enabled) && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Phone Number {(event.phone_required || event.sms_phone_required) && '*'}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          required={event.phone_required || event.sms_phone_required}
-                          value={formData.phone}
-                          onChange={(e) => {
-                            setFormData((prev) => ({ ...prev, phone: e.target.value }));
-                            setPhonePrefilled(false);
-                          }}
-                          placeholder="+1 (555) 123-4567"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                        />
-                        {phonePrefilled && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <span className="text-xs text-[#417762] bg-green-50 px-2 py-1 rounded font-medium">
-                              From CRM
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-xs text-[#667085] mt-1">
-                        {event.sms_reminders_enabled
-                          ? 'For SMS reminders before your session'
-                          : "We'll use this to reach you if we have trouble connecting"}
-                      </p>
+                  <div>
+                    <label className="block text-sm text-[#667085] mb-1">
+                      Phone number
+                      {!(event.phone_required || event.sms_phone_required) && (
+                        <span className="text-[#98A2B3] ml-1">(only if we have trouble connecting)</span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        required={event.phone_required || event.sms_phone_required}
+                        value={formData.phone}
+                        onChange={(e) => {
+                          setFormData((prev) => ({ ...prev, phone: e.target.value }));
+                          setPhonePrefilled(false);
+                        }}
+                        placeholder="+1 (555) 123-4567"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      {phonePrefilled && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <span className="text-xs text-[#417762] bg-green-50 px-2 py-1 rounded font-medium">
+                            Found
+                          </span>
+                        </div>
+                      )}
                     </div>
+                    {event.sms_reminders_enabled && (
+                      <p className="text-xs text-[#98A2B3] mt-1">
+                        We can send you a reminder before your session
+                      </p>
+                    )}
 
                     {/* SMS Consent - only show if SMS enabled AND phone is provided */}
                     {event.sms_reminders_enabled && formData.phone && (
-                      <label className="flex items-start gap-2 cursor-pointer">
+                      <label className="flex items-start gap-2 cursor-pointer mt-2">
                         <input
                           type="checkbox"
                           checked={formData.sms_consent}
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, sms_consent: e.target.checked }))
                           }
-                          className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                          className="mt-0.5 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
                         />
-                        <span className="text-sm text-[#667085]">
-                          I agree to receive SMS reminders about this booking.
-                          Message & data rates may apply. Reply STOP to opt out.
+                        <span className="text-xs text-[#667085]">
+                          Send me an SMS reminder. Standard rates may apply.
                         </span>
                       </label>
                     )}
                   </div>
                 )}
 
-                {/* Guest Emails - allow adding team members */}
-                <div className="pt-4 border-t border-gray-200">
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Add colleagues to this meeting
-                    <span className="text-[#667085] font-normal ml-1">(optional)</span>
+                {/* Guest Emails - conversational, not system-y */}
+                <div>
+                  <label className="block text-sm text-[#667085] mb-1">
+                    Want to invite a colleague?
                   </label>
-                  <p className="text-xs text-[#667085] mb-3">
-                    Invite others to join you. They&apos;ll receive the calendar invite with the meeting link.
+                  <p className="text-xs text-[#98A2B3] mb-2">
+                    They&apos;ll receive the calendar invite and meeting link.
                   </p>
 
                   {/* Added guests list */}
@@ -926,13 +929,13 @@ export default function BookingPage({
                   )}
                 </div>
 
-                {/* Custom Questions */}
+                {/* Custom Questions - softer styling */}
                 {event.custom_questions && event.custom_questions.length > 0 && (
-                  <div className="pt-4 border-t border-gray-200 space-y-4">
+                  <div className="space-y-3">
                     {event.custom_questions.map((q: CustomQuestion) => (
                       <div key={q.id}>
-                        <label className="block text-sm font-medium text-[#101E57] mb-1">
-                          {q.question} {q.required && '*'}
+                        <label className="block text-sm text-[#667085] mb-1">
+                          {q.question}
                         </label>
                         {q.type === 'text' && (
                           <input
@@ -945,13 +948,13 @@ export default function BookingPage({
                                 [q.id]: e.target.value,
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                           />
                         )}
                         {q.type === 'textarea' && (
                           <textarea
                             required={q.required}
-                            rows={3}
+                            rows={2}
                             value={questionResponses[q.id] || ''}
                             onChange={(e) =>
                               setQuestionResponses((prev) => ({
@@ -959,7 +962,8 @@ export default function BookingPage({
                                 [q.id]: e.target.value,
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                            placeholder="Optional - share anything that would help us prepare"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] placeholder:text-[#C0C5D0]"
                           />
                         )}
                         {q.type === 'select' && q.options && (
@@ -972,7 +976,7 @@ export default function BookingPage({
                                 [q.id]: e.target.value,
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                           >
                             <option value="">Select an option</option>
                             {q.options.map((opt) => (
@@ -988,44 +992,41 @@ export default function BookingPage({
                 )}
               </div>
 
-              {/* Reassurance microcopy */}
-              <div className="mt-6 mb-4 p-4 bg-[#F6F6F9] rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-[#417762]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* What happens next - tighter, checkmark format */}
+              <div className="mt-5 mb-4 text-sm text-[#667085]">
+                <p className="font-medium text-[#101E57] mb-2">What happens next</p>
+                <div className="space-y-1.5">
+                  <p className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#417762] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                  </div>
-                  <div className="text-sm">
-                    <p className="text-[#101E57] font-medium mb-1">What happens next:</p>
-                    <ul className="text-[#667085] space-y-1">
-                      <li className="flex items-center gap-2">
-                        <span className="w-1 h-1 bg-[#667085] rounded-full" />
-                        Calendar invite sent instantly to your email
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="w-1 h-1 bg-[#667085] rounded-full" />
-                        Google Meet link included in the invite
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="w-1 h-1 bg-[#667085] rounded-full" />
-                        You can reschedule or cancel anytime
-                      </li>
-                    </ul>
-                  </div>
+                    Calendar invite sent instantly
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#417762] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Google Meet link included
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#417762] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Reschedule anytime if plans change
+                  </p>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={booking}
-                className="w-full bg-[#6F71EE] text-white py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                className="w-full bg-[#6F71EE] text-white py-3.5 rounded-xl hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium text-base shadow-sm"
               >
                 {booking ? 'Booking...' : 'Confirm Booking'}
               </button>
 
-              <p className="text-xs text-[#667085] mt-3 text-center">
-                No commitment required. Free to reschedule if something comes up.
+              <p className="text-xs text-[#98A2B3] mt-3 text-center">
+                No commitment. Reschedule anytime if plans change.
               </p>
             </form>
           </div>
