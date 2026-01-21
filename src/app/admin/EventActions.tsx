@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 interface EventActionsProps {
   eventId: string;
@@ -15,6 +14,16 @@ export default function EventActions({ eventId, eventSlug, eventName }: EventAct
   const [duplicating, setDuplicating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const copyBookingLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com';
+    navigator.clipboard.writeText(`${baseUrl}/book/${eventSlug}`);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   const handleDuplicate = async () => {
     if (duplicating) return;
@@ -68,14 +77,31 @@ export default function EventActions({ eventId, eventSlug, eventName }: EventAct
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* Primary Action */}
-        <Link
-          href={`/admin/events/${eventId}`}
-          className="bg-[#6F71EE] text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-[#5a5cd0] transition"
-          onClick={(e) => e.stopPropagation()}
+        {/* Primary Action - Copy Link */}
+        <button
+          onClick={copyBookingLink}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+            linkCopied
+              ? 'bg-green-100 text-green-700 border border-green-300'
+              : 'bg-[#6F71EE] text-white hover:bg-[#5a5cd0]'
+          }`}
         >
-          Manage
-        </Link>
+          {linkCopied ? (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Link
+            </>
+          )}
+        </button>
 
         {/* Secondary Actions Menu */}
         <div className="relative">
@@ -85,7 +111,7 @@ export default function EventActions({ eventId, eventSlug, eventName }: EventAct
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition text-[#667085]"
+            className="p-1.5 rounded-lg hover:bg-white/80 transition text-[#667085]"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -104,7 +130,7 @@ export default function EventActions({ eventId, eventSlug, eventName }: EventAct
               />
 
               {/* Dropdown Menu */}
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+              <div className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                 <a
                   href={`/book/${eventSlug}`}
                   target="_blank"

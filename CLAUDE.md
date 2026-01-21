@@ -123,6 +123,18 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - Disable submit button until validation passes
 - Provide clickable alternatives when a value is taken (e.g., slug suggestions)
 
+### Dashboard & Card Design
+- **Copy Link is primary action:** Users visit the dashboard most often to grab a booking link - make Copy Link the most prominent button
+- **Whole card is clickable:** Don't have competing click targets (chevron AND button) - make the entire card a link
+- **Status badges need contrast:** Use borders and bolder colors (green-100/300, amber-100/300, red-100/300) for accessibility
+- **Show booking URL inline:** Display the full URL preview (liveschoolhelp.com/book/slug) directly on cards
+- **Sticky footers for long forms:** Keep primary actions (Create, Save) visible at all times
+
+### Team Member Display
+- **Warning badges for connection issues:** Use amber/warning colors when calendar isn't connected
+- **Action links near problems:** Add "Connect Calendar" links directly next to users with issues
+- **Status indicators on avatars:** Small badge overlays (green check, amber warning) make status scannable
+
 ## Current State
 
 Working features:

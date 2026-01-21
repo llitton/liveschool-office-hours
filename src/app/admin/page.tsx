@@ -130,33 +130,41 @@ export default async function AdminPage({
               }
 
               return (
-                <div
+                <Link
                   key={event.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-[#6F71EE]/30 transition group"
+                  href={`/admin/events/${event.id}`}
+                  className="block bg-white rounded-lg shadow-sm border border-gray-200 hover:border-[#6F71EE]/50 hover:shadow-md transition-all group"
                 >
-                  <Link href={`/admin/events/${event.id}`} className="block p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-lg font-semibold text-[#101E57] group-hover:text-[#6F71EE] transition">
+                  <div className="p-5">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-semibold text-[#101E57] group-hover:text-[#6F71EE] transition truncate">
                             {event.name}
                           </h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${status.bg} ${status.color}`}>
+                          <span className={`flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                            status.label === 'Available' || status.label === 'Active'
+                              ? 'bg-green-100 text-green-800 border-green-300'
+                              : status.label === 'No slots'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : status.label === 'Almost full'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : status.label === 'Fully booked'
+                              ? 'bg-red-100 text-red-800 border-red-300'
+                              : `${status.bg} ${status.color}`
+                          }`}>
                             {status.label}
                           </span>
                         </div>
                         <p className="text-[#667085] text-sm">
-                          {event.duration_minutes} min · {event.host_name}
+                          {event.duration_minutes} min · {event.meeting_type === 'round_robin' ? 'Round Robin' : event.host_name}
                         </p>
                       </div>
-                      <svg className="w-5 h-5 text-[#667085] group-hover:text-[#6F71EE] transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
                     </div>
 
                     {/* Capacity bar - only show for webinars or events with slots */}
                     {(activeSlots.length > 0 || !usesDynamicAvailability) ? (
-                      <div className="mt-4">
+                      <div className="mb-3">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-[#667085]">
                             {totalBookings} booked across {activeSlots.length} slot{activeSlots.length !== 1 ? 's' : ''}
@@ -177,20 +185,26 @@ export default async function AdminPage({
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-4">
+                      <div className="mb-3">
                         <p className="text-sm text-[#667085]">
                           Uses your availability · Slots created when booked
                         </p>
                       </div>
                     )}
-                  </Link>
+
+                    {/* Booking link preview */}
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-[#667085] font-mono bg-[#F6F6F9] px-2 py-1 rounded truncate">
+                        liveschoolhelp.com/book/{event.slug}
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Quick actions bar */}
-                  <div className="px-6 py-3 bg-[#F6F6F9] border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-xs text-[#667085]">/{event.slug}</span>
+                  <div className="px-5 py-3 bg-[#F6F6F9] border-t border-gray-100 flex items-center justify-end gap-2">
                     <EventActions eventId={event.id} eventSlug={event.slug} eventName={event.name} />
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
