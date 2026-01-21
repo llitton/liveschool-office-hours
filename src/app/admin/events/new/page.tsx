@@ -54,7 +54,7 @@ export default function NewEventPage() {
   // Round-robin settings
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
-  const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('cycle');
+  const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('least_bookings');
   const [roundRobinPeriod, setRoundRobinPeriod] = useState<RoundRobinPeriod>('week');
   const [loadingTeam, setLoadingTeam] = useState(false);
 
@@ -62,6 +62,11 @@ export default function NewEventPage() {
   const [templates, setTemplates] = useState<OHSessionTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+
+  // Slug validation
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [slugSuggestions, setSlugSuggestions] = useState<string[]>([]);
+  const [existingEventName, setExistingEventName] = useState<string | null>(null);
 
   // Fetch current user profile and templates on mount
   useEffect(() => {
@@ -117,6 +122,39 @@ export default function NewEventPage() {
       fetchTeamMembers();
     }
   }, [meetingType]);
+
+  // Check slug availability with debounce
+  useEffect(() => {
+    if (!formData.slug || formData.slug.length < 2) {
+      setSlugStatus('idle');
+      setSlugSuggestions([]);
+      setExistingEventName(null);
+      return;
+    }
+
+    setSlugStatus('checking');
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/events/check-slug?slug=${encodeURIComponent(formData.slug)}`);
+        const data = await response.json();
+
+        if (data.available) {
+          setSlugStatus('available');
+          setSlugSuggestions([]);
+          setExistingEventName(null);
+        } else {
+          setSlugStatus('taken');
+          setSlugSuggestions(data.suggestions || []);
+          setExistingEventName(data.existingEventName || null);
+        }
+      } catch (err) {
+        console.error('Failed to check slug:', err);
+        setSlugStatus('idle');
+      }
+    }, 400); // 400ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [formData.slug]);
 
   const fetchTeamMembers = async () => {
     setLoadingTeam(true);
@@ -480,6 +518,14 @@ export default function NewEventPage() {
                 {/* Round-robin strategy - only show for round-robin */}
                 {meetingType === 'round_robin' && (
                   <div className="mt-6 space-y-4">
+                    {/* Coverage explanation */}
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Maximum coverage:</strong> Attendees will see all time slots where <em>any</em> team member is available.
+                        The strategy below only affects who gets assigned when someone books - not how many slots are shown.
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-[#101E57] mb-1">
@@ -490,8 +536,8 @@ export default function NewEventPage() {
                           onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                         >
+                          <option value="least_bookings">Load Balanced (Recommended)</option>
                           <option value="cycle">Simple Rotation</option>
-                          <option value="least_bookings">Load Balanced</option>
                           <option value="availability_weighted">Availability Weighted</option>
                           <option value="priority">Priority Based</option>
                         </select>
@@ -515,16 +561,16 @@ export default function NewEventPage() {
                     </div>
                     <p className="text-sm text-[#667085]">
                       {roundRobinStrategy === 'cycle' && (
-                        <>Rotate through hosts in order. Best for equal distribution when all hosts have similar availability.</>
+                        <>Rotate through hosts in a fixed order (A, B, C, A, B, C...). Simple and predictable, but can become unbalanced if hosts have different availability.</>
                       )}
                       {roundRobinStrategy === 'least_bookings' && (
-                        <>Assign to the host with the fewest bookings in the period. Best when hosts have different schedules.</>
+                        <>Assign to whoever has the fewest bookings. Keeps workload balanced across the team - best choice if you just want fair distribution and maximum coverage.</>
                       )}
                       {roundRobinStrategy === 'availability_weighted' && (
-                        <>Balance bookings relative to each host&apos;s available hours. Best when hosts have very different availability.</>
+                        <>Assign more bookings to hosts with more available hours. Use this if someone with a fuller calendar should take proportionally more meetings.</>
                       )}
                       {roundRobinStrategy === 'priority' && (
-                        <>Assign to highest priority available host. Set priorities in event settings after creation.</>
+                        <>Always assign to the highest-priority available host first. Use when you have a preferred host and others are backups. Set priorities in event settings after creation.</>
                       )}
                     </p>
                   </div>
@@ -579,17 +625,77 @@ export default function NewEventPage() {
                 </label>
                 <div className="flex items-center">
                   <span className="text-[#667085] mr-1">/book/</span>
-                  <input
-                    type="text"
-                    required
-                    value={formData.slug}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, slug: e.target.value }))
-                    }
-                    placeholder="e.g., liveschool-store"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      required
+                      value={formData.slug}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, slug: e.target.value }))
+                      }
+                      placeholder="e.g., liveschool-store"
+                      className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] ${
+                        slugStatus === 'taken'
+                          ? 'border-red-400 bg-red-50'
+                          : slugStatus === 'available'
+                          ? 'border-green-400 bg-green-50'
+                          : 'border-gray-300'
+                      }`}
+                    />
+                    {/* Status indicator */}
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {slugStatus === 'checking' && (
+                        <svg className="w-5 h-5 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      )}
+                      {slugStatus === 'available' && (
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {slugStatus === 'taken' && (
+                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                {/* Slug taken warning and suggestions */}
+                {slugStatus === 'taken' && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">
+                      This URL is already used by <strong>&quot;{existingEventName}&quot;</strong>
+                    </p>
+                    {slugSuggestions.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-red-600 mb-1">Try one of these instead:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {slugSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => setFormData((prev) => ({ ...prev, slug: suggestion }))}
+                              className="px-2 py-1 text-xs bg-white border border-red-300 rounded hover:bg-red-100 text-red-700 transition"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {slugStatus === 'available' && formData.slug.length >= 2 && (
+                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    This URL is available
+                  </p>
+                )}
               </div>
 
               <div>
@@ -718,35 +824,50 @@ export default function NewEventPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Host Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.host_name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, host_name: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
+              {/* Host name/email - hidden for round-robin and collective since host is assigned dynamically */}
+              {(meetingType === 'round_robin' || meetingType === 'collective') ? (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start gap-2">
+                  <svg className="w-5 h-5 text-[#667085] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-[#667085]">
+                    <strong className="text-[#101E57]">Host is assigned automatically.</strong>{' '}
+                    {meetingType === 'round_robin'
+                      ? 'When someone books, the system assigns an available team member based on your distribution strategy. Their name and email will appear on calendar invites and confirmations.'
+                      : 'All selected team members will be included on the meeting since everyone must be available.'}
+                  </p>
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Host Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.host_name}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, host_name: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-[#101E57] mb-1">
-                    Host Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.host_email}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, host_email: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Host Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.host_email}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, host_email: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -914,10 +1035,10 @@ export default function NewEventPage() {
           <div className="flex gap-4">
             <button
               type="submit"
-              disabled={loading}
-              className="bg-[#6F71EE] text-white px-6 py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+              disabled={loading || slugStatus === 'taken' || slugStatus === 'checking'}
+              className="bg-[#6F71EE] text-white px-6 py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              {loading ? 'Creating...' : 'Create Event'}
+              {loading ? 'Creating...' : slugStatus === 'taken' ? 'Fix URL slug to continue' : 'Create Event'}
             </button>
             <Link
               href="/admin"
