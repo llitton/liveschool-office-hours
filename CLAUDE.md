@@ -66,6 +66,38 @@ Core tables prefixed with `oh_`:
 - `oh_polls` - Availability voting
 - `oh_sms_config` / `oh_sms_logs` - SMS configuration
 
+### Database Security (Row Level Security)
+
+All tables have Row Level Security (RLS) enabled. This is critical for Supabase security.
+
+**How RLS Works:**
+- `service_role` key (used by API routes via `getServiceSupabase()`) **bypasses RLS** - full access
+- `anon` key (public) is restricted by RLS policies
+- Migrations in `migrations/006_enable_rls.sql` and `migrations/031_enable_rls_missing_tables.sql`
+
+**Table Access Levels:**
+
+| Access Level | Tables | Notes |
+|--------------|--------|-------|
+| **Admin-only** (service_role) | `oh_admins`, `oh_sms_config`, `oh_hubspot_config`, `oh_slack_config`, `oh_availability_patterns`, `oh_busy_blocks`, `oh_company_holidays`, `oh_task_templates`, `oh_session_templates` | Contain sensitive data (tokens, API keys) |
+| **Public read** | `oh_events` (active only), `oh_slots` (available only), `oh_prep_resources` | For public booking pages |
+| **Public read/write** | `oh_bookings`, `oh_poll_votes` | Attendees can create bookings and submit votes |
+| **Public read** (polls) | `oh_polls`, `oh_poll_options`, `oh_poll_invitees` | For /vote/[slug] pages |
+
+**When Adding New Tables:**
+1. Always enable RLS: `ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;`
+2. Create appropriate policies based on access needs
+3. Tables with sensitive data (API keys, tokens) should have NO public policies
+4. Check Supabase dashboard for "RLS Disabled" warnings
+
+**Example Policy (public read for active items):**
+```sql
+CREATE POLICY "Public can view active events"
+ON oh_events FOR SELECT
+TO anon, authenticated
+USING (is_active = true);
+```
+
 ## Commands
 
 ```bash

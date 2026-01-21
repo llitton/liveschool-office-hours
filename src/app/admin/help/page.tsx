@@ -937,6 +937,44 @@ const helpSections: HelpSection[] = [
           'See CLAUDE.md for the full testing guide',
         ],
       },
+      {
+        id: 'database-security',
+        title: 'Database Security (RLS)',
+        description: 'Understanding Row Level Security for Supabase tables.',
+        body: 'All database tables use Row Level Security (RLS) to control access. This is critical for security — without RLS, tables would be publicly accessible via the Supabase API.',
+        lists: [
+          {
+            label: 'How RLS works',
+            items: [
+              'service_role key (used by API routes) bypasses RLS — full access',
+              'anon key (public) is restricted by RLS policies',
+              'Each table needs RLS enabled + appropriate policies',
+            ],
+          },
+          {
+            label: 'Table access levels',
+            items: [
+              'Admin-only — oh_admins, oh_sms_config, oh_hubspot_config (contain tokens/keys)',
+              'Public read — oh_events (active), oh_slots (available) for booking pages',
+              'Public read/write — oh_bookings, oh_poll_votes for attendee actions',
+            ],
+          },
+          {
+            label: 'When adding new tables',
+            items: [
+              'Always enable RLS: ALTER TABLE table_name ENABLE ROW LEVEL SECURITY',
+              'Create policies based on who needs access',
+              'Tables with API keys or tokens should have NO public policies',
+              'Check Supabase dashboard for "RLS Disabled" warnings',
+            ],
+          },
+        ],
+        tips: [
+          'Migrations 006 and 031 contain all RLS policies',
+          'API routes use getServiceSupabase() which bypasses RLS',
+          'See CLAUDE.md for the full security guide',
+        ],
+      },
     ],
   },
 ];
