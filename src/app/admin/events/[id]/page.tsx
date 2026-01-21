@@ -82,6 +82,9 @@ export default function ManageEventPage({
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Co-hosts for combined availability (webinars)
+  const [coHostIds, setCoHostIds] = useState<string[]>([]);
+
   const slotsRef = useRef<HTMLDivElement>(null);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -143,6 +146,19 @@ export default function ManageEventPage({
 
       setEvent(eventData);
       setSlots(slotsData);
+
+      // Fetch co-hosts for webinar events (for combined availability view)
+      if (eventData.meeting_type === 'webinar') {
+        const hostsRes = await fetch(`/api/events/${id}/hosts`);
+        if (hostsRes.ok) {
+          const hostsData = await hostsRes.json();
+          // Extract just the admin IDs from the hosts (excluding current user which is handled separately)
+          const hostAdminIds = hostsData
+            .filter((h: { admin_id: string }) => h.admin_id !== eventData.host_id)
+            .map((h: { admin_id: string }) => h.admin_id);
+          setCoHostIds(hostAdminIds);
+        }
+      }
 
       // Fetch bookings for each slot
       const bookingsData: Record<string, OHBooking[]> = {};
@@ -1201,6 +1217,7 @@ export default function ManageEventPage({
             <WeekCalendar
               eventId={id}
               slotDuration={event?.duration_minutes || 30}
+              coHostIds={event?.meeting_type === 'webinar' ? coHostIds : undefined}
               onSlotCreate={async (date, time) => {
                 const startTime = new Date(`${date}T${time}:00`);
                 await createSlot(startTime);

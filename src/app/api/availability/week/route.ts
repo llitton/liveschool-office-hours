@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { getSession } from '@/lib/auth';
+import { getSession, getHostWithTokens } from '@/lib/auth';
 import { getFreeBusy } from '@/lib/google';
 import { addDays, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
@@ -14,6 +14,7 @@ interface TimeBlock {
   type: 'busy' | 'slot' | 'available';
   title?: string;
   slotId?: string;
+  hostName?: string; // For co-host busy times
 }
 
 interface DaySchedule {
@@ -37,12 +38,17 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const weekStartStr = searchParams.get('weekStart');
   const eventId = searchParams.get('eventId');
+  const coHostIdsParam = searchParams.get('coHostIds'); // Comma-separated co-host IDs
 
   if (!weekStartStr) {
     return NextResponse.json({ error: 'weekStart parameter is required (YYYY-MM-DD)' }, { status: 400 });
   }
 
   const supabase = getServiceSupabase();
+
+  // Parse co-host IDs if provided
+  const coHostIds = coHostIdsParam ? coHostIdsParam.split(',').filter(Boolean) : [];
+  const allHostIds = [session.id, ...coHostIds];
 
   // Get admin's timezone from their availability patterns (or use default)
   const { data: tzPattern } = await supabase
@@ -58,28 +64,52 @@ export async function GET(request: NextRequest) {
   const weekStart = parseISO(weekStartStr);
   const weekEnd = addDays(weekStart, 6); // 7 days total (inclusive)
 
-  // Get admin's Google tokens
-  const { data: admin } = await supabase
+  // Get all hosts' info (for names and tokens)
+  const { data: allHosts } = await supabase
     .from('oh_admins')
-    .select('google_access_token, google_refresh_token')
-    .eq('id', session.id)
-    .single();
+    .select('id, name, email, google_access_token, google_refresh_token')
+    .in('id', allHostIds);
 
-  // Fetch Google Calendar busy times for entire week (single API call)
-  const busyTimes: Array<{ start: string; end: string }> = [];
-  if (admin?.google_access_token && admin?.google_refresh_token) {
-    try {
-      const weekBusy = await getFreeBusy(
-        admin.google_access_token,
-        admin.google_refresh_token,
-        startOfDay(weekStart).toISOString(),
-        endOfDay(weekEnd).toISOString()
-      );
-      busyTimes.push(...weekBusy);
-    } catch (err) {
-      console.error('Failed to fetch Google Calendar for week:', err);
+  // Create a map of host info for quick lookup
+  const hostMap = new Map(allHosts?.map(h => [h.id, h]) || []);
+
+  // Fetch Google Calendar busy times for ALL hosts
+  const busyTimes: Array<{ start: string; end: string; hostId?: string; hostName?: string }> = [];
+
+  for (const hostId of allHostIds) {
+    const host = hostMap.get(hostId);
+    if (host?.google_access_token && host?.google_refresh_token) {
+      try {
+        // Refresh tokens if needed
+        const refreshedHost = await getHostWithTokens(hostId);
+        if (refreshedHost?.google_access_token && refreshedHost?.google_refresh_token) {
+          const weekBusy = await getFreeBusy(
+            refreshedHost.google_access_token,
+            refreshedHost.google_refresh_token,
+            startOfDay(weekStart).toISOString(),
+            endOfDay(weekEnd).toISOString()
+          );
+          // Tag busy times with host info (only for co-hosts, not primary)
+          const hostName = host.name || host.email.split('@')[0];
+          weekBusy.forEach(busy => {
+            busyTimes.push({
+              ...busy,
+              hostId: coHostIds.includes(hostId) ? hostId : undefined,
+              hostName: coHostIds.includes(hostId) ? hostName : undefined,
+            });
+          });
+        }
+      } catch (err) {
+        console.error(`Failed to fetch Google Calendar for host ${hostId}:`, err);
+      }
     }
   }
+
+  // Get co-host names for the response
+  const coHostNames = coHostIds
+    .map(id => hostMap.get(id))
+    .filter(Boolean)
+    .map(h => h!.name || h!.email.split('@')[0]);
 
   // Fetch existing OH slots for this week
   let slotsQuery = supabase
@@ -144,11 +174,15 @@ export async function GET(request: NextRequest) {
         if (startInTz < dateStr) blockStart = '00:00';
         if (endInTz > dateStr) blockEnd = '23:59';
 
+        // Show host name for co-host busy times
+        const title = busy.hostName ? `${busy.hostName} busy` : 'Calendar event';
+
         blocks.push({
           start: blockStart,
           end: blockEnd,
           type: 'busy',
-          title: 'Calendar event',
+          title,
+          hostName: busy.hostName,
         });
       }
     });
@@ -203,5 +237,8 @@ export async function GET(request: NextRequest) {
     weekEnd: formatInTimeZone(weekEnd, timezone, 'yyyy-MM-dd'),
     timezone,
     days,
+    // Include co-host info when showing combined availability
+    coHostNames: coHostNames.length > 0 ? coHostNames : undefined,
+    showingCombinedAvailability: coHostIds.length > 0,
   });
 }

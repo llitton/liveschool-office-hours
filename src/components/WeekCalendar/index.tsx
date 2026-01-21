@@ -24,6 +24,8 @@ interface WeekSchedule {
   weekEnd: string;
   timezone: string;
   days: DaySchedule[];
+  coHostNames?: string[];
+  showingCombinedAvailability?: boolean;
 }
 
 interface WeekCalendarProps {
@@ -31,6 +33,7 @@ interface WeekCalendarProps {
   slotDuration: number;
   onSlotCreate: (date: string, time: string) => void;
   onSlotClick?: (slotId: string) => void;
+  coHostIds?: string[]; // IDs of co-hosts to check availability for
 }
 
 // Time range for the calendar (8am to 6pm)
@@ -73,6 +76,7 @@ export default function WeekCalendar({
   slotDuration,
   onSlotCreate,
   onSlotClick,
+  coHostIds = [],
 }: WeekCalendarProps) {
   const [weekStart, setWeekStart] = useState<Date>(() => {
     // Start from Monday of current week
@@ -102,8 +106,9 @@ export default function WeekCalendar({
       setError('');
       try {
         const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+        const coHostParam = coHostIds.length > 0 ? `&coHostIds=${coHostIds.join(',')}` : '';
         const response = await fetch(
-          `/api/availability/week?weekStart=${weekStartStr}&eventId=${eventId}`
+          `/api/availability/week?weekStart=${weekStartStr}&eventId=${eventId}${coHostParam}`
         );
         if (!response.ok) {
           throw new Error('Failed to load calendar data');
@@ -118,7 +123,7 @@ export default function WeekCalendar({
     };
 
     fetchSchedule();
-  }, [weekStart, eventId]);
+  }, [weekStart, eventId, coHostIds]);
 
   const handlePrevWeek = () => {
     setWeekStart((prev) => addDays(prev, -7));
@@ -154,8 +159,9 @@ export default function WeekCalendar({
       setSelectedCell(null);
       // Refresh the schedule
       const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+      const coHostParam = coHostIds.length > 0 ? `&coHostIds=${coHostIds.join(',')}` : '';
       const response = await fetch(
-        `/api/availability/week?weekStart=${weekStartStr}&eventId=${eventId}`
+        `/api/availability/week?weekStart=${weekStartStr}&eventId=${eventId}${coHostParam}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -229,11 +235,23 @@ export default function WeekCalendar({
         </button>
       </div>
 
+      {/* Combined availability banner */}
+      {schedule?.showingCombinedAvailability && schedule.coHostNames && schedule.coHostNames.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#6F71EE]/10 border-b border-[#6F71EE]/20">
+          <svg className="w-4 h-4 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span className="text-sm text-[#6F71EE] font-medium">
+            Showing combined availability with {schedule.coHostNames.join(', ')}
+          </span>
+        </div>
+      )}
+
       {/* Legend */}
       <div className="flex items-center gap-4 px-4 py-2 border-b border-gray-100 text-xs text-[#667085]">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-[#667085]/30 rounded" />
-          <span>Busy</span>
+          <span>{schedule?.showingCombinedAvailability ? 'You or co-host busy' : 'Busy'}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-[#6F71EE] rounded" />
@@ -241,7 +259,7 @@ export default function WeekCalendar({
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 bg-[#417762]/20 border border-[#417762]/40 rounded" />
-          <span>Your Available Hours</span>
+          <span>{schedule?.showingCombinedAvailability ? 'Everyone Available' : 'Your Available Hours'}</span>
         </div>
       </div>
 
