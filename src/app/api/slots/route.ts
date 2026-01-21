@@ -149,12 +149,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // For collective events, check that ALL hosts are available
-  if (event.meeting_type === 'collective') {
-    const collectiveHosts = await getParticipatingHosts(event_id);
-    if (collectiveHosts.length > 0) {
+  // For collective events AND webinars with co-hosts, check that ALL hosts are available
+  // Get participating hosts (co-hosts) for the event
+  const participatingHosts = await getParticipatingHosts(event_id);
+  const hasCoHosts = participatingHosts.length > 0;
+
+  if (event.meeting_type === 'collective' || (event.meeting_type === 'webinar' && hasCoHosts)) {
+    if (hasCoHosts) {
       const collectiveCheck = await checkCollectiveAvailability(
-        collectiveHosts,
+        participatingHosts,
         parseISO(start_time),
         parseISO(end_time),
         event_id
@@ -288,17 +291,14 @@ export async function POST(request: NextRequest) {
   const calendarRefreshToken = hostAdmin?.google_refresh_token || session.google_refresh_token;
   const hostEmail = hostAdmin?.email || event.host_email;
 
-  // For collective events, get all co-host emails
+  // For collective events and webinars with co-hosts, get all co-host emails
   let coHostEmails: string[] = [];
-  if (event.meeting_type === 'collective') {
-    const collectiveHosts = await getParticipatingHosts(event_id);
-    if (collectiveHosts.length > 0) {
-      const { data: coHosts } = await supabase
-        .from('oh_admins')
-        .select('email')
-        .in('id', collectiveHosts);
-      coHostEmails = coHosts?.map(h => h.email) || [];
-    }
+  if ((event.meeting_type === 'collective' || event.meeting_type === 'webinar') && hasCoHosts) {
+    const { data: coHosts } = await supabase
+      .from('oh_admins')
+      .select('email')
+      .in('id', participatingHosts);
+    coHostEmails = coHosts?.map(h => h.email) || [];
   }
 
   if (calendarAccessToken && calendarRefreshToken) {
