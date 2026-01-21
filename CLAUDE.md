@@ -89,8 +89,13 @@ Copy `.env.local.example` to `.env.local`. Required:
 Six types in `MeetingType` enum: `one_on_one`, `group`, `collective`, `round_robin`, `panel`, `webinar`
 
 ### Round-Robin Strategies
-Three strategies (enforced by DB CHECK constraint): `cycle`, `least_bookings`, `availability_weighted`
-Note: TypeScript types include `priority` but it's NOT in the database - don't use it without a migration
+Four strategies (enforced by DB CHECK constraint after migration 029):
+- `priority` - **Recommended.** Like Calendly's "Maximize Availability" - shows all slots, assigns to highest-priority available host
+- `least_bookings` - Load balanced, assigns to host with fewest bookings
+- `cycle` - Simple rotation A→B→C
+- `availability_weighted` - More bookings to hosts with more open time
+
+Host priorities (1-5 stars) are set in `oh_event_hosts.priority` column, configured in event settings.
 
 ### Booking Flow
 1. Public page loads event config
