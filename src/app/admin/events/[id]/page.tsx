@@ -152,8 +152,8 @@ export default function ManageEventPage({
         const hostsRes = await fetch(`/api/events/${id}/hosts`);
         if (hostsRes.ok) {
           const hostsData = await hostsRes.json();
-          // Extract just the admin IDs from the hosts (excluding current user which is handled separately)
-          const hostAdminIds = hostsData
+          // Extract just the admin IDs from the hosts array (excluding event owner)
+          const hostAdminIds = (hostsData.hosts || [])
             .filter((h: { admin_id: string }) => h.admin_id !== eventData.host_id)
             .map((h: { admin_id: string }) => h.admin_id);
           setCoHostIds(hostAdminIds);
