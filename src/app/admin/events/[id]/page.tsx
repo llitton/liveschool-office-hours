@@ -904,80 +904,27 @@ export default function ManageEventPage({
         {/* Add Time Slots - only for webinars */}
         {event.meeting_type === 'webinar' && (
         <div ref={slotsRef} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 scroll-mt-4">
-          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Add Time Slots</h2>
-
-          {/* Mode Tabs */}
-          <div className="flex gap-2 mb-2">
-            <button
-              onClick={() => setCreationMode('calendar')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'calendar'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Calendar View
-            </button>
-            <button
-              onClick={() => setCreationMode('single')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'single'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Single Slot
-            </button>
-            <button
-              onClick={() => setCreationMode('bulk')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'bulk'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Bulk Create
-            </button>
-            <button
-              onClick={() => setCreationMode('recurring')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'recurring'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Weekly Recurring
-            </button>
-            <button
-              onClick={() => setCreationMode('copy_week')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'copy_week'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Copy Week
-            </button>
-            <button
-              onClick={() => setCreationMode('import_csv')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                creationMode === 'import_csv'
-                  ? 'bg-[#6F71EE] text-white'
-                  : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
-              }`}
-            >
-              Import CSV
-            </button>
+          {/* Header with dropdown */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-[#101E57]">Add Time Slots</h2>
+            <div className="relative">
+              <select
+                value={creationMode}
+                onChange={(e) => setCreationMode(e.target.value as SlotCreationMode)}
+                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-[#101E57] hover:border-[#6F71EE] focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE] cursor-pointer"
+              >
+                <option value="calendar">Calendar View</option>
+                <option value="single">Single Slot</option>
+                <option value="bulk">Bulk Create</option>
+                <option value="recurring">Weekly Recurring</option>
+                <option value="copy_week">Copy Week</option>
+                <option value="import_csv">Import CSV</option>
+              </select>
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#667085] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
-          {/* Tab Helper Text */}
-          <p className="text-sm text-[#667085] mb-6">
-            {creationMode === 'calendar' && 'See your week at a glance and click to create slots'}
-            {creationMode === 'single' && 'Add one specific date and time'}
-            {creationMode === 'bulk' && 'Create multiple slots across a date range on selected days'}
-            {creationMode === 'recurring' && 'Repeat on the same day each week'}
-            {creationMode === 'copy_week' && 'Copy slots from one week to another'}
-            {creationMode === 'import_csv' && 'Upload a CSV file with dates and times'}
-          </p>
 
           {/* Single Slot Form */}
           {creationMode === 'single' && (

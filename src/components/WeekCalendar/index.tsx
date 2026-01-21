@@ -235,32 +235,30 @@ export default function WeekCalendar({
         </button>
       </div>
 
-      {/* Combined availability banner */}
-      {schedule?.showingCombinedAvailability && schedule.coHostNames && schedule.coHostNames.length > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#6F71EE]/10 border-b border-[#6F71EE]/20">
-          <svg className="w-4 h-4 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          <span className="text-sm text-[#6F71EE] font-medium">
-            Showing combined availability with {schedule.coHostNames.join(', ')}
-          </span>
+      {/* Legend - simplified */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 text-xs text-[#667085]">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 bg-[#6F71EE] rounded" />
+            <span>Available</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 bg-[#667085]/20 rounded" />
+            <span>Unavailable</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 bg-[#6F71EE] rounded" />
+            <span>Existing Slot</span>
+          </div>
         </div>
-      )}
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 px-4 py-2 border-b border-gray-100 text-xs text-[#667085]">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 bg-[#667085]/30 rounded" />
-          <span>{schedule?.showingCombinedAvailability ? 'You or co-host busy' : 'Busy'}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 bg-[#6F71EE] rounded" />
-          <span>Existing Slot</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 bg-[#417762]/20 border border-[#417762]/40 rounded" />
-          <span>{schedule?.showingCombinedAvailability ? 'Everyone Available' : 'Your Available Hours'}</span>
-        </div>
+        {schedule?.showingCombinedAvailability && schedule.coHostNames && schedule.coHostNames.length > 0 && (
+          <div className="flex items-center gap-1.5 text-[#6F71EE]">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>With {schedule.coHostNames.join(', ')}</span>
+          </div>
+        )}
       </div>
 
       {/* Calendar grid */}
@@ -324,7 +322,6 @@ export default function WeekCalendar({
                     const dateObj = parseISO(day.date);
                     const slotDateTime = parseISO(`${day.date}T${time}`);
                     const isBlocked = isTimeBlocked(time, day.blocks, slotDuration);
-                    const isAvailable = isInAvailableWindow(time, day.availableWindows);
                     const isPastSlot = isPast(slotDateTime);
                     const isHovered =
                       hoveredCell?.date === day.date && hoveredCell?.time === time;
@@ -332,39 +329,54 @@ export default function WeekCalendar({
                       selectedCell?.date === day.date && selectedCell?.time === time;
                     const isCurrentDay = isToday(dateObj);
 
-                    // Find blocks that overlap this time slot
-                    const overlappingBlocks = day.blocks.filter((block) => {
+                    // Find existing slot blocks (not busy blocks) that overlap this time
+                    const existingSlots = day.blocks.filter((block) => {
+                      if (block.type !== 'slot') return false;
                       const blockStart = timeToMinutes(block.start);
                       const blockEnd = timeToMinutes(block.end);
                       const slotStart = timeToMinutes(time);
                       return slotStart >= blockStart && slotStart < blockEnd;
                     });
 
+                    // Check if this cell has a busy block (for styling only, no text)
+                    const hasBusyBlock = day.blocks.some((block) => {
+                      if (block.type !== 'busy') return false;
+                      const blockStart = timeToMinutes(block.start);
+                      const blockEnd = timeToMinutes(block.end);
+                      const slotStart = timeToMinutes(time);
+                      return slotStart >= blockStart && slotStart < blockEnd;
+                    });
+
+                    // Available = not blocked, not past, and clickable
+                    const isClickable = !isBlocked && !isPastSlot;
+
                     return (
                       <div
                         key={`${day.date}-${time}`}
-                        className={`border-l border-gray-200 relative cursor-pointer transition-colors ${
+                        className={`border-l border-gray-200 relative transition-colors ${
+                          isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+                        } ${
+                          // Base background
+                          isPastSlot ? 'bg-gray-50' :
+                          hasBusyBlock ? 'bg-[#667085]/15' :
                           isCurrentDay ? 'bg-[#6F71EE]/5' : ''
-                        } ${isAvailable && !isBlocked && !isPastSlot ? 'bg-[#417762]/10' : ''} ${
-                          isHovered && !isBlocked && !isPastSlot ? 'bg-[#6F71EE]/20' : ''
-                        } ${isSelected ? 'bg-[#6F71EE]/30 ring-2 ring-[#6F71EE] ring-inset' : ''} ${
-                          isPastSlot ? 'bg-gray-50' : ''
+                        } ${
+                          // Available highlight (purple tint for clickable cells)
+                          isClickable && !hasBusyBlock ? 'bg-[#6F71EE]/10 hover:bg-[#6F71EE]/25' : ''
+                        } ${
+                          isHovered && isClickable ? 'bg-[#6F71EE]/25' : ''
+                        } ${
+                          isSelected ? 'bg-[#6F71EE]/30 ring-2 ring-[#6F71EE] ring-inset' : ''
                         }`}
-                        onMouseEnter={() =>
-                          !isBlocked && !isPastSlot && setHoveredCell({ date: day.date, time })
-                        }
+                        onMouseEnter={() => isClickable && setHoveredCell({ date: day.date, time })}
                         onMouseLeave={() => setHoveredCell(null)}
                         onClick={() => handleCellClick(day.date, time, day)}
                       >
-                        {/* Render blocks */}
-                        {overlappingBlocks.map((block, idx) => (
+                        {/* Only render existing slots with labels, not busy blocks */}
+                        {existingSlots.map((block, idx) => (
                           <div
                             key={idx}
-                            className={`absolute inset-x-0.5 rounded text-xs px-1 overflow-hidden ${
-                              block.type === 'busy'
-                                ? 'bg-[#667085]/30 text-[#667085]'
-                                : 'bg-[#6F71EE] text-white'
-                            }`}
+                            className="absolute inset-x-0.5 rounded text-xs px-1 overflow-hidden bg-[#6F71EE] text-white cursor-pointer"
                             style={{
                               top: 1,
                               height: SLOT_HEIGHT - 2,

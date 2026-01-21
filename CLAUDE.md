@@ -308,6 +308,13 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - **Action links near problems:** Add "Connect Calendar" links directly next to users with issues
 - **Status indicators on avatars:** Small badge overlays (green check, amber warning) make status scannable
 
+### Calendar/Availability Views
+- **White space approach:** Don't label busy blocks with text - use gray backgrounds only. Available times should stand out as clickable purple-tinted cells
+- **Simplified legend:** Use "Available" and "Unavailable" rather than verbose descriptions
+- **Consolidated actions:** Group slot creation modes (Calendar, Single, Bulk, Recurring, Copy Week, Import) in a dropdown menu rather than tabs
+- **Combined availability for co-hosts:** When webinars have co-hosts, show merged availability where ANY host busy = cell unavailable. Show co-host names in legend, not in every cell
+- **Empty state CTAs:** When no slots exist, show prominent call-to-action to create the first slot
+
 ## Current State
 
 Working features:

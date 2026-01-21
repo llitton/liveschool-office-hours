@@ -563,7 +563,7 @@ const helpSections: HelpSection[] = [
         id: 'webinars',
         title: 'Webinars',
         description: 'Scheduled sessions at specific times with bulk creation tools.',
-        body: 'Webinars require manually created time slots. Use bulk tools to create many slots quickly.',
+        body: 'Webinars require manually created time slots. The calendar view shows your availability at a glance - purple cells are available, gray cells are busy. Just click to create a slot.',
         lists: [
           {
             label: 'How webinars differ',
@@ -575,9 +575,28 @@ const helpSections: HelpSection[] = [
             ],
           },
           {
-            label: 'Bulk creation tools',
+            label: 'Calendar view features',
             items: [
-              'Calendar View — click to create slots visually',
+              'Purple cells show times you can book',
+              'Gray cells show busy times from your calendar',
+              'Click any available cell to create a slot instantly',
+              'Week navigation to plan ahead',
+            ],
+          },
+          {
+            label: 'Co-host availability',
+            items: [
+              'Add co-hosts in event settings',
+              'Calendar automatically shows combined availability',
+              'Only times when ALL hosts are free appear as available',
+              'Co-host names shown in the legend',
+            ],
+          },
+          {
+            label: 'Slot creation options',
+            items: [
+              'Calendar View — click to create slots visually (default)',
+              'Single Slot — add one specific date and time',
               'Bulk Create — set a date range and days of week',
               'Weekly Recurring — repeat slots every week',
               'Copy Week — duplicate slots from one week to another',
@@ -586,9 +605,9 @@ const helpSections: HelpSection[] = [
           },
         ],
         tips: [
+          'Use the dropdown menu in the top right to switch between creation modes',
+          'Calendar View is the fastest way to create individual slots',
           'Use Copy Week to quickly replicate your schedule',
-          'CSV import format: date,time (e.g., 2025-02-03,10:00)',
-          'Download a sample CSV from the Import tab',
         ],
       },
     ],
