@@ -121,10 +121,14 @@ tests/
 │   └── supabase.ts           # Comprehensive Supabase mock factory
 ├── unit/
 │   └── lib/
+│       ├── auth.test.ts              # Session management, token refresh
 │       ├── availability.test.ts      # Slot generation logic
 │       ├── booking-constraints.test.ts # Validation rules
 │       ├── hubspot.test.ts           # HubSpot API integration
-│       └── round-robin.test.ts       # Host selection strategies
+│       ├── round-robin.test.ts       # Host selection strategies
+│       ├── slack.test.ts             # Slack webhook integration
+│       ├── sms.test.ts               # Phone validation, templates
+│       └── timezone.test.ts          # Timezone formatting utilities
 ├── integration/
 │   └── api/
 │       ├── bookings.test.ts          # Booking API endpoints
@@ -139,11 +143,15 @@ tests/
 
 | Area | Coverage | Files |
 |------|----------|-------|
-| Booking Constraints | ~100% | `booking-constraints.ts` |
-| Availability Logic | ~60% | `availability.ts` |
-| HubSpot Integration | ~80% | `hubspot.ts` |
-| Round-Robin Selection | ~70% | `round-robin.ts` |
+| Auth & Sessions | 100% | `auth.ts` |
+| Timezone Utilities | 100% | `timezone.ts` |
+| Slack Integration | 100% | `slack.ts` |
+| SMS Utilities | ~80% | `sms.ts` |
+| Booking Constraints | ~79% | `booking-constraints.ts` |
+| HubSpot Integration | ~50% | `hubspot.ts` |
+| Availability Logic | ~47% | `availability.ts` |
 | API Routes | ~40% | Various API endpoints |
+| **Overall** | **~37%** | All lib files |
 
 ### Writing Tests
 

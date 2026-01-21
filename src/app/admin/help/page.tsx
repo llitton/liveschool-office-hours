@@ -874,18 +874,32 @@ const helpSections: HelpSection[] = [
         description: 'Understand what parts of the codebase are tested.',
         lists: [
           {
-            label: 'Well-tested areas',
+            label: 'Well-tested areas (100% coverage)',
             items: [
-              'Booking constraints — validation rules (100% coverage)',
-              'Availability calculation — slot generation logic (60%+)',
-              'HubSpot integration — contact sync, meeting types (80%)',
-              'Round-robin selection — host assignment strategies (70%)',
+              'Auth & Sessions — session management, token refresh, event access',
+              'Timezone utilities — formatting, conversion, slot grouping',
+              'Slack integration — webhooks, notifications, daily digest',
+            ],
+          },
+          {
+            label: 'Good coverage (70-80%)',
+            items: [
+              'SMS utilities — phone validation, templates, segment calculation',
+              'Booking constraints — validation rules, buffer times',
+              'HubSpot integration — contact sync, meeting types, activity logging',
+            ],
+          },
+          {
+            label: 'Moderate coverage (40-60%)',
+            items: [
+              'Availability calculation — slot generation logic',
+              'API routes — booking, event, and slot endpoints',
             ],
           },
           {
             label: 'Test file locations',
             items: [
-              'tests/unit/lib/ — Unit tests for business logic',
+              'tests/unit/lib/ — Unit tests for business logic (8 test files)',
               'tests/integration/api/ — API endpoint tests',
               'tests/e2e/ — Browser-based end-to-end tests',
               'tests/mocks/ — Reusable mock factories',

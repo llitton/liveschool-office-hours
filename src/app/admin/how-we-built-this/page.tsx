@@ -116,7 +116,7 @@ export default function HowWeBuiltThisPage() {
             },
             {
               name: 'Vitest & Playwright',
-              description: 'Automated testing tools that verify the app works correctly. Like having a robot click through everything and check for bugs before users see them.',
+              description: 'Automated testing with 248+ tests covering authentication, SMS, Slack, timezones, and booking logic. Like having a robot verify every feature works before users see changes.',
               icon: '🧪',
             },
           ].map((tool) => (
@@ -219,7 +219,7 @@ export default function HowWeBuiltThisPage() {
             { feature: 'Bulk slot creation', desc: 'Copy weeks, import CSV files' },
             { feature: 'QR code generator', desc: 'Print codes for easy booking' },
             { feature: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
-            { feature: 'Automated test suite', desc: 'Unit, integration, and E2E tests for reliability' },
+            { feature: 'Automated test suite', desc: '248+ tests covering auth, SMS, Slack, timezone, and booking logic' },
             { feature: 'Event settings UX', desc: 'Sidebar nav, live preview, sticky save buttons' },
             { feature: 'Buffer visualization', desc: 'Visual timeline showing meeting and buffer times' },
           ].map((item) => (
