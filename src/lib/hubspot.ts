@@ -266,6 +266,7 @@ export async function logMeetingActivity(
   event: {
     name: string;
     description?: string;
+    hubspot_meeting_type?: string | null; // The hs_activity_type value to use
   },
   slot: {
     start_time: string;
@@ -276,7 +277,6 @@ export async function logMeetingActivity(
   try {
     const startTime = new Date(slot.start_time);
     const endTime = new Date(slot.end_time);
-    const durationMs = endTime.getTime() - startTime.getTime();
 
     const body = `
 Session: ${event.name}
@@ -287,17 +287,25 @@ ${booking.response_text ? `\nQuestion/Topic:\n${booking.response_text}` : ''}
 ${slot.google_meet_link ? `\nMeet Link: ${slot.google_meet_link}` : ''}
     `.trim();
 
+    // Build meeting properties
+    const meetingProperties: Record<string, string> = {
+      hs_meeting_title: `Connect: ${event.name}`,
+      hs_meeting_body: body,
+      hs_meeting_start_time: startTime.toISOString(),
+      hs_meeting_end_time: endTime.toISOString(),
+      hs_meeting_outcome: booking.status === 'attended' ? 'COMPLETED' : 'SCHEDULED',
+      hs_internal_meeting_notes: booking.response_text || '',
+    };
+
+    // Add activity type (HubSpot meeting type) if specified
+    if (event.hubspot_meeting_type) {
+      meetingProperties.hs_activity_type = event.hubspot_meeting_type;
+    }
+
     const response = await hubspotFetch('/crm/v3/objects/meetings', {
       method: 'POST',
       body: JSON.stringify({
-        properties: {
-          hs_meeting_title: `Connect: ${event.name}`,
-          hs_meeting_body: body,
-          hs_meeting_start_time: startTime.toISOString(),
-          hs_meeting_end_time: endTime.toISOString(),
-          hs_meeting_outcome: booking.status === 'attended' ? 'COMPLETED' : 'SCHEDULED',
-          hs_internal_meeting_notes: booking.response_text || '',
-        },
+        properties: meetingProperties,
         associations: [
           {
             to: { id: contactId },
@@ -606,5 +614,47 @@ export async function isHubSpotConnected(): Promise<boolean> {
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+export interface HubSpotMeetingType {
+  value: string;      // Internal value to use when creating meetings
+  label: string;      // Display label shown in HubSpot UI
+  displayOrder: number;
+  hidden: boolean;
+}
+
+/**
+ * Get available HubSpot meeting types (hs_activity_type options)
+ * These are the user-defined meeting types configured in HubSpot settings
+ */
+export async function getHubSpotMeetingTypes(): Promise<HubSpotMeetingType[]> {
+  try {
+    const response = await hubspotFetch('/crm/v3/properties/meetings/hs_activity_type');
+
+    if (!response.ok) {
+      console.error('Failed to fetch HubSpot meeting types:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+
+    // The response contains an 'options' array with the meeting types
+    if (data.options && Array.isArray(data.options)) {
+      return data.options
+        .filter((opt: HubSpotMeetingType) => !opt.hidden)
+        .map((opt: { value: string; label: string; displayOrder?: number; hidden?: boolean }) => ({
+          value: opt.value,
+          label: opt.label,
+          displayOrder: opt.displayOrder || 0,
+          hidden: opt.hidden || false,
+        }))
+        .sort((a: HubSpotMeetingType, b: HubSpotMeetingType) => a.displayOrder - b.displayOrder);
+    }
+
+    return [];
+  } catch (error) {
+    console.error('Failed to get HubSpot meeting types:', error);
+    return [];
   }
 }

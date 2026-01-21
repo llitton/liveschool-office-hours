@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface Host {
   id: string;
@@ -84,31 +84,62 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
     }
   };
 
-  const PriorityStars = ({ hostRecordId, currentPriority }: { hostRecordId: string; currentPriority: number }) => {
-    const [hoverPriority, setHoverPriority] = useState<number | null>(null);
-    const displayPriority = hoverPriority ?? currentPriority;
+  // Calculate expected percentage distribution based on priorities
+  const calculateExpectedPercentage = useCallback((priority: number, allPriorities: number[]) => {
+    const total = allPriorities.reduce((sum, p) => sum + p, 0);
+    if (total === 0) return 0;
+    return Math.round((priority / total) * 100);
+  }, []);
+
+  // Priority Slider Component
+  const PrioritySlider = ({
+    hostRecordId,
+    currentPriority,
+    expectedPercentage
+  }: {
+    hostRecordId: string;
+    currentPriority: number;
+    expectedPercentage: number;
+  }) => {
+    const [localValue, setLocalValue] = useState(currentPriority);
     const isUpdating = updatingPriority === hostRecordId;
 
+    useEffect(() => {
+      setLocalValue(currentPriority);
+    }, [currentPriority]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parseInt(e.target.value);
+      setLocalValue(value);
+    };
+
+    const handleCommit = () => {
+      if (localValue !== currentPriority) {
+        updatePriority(hostRecordId, localValue);
+      }
+    };
+
     return (
-      <div
-        className={`flex gap-0.5 ${isUpdating ? 'opacity-50' : ''}`}
-        onMouseLeave={() => setHoverPriority(null)}
-      >
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
+      <div className={`flex items-center gap-3 ${isUpdating ? 'opacity-50' : ''}`}>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={1}
+            max={10}
+            value={localValue}
+            onChange={handleChange}
+            onMouseUp={handleCommit}
+            onTouchEnd={handleCommit}
             disabled={isUpdating}
-            onMouseEnter={() => setHoverPriority(star)}
-            onClick={() => updatePriority(hostRecordId, star)}
-            className="text-lg leading-none transition-colors disabled:cursor-wait"
-            title={`Priority ${star}`}
-          >
-            <span className={star <= displayPriority ? 'text-yellow-400' : 'text-gray-300'}>
-              ★
-            </span>
-          </button>
-        ))}
+            className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#6F71EE]"
+          />
+          <span className="text-sm font-medium text-[#101E57] w-6 text-center">
+            {localValue}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 px-2 py-1 bg-[#6F71EE]/10 rounded text-xs font-medium text-[#6F71EE]">
+          ~{expectedPercentage}%
+        </div>
       </div>
     );
   };
@@ -132,7 +163,7 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
     name: h.admin.name,
     email: h.admin.email,
     isOwner: h.role === 'owner',
-    priority: h.priority ?? 3,
+    priority: h.priority ?? 5,
   }));
 
   // If owner exists but isn't in hosts list (legacy setup), add them
@@ -143,7 +174,7 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
       name: owner.name,
       email: owner.email,
       isOwner: true,
-      priority: 3, // Default priority
+      priority: 5, // Default priority
     });
   }
 
@@ -151,6 +182,10 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
   if (showPriority) {
     participants.sort((a, b) => b.priority - a.priority);
   }
+
+  // Calculate all priorities for percentage calculation
+  const allPriorities = participants.map(p => p.priority);
+  const totalPriority = allPriorities.reduce((sum, p) => sum + p, 0);
 
   if (participants.length === 0) {
     return (
@@ -165,6 +200,68 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
 
   return (
     <div className="space-y-4">
+      {/* Expected Distribution Header */}
+      {showPriority && participants.length > 1 && (
+        <div className="bg-[#F6F6F9] rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#6F71EE]/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-[#101E57] text-sm">Expected Distribution</p>
+              <p className="text-xs text-[#667085] mt-0.5">
+                Adjust weights to control how bookings are distributed. Higher weight = more bookings.
+              </p>
+            </div>
+          </div>
+
+          {/* Distribution Preview Bar */}
+          <div className="mt-4">
+            <div className="flex h-3 rounded-full overflow-hidden">
+              {participants.map((participant, index) => {
+                const percentage = totalPriority > 0
+                  ? (participant.priority / totalPriority) * 100
+                  : 100 / participants.length;
+                const colors = ['#6F71EE', '#417762', '#F59E0B', '#EC4899', '#8B5CF6'];
+                return (
+                  <div
+                    key={participant.id}
+                    style={{
+                      width: `${percentage}%`,
+                      backgroundColor: colors[index % colors.length]
+                    }}
+                    className="transition-all duration-300"
+                    title={`${participant.name || participant.email}: ${Math.round(percentage)}%`}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex mt-2 gap-4 flex-wrap">
+              {participants.map((participant, index) => {
+                const percentage = totalPriority > 0
+                  ? Math.round((participant.priority / totalPriority) * 100)
+                  : Math.round(100 / participants.length);
+                const colors = ['#6F71EE', '#417762', '#F59E0B', '#EC4899', '#8B5CF6'];
+                return (
+                  <div key={participant.id} className="flex items-center gap-1.5 text-xs">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: colors[index % colors.length] }}
+                    />
+                    <span className="text-[#667085]">
+                      {participant.name?.split(' ')[0] || participant.email.split('@')[0]}
+                    </span>
+                    <span className="font-medium text-[#101E57]">{percentage}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       {stats && stats.totalAssignments > 0 && (
         <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4">
@@ -180,7 +277,10 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
         {participants.map((participant) => {
           const hostStat = stats?.hostStats.find((s) => s.hostId === participant.id);
           const bookingCount = hostStat?.bookingCount || 0;
-          const percentage = hostStat?.percentage || 0;
+          const actualPercentage = hostStat?.percentage || 0;
+          const expectedPercentage = totalPriority > 0
+            ? Math.round((participant.priority / totalPriority) * 100)
+            : Math.round(100 / participants.length);
 
           return (
             <div
@@ -211,40 +311,39 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
               </div>
 
               <div className="flex items-center gap-4">
-                {/* Priority stars */}
+                {/* Priority slider */}
                 {showPriority && participant.hostRecordId && (
-                  <PriorityStars
+                  <PrioritySlider
                     hostRecordId={participant.hostRecordId}
                     currentPriority={participant.priority}
+                    expectedPercentage={expectedPercentage}
                   />
                 )}
                 {showPriority && !participant.hostRecordId && (
-                  <div className="flex gap-0.5 opacity-50" title="Add as host to set priority">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span key={star} className={star <= 3 ? 'text-yellow-400' : 'text-gray-300'}>
-                        ★
-                      </span>
-                    ))}
+                  <div className="text-xs text-[#667085] italic">
+                    Add as host to set weight
                   </div>
                 )}
 
                 {/* Distribution stats */}
-                <div className="text-right min-w-[80px]">
-                  <p className="text-sm font-medium text-[#101E57]">
-                    {bookingCount} booking{bookingCount !== 1 ? 's' : ''}
-                  </p>
-                  {stats && stats.totalAssignments > 0 && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#6F71EE] rounded-full"
-                          style={{ width: `${percentage}%` }}
-                        />
+                {!showPriority && (
+                  <div className="text-right min-w-[80px]">
+                    <p className="text-sm font-medium text-[#101E57]">
+                      {bookingCount} booking{bookingCount !== 1 ? 's' : ''}
+                    </p>
+                    {stats && stats.totalAssignments > 0 && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#6F71EE] rounded-full"
+                            style={{ width: `${actualPercentage}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-[#667085]">{actualPercentage}%</span>
                       </div>
-                      <span className="text-xs text-[#667085]">{percentage}%</span>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -253,8 +352,10 @@ export default function RoundRobinHostSelector({ eventId, showPriority = false }
 
       {/* Info text */}
       <p className="text-xs text-[#667085]">
-        All hosts with &quot;Host&quot; role will receive bookings in rotation. Backup hosts are
-        excluded from round-robin distribution.
+        {showPriority
+          ? 'Adjust the weight slider to control booking distribution. Higher weight = more bookings assigned to that host.'
+          : 'All hosts with "Host" role will receive bookings in rotation. Backup hosts are excluded from round-robin distribution.'
+        }
       </p>
     </div>
   );

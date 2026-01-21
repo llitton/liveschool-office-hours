@@ -95,7 +95,14 @@ Four strategies (enforced by DB CHECK constraint after migration 029):
 - `cycle` - Simple rotation A→B→C
 - `availability_weighted` - More bookings to hosts with more open time
 
-Host priorities (1-5 stars) are set in `oh_event_hosts.priority` column, configured in event settings.
+Host priorities (1-10 weight slider) are set in `oh_event_hosts.priority` column, configured in event settings. The UI shows expected percentage distribution based on weights (e.g., weight 6 + weight 4 = 60%/40% split).
+
+### HubSpot Meeting Types
+Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
+- Fetch available types via `GET /api/hubspot/meeting-types`
+- Set `hubspot_meeting_type` on `oh_events` table (migration 030)
+- When bookings sync to HubSpot, the meeting is tagged with the selected type
+- Appears as "Call and meeting type" field in HubSpot reports
 
 ### Booking Flow
 1. Public page loads event config
@@ -135,6 +142,13 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - **Status badges need contrast:** Use borders and bolder colors (green-100/300, amber-100/300, red-100/300) for accessibility
 - **Show booking URL inline:** Display the full URL preview (liveschoolhelp.com/book/slug) directly on cards
 - **Sticky footers for long forms:** Keep primary actions (Create, Save) visible at all times
+
+### Event Settings Page
+- **Sidebar navigation:** Left sidebar with section links that highlights active section on scroll (General, Questions, Team Settings, Booking Rules, HubSpot, SMS, etc.)
+- **Sticky action bar:** Save/Cancel buttons fixed at bottom of viewport, always visible
+- **Live preview panel:** Right panel showing real-time booking page preview that updates as settings change
+- **Buffer timeline visualization:** Visual graphic showing meeting duration with buffer blocks, time markers, and legend
+- **Priority weight sliders:** 1-10 weight slider with percentage distribution preview bar (not stars)
 
 ### Team Member Display
 - **Warning badges for connection issues:** Use amber/warning colors when calendar isn't connected

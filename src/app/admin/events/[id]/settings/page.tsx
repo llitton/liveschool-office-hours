@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { OHEvent, CustomQuestion, MeetingType, RoundRobinStrategy, RoundRobinPeriod } from '@/types';
@@ -15,6 +15,32 @@ import PrepResourcesManager from '@/components/PrepResourcesManager';
 import { SMSPreview } from '@/components/SMSPreview';
 import { SMSTestButton } from '@/components/SMSTestButton';
 import { SMSProviderWarning } from '@/components/SMSProviderWarning';
+import BufferTimeline from '@/components/BufferTimeline';
+import BookingPagePreview from '@/components/BookingPagePreview';
+
+// Navigation sections configuration
+interface NavSection {
+  id: string;
+  label: string;
+  showFor?: MeetingType[];
+  hideFor?: MeetingType[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  { id: 'event-info', label: 'General' },
+  { id: 'custom-questions', label: 'Questions' },
+  { id: 'banner-image', label: 'Banner', showFor: ['webinar'] },
+  { id: 'meeting-type', label: 'Meeting Type' },
+  { id: 'round-robin-settings', label: 'Team Settings', showFor: ['round_robin'] },
+  { id: 'event-hosts', label: 'Hosts', hideFor: ['one_on_one', 'round_robin'] },
+  { id: 'booking-rules', label: 'Booking Rules', hideFor: ['webinar'] },
+  { id: 'timezone', label: 'Timezone', hideFor: ['round_robin'] },
+  { id: 'hubspot-settings', label: 'HubSpot' },
+  { id: 'sms-reminders', label: 'SMS Reminders' },
+  { id: 'phone-collection', label: 'Phone' },
+  { id: 'waitlist', label: 'Waitlist', hideFor: ['one_on_one', 'round_robin'] },
+  { id: 'prep-materials', label: 'Prep Materials', showFor: ['webinar'] },
+];
 
 export default function EventSettingsPage({
   params,
@@ -75,14 +101,62 @@ export default function EventSettingsPage({
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistLimit, setWaitlistLimit] = useState<string>('');
 
+  // HubSpot integration
+  const [hubspotMeetingType, setHubspotMeetingType] = useState<string>('');
+  const [hubspotMeetingTypes, setHubspotMeetingTypes] = useState<Array<{ value: string; label: string }>>([]);
+  const [hubspotConnected, setHubspotConnected] = useState(false);
+
+  // Navigation state
+  const [activeSection, setActiveSection] = useState('event-info');
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   // Available preset banners
   const PRESET_BANNERS = [
     { label: 'Default Banner', value: '/banners/default-banner.png' },
   ];
 
+  // Get visible nav sections based on meeting type
+  const visibleNavSections = NAV_SECTIONS.filter(section => {
+    if (section.showFor && !section.showFor.includes(meetingType)) return false;
+    if (section.hideFor && section.hideFor.includes(meetingType)) return false;
+    return true;
+  });
+
+  // Scroll to section
+  const scrollToSection = useCallback((sectionId: string) => {
+    const el = sectionRefs.current[sectionId];
+    if (el) {
+      const yOffset = -100; // Account for sticky header
+      const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }, []);
+
+  // Track active section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 150;
+      for (const section of visibleNavSections) {
+        const el = sectionRefs.current[section.id];
+        if (el) {
+          const top = el.offsetTop;
+          const bottom = top + el.offsetHeight;
+          if (scrollPos >= top && scrollPos < bottom) {
+            setActiveSection(section.id);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [visibleNavSections]);
+
   useEffect(() => {
     fetchEvent();
     fetchSMSStatus();
+    fetchHubSpotMeetingTypes();
   }, [id]);
 
   const fetchSMSStatus = async () => {
@@ -94,6 +168,19 @@ export default function EventSettingsPage({
       }
     } catch (err) {
       console.error('Failed to fetch SMS status:', err);
+    }
+  };
+
+  const fetchHubSpotMeetingTypes = async () => {
+    try {
+      const res = await fetch('/api/hubspot/meeting-types');
+      if (res.ok) {
+        const data = await res.json();
+        setHubspotConnected(data.connected);
+        setHubspotMeetingTypes(data.meetingTypes || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch HubSpot meeting types:', err);
     }
   };
 
@@ -144,6 +231,9 @@ export default function EventSettingsPage({
       // Set waitlist settings
       setWaitlistEnabled(eventData.waitlist_enabled ?? false);
       setWaitlistLimit(eventData.waitlist_limit?.toString() || '');
+
+      // Set HubSpot meeting type
+      setHubspotMeetingType(eventData.hubspot_meeting_type || '');
 
       // Set banner state
       const currentBanner = eventData.banner_image || '';
@@ -215,6 +305,8 @@ export default function EventSettingsPage({
           // Waitlist settings
           waitlist_enabled: waitlistEnabled,
           waitlist_limit: waitlistLimit ? parseInt(waitlistLimit) : null,
+          // HubSpot integration
+          hubspot_meeting_type: hubspotMeetingType || null,
         }),
       });
 
@@ -281,9 +373,9 @@ export default function EventSettingsPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
+    <div className="min-h-screen bg-[#F6F6F9] pb-20">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
           <Image
             src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
             alt="LiveSchool"
@@ -300,16 +392,44 @@ export default function EventSettingsPage({
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-semibold text-[#101E57] mb-2">Event Settings</h1>
-        <p className="text-[#667085] mb-6">Customize booking questions and preparation materials</p>
+      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-6">
+        {/* Sidebar Navigation */}
+        <aside className="w-44 flex-shrink-0 hidden lg:block">
+          <nav className="sticky top-24 space-y-1">
+            <p className="text-xs font-semibold text-[#667085] uppercase tracking-wider mb-3 px-3">
+              Settings
+            </p>
+            {visibleNavSections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => scrollToSection(section.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  activeSection === section.id
+                    ? 'bg-[#6F71EE] text-white'
+                    : 'text-[#667085] hover:text-[#101E57] hover:bg-white'
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
-        )}
+        {/* Main Content */}
+        <main className="flex-1 min-w-0 max-w-2xl">
+          <h1 className="text-2xl font-semibold text-[#101E57] mb-2">Event Settings</h1>
+          <p className="text-[#667085] mb-6">Customize booking questions and preparation materials</p>
+
+          {error && (
+            <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</div>
+          )}
 
         {/* Event Info */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="event-info"
+          ref={(el) => { sectionRefs.current['event-info'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Event Info</h2>
           <p className="text-sm text-[#667085] mb-6">
             Edit your event&apos;s title, subtitle, and description.
@@ -362,7 +482,11 @@ export default function EventSettingsPage({
         </div>
 
         {/* Custom Questions */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="custom-questions"
+          ref={(el) => { sectionRefs.current['custom-questions'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Custom Questions</h2>
           <p className="text-sm text-[#667085] mb-6">
             Ask attendees additional questions when they book. For example: "What topics are you hoping to cover?"
@@ -502,7 +626,11 @@ export default function EventSettingsPage({
 
         {/* Banner Image - only for webinars */}
         {meetingType === 'webinar' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="banner-image"
+          ref={(el) => { sectionRefs.current['banner-image'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Banner Image</h2>
           <p className="text-sm text-[#667085] mb-4">
             Add a banner image to display at the top of your public booking page.
@@ -621,7 +749,11 @@ export default function EventSettingsPage({
         )}
 
         {/* Meeting Type */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="meeting-type"
+          ref={(el) => { sectionRefs.current['meeting-type'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Meeting Type</h2>
           <p className="text-sm text-[#667085] mb-4">
             Choose how attendees will be scheduled for this event.
@@ -674,7 +806,11 @@ export default function EventSettingsPage({
 
         {/* Round-Robin Configuration - Show when round_robin is selected */}
         {meetingType === 'round_robin' && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div
+            id="round-robin-settings"
+            ref={(el) => { sectionRefs.current['round-robin-settings'] = el; }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+          >
             <h2 className="text-lg font-semibold text-[#101E57] mb-2">Round-Robin Settings</h2>
             <p className="text-sm text-[#667085] mb-6">
               Configure how bookings are distributed across your team.
@@ -815,16 +951,25 @@ export default function EventSettingsPage({
           </div>
         )}
 
-        {/* Event Hosts - Show for round-robin, collective, group, and webinar (not one-on-one) */}
-        {meetingType !== 'one_on_one' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        {/* Event Hosts - Show for collective, group, and webinar (not one-on-one or round-robin) */}
+        {/* Round-robin has its own host management in RoundRobinHostSelector above */}
+        {meetingType !== 'one_on_one' && meetingType !== 'round_robin' && (
+        <div
+          id="event-hosts"
+          ref={(el) => { sectionRefs.current['event-hosts'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <HostSelector eventId={id} />
         </div>
         )}
 
         {/* Booking Constraints - Hidden for webinars since slots have fixed times */}
         {!MEETING_TYPES_NO_MIN_NOTICE.includes(meetingType) && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="booking-rules"
+          ref={(el) => { sectionRefs.current['booking-rules'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Booking Rules</h2>
           <p className="text-sm text-[#667085] mb-6">
             Control when and how attendees can book sessions.
@@ -912,7 +1057,7 @@ export default function EventSettingsPage({
               <label className="block text-sm font-medium text-[#101E57] mb-2">
                 Buffer Time
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-3">
                 <div>
                   <label className="block text-xs text-[#667085] mb-1">Before session</label>
                   <select
@@ -946,7 +1091,15 @@ export default function EventSettingsPage({
                   </select>
                 </div>
               </div>
-              <p className="text-xs text-[#667085] mt-1">
+
+              {/* Visual Buffer Timeline */}
+              <BufferTimeline
+                duration={event.duration_minutes || 30}
+                bufferBefore={bufferBefore}
+                bufferAfter={bufferAfter}
+              />
+
+              <p className="text-xs text-[#667085] mt-3">
                 Add breathing room before or after sessions. Times with conflicts in your calendar will be blocked.
               </p>
             </div>
@@ -1006,8 +1159,13 @@ export default function EventSettingsPage({
         </div>
         )}
 
-        {/* Timezone Settings */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        {/* Timezone Settings - Hide for round-robin since times are based on individual host availability */}
+        {meetingType !== 'round_robin' && (
+        <div
+          id="timezone"
+          ref={(el) => { sectionRefs.current['timezone'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Timezone</h2>
           <p className="text-sm text-[#667085] mb-4">
             Control how times are displayed on your booking page.
@@ -1045,9 +1203,95 @@ export default function EventSettingsPage({
             </label>
           </div>
         </div>
+        )}
+
+        {/* HubSpot Settings */}
+        <div
+          id="hubspot-settings"
+          ref={(el) => { sectionRefs.current['hubspot-settings'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">HubSpot Integration</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Configure how meetings from this event are logged to HubSpot.
+          </p>
+
+          {!hubspotConnected ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-amber-800">HubSpot not connected</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Connect HubSpot in{' '}
+                    <Link href="/admin/integrations" className="underline hover:no-underline">
+                      Settings → Integrations
+                    </Link>
+                    {' '}to enable meeting type syncing.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-2">
+                  HubSpot Meeting Type
+                </label>
+                <select
+                  value={hubspotMeetingType}
+                  onChange={(e) => setHubspotMeetingType(e.target.value)}
+                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                >
+                  <option value="">No meeting type (default)</option>
+                  {hubspotMeetingTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-[#667085] mt-1">
+                  When bookings are logged to HubSpot, they&apos;ll be tagged with this meeting type.
+                  This appears in HubSpot as the &quot;Call and meeting type&quot; field.
+                </p>
+              </div>
+
+              {hubspotMeetingTypes.length === 0 && (
+                <div className="bg-[#F6F6F9] rounded-lg p-3">
+                  <p className="text-xs text-[#667085]">
+                    <span className="font-medium text-[#101E57]">No meeting types found.</span>
+                    {' '}Configure meeting types in HubSpot under Settings → Calling → Track Call and Meeting Types.
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mt-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#6F71EE] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-[#101E57]">How it works</p>
+                    <ul className="text-sm text-[#667085] mt-1 space-y-1">
+                      <li>• When someone books this event, a meeting is created in HubSpot</li>
+                      <li>• The meeting type you select here will be set on that HubSpot meeting</li>
+                      <li>• Use different events to track different meeting types (e.g., First Demo vs. Follow-up)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* SMS Reminders */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="sms-reminders"
+          ref={(el) => { sectionRefs.current['sms-reminders'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">SMS Reminders</h2>
           <p className="text-sm text-[#667085] mb-4">
             Send text message reminders to attendees before their session.
@@ -1163,7 +1407,11 @@ export default function EventSettingsPage({
         </div>
 
         {/* Phone Requirement (independent of SMS) */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="phone-collection"
+          ref={(el) => { sectionRefs.current['phone-collection'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Phone Number Collection</h2>
           <p className="text-sm text-[#667085] mb-4">
             Collect phone numbers from attendees for contact purposes. This is separate from SMS reminder settings.
@@ -1196,9 +1444,14 @@ export default function EventSettingsPage({
           </div>
         </div>
 
-        {/* Waitlist Settings - Show for group sessions and webinars (not one-on-one) */}
-        {meetingType !== 'one_on_one' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        {/* Waitlist Settings - Show for group sessions and webinars only */}
+        {/* Not applicable for one-on-one (single attendee) or round-robin (1:1 meetings assigned to different hosts) */}
+        {meetingType !== 'one_on_one' && meetingType !== 'round_robin' && (
+        <div
+          id="waitlist"
+          ref={(el) => { sectionRefs.current['waitlist'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Waitlist</h2>
           <p className="text-sm text-[#667085] mb-4">
             Allow attendees to join a waitlist when sessions are full. They&apos;ll be automatically promoted if someone cancels.
@@ -1254,7 +1507,11 @@ export default function EventSettingsPage({
 
         {/* Prep Materials - only for webinars */}
         {meetingType === 'webinar' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="prep-materials"
+          ref={(el) => { sectionRefs.current['prep-materials'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <h2 className="text-lg font-semibold text-[#101E57] mb-2">Preparation Materials</h2>
           <p className="text-sm text-[#667085] mb-4">
             Information shown to attendees on their confirmation page and in their confirmation email.
@@ -1285,31 +1542,59 @@ export default function EventSettingsPage({
         </div>
         )}
 
-        {/* Save Button */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-[#6F71EE] text-white px-6 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
-          >
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
-          <Link
-            href={`/admin/events/${id}`}
-            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
-          >
-            Cancel
-          </Link>
-          {success && (
-            <div className="flex items-center gap-2 bg-green-50 text-green-700 text-sm px-3 py-1.5 rounded-lg">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              {success}
-            </div>
-          )}
+        {/* Spacer for sticky footer */}
+        <div className="h-4"></div>
+        </main>
+
+        {/* Live Preview Panel */}
+        <aside className="w-80 flex-shrink-0 hidden xl:block">
+          <div className="sticky top-24">
+            <BookingPagePreview
+              eventName={eventName}
+              eventDescription={eventDescription}
+              hostName={event.host_name}
+              duration={event.duration_minutes || 30}
+              customQuestions={customQuestions}
+              meetingType={meetingType}
+              bannerImage={bannerMode === 'preset' ? bannerImage : bannerMode === 'custom' ? customBannerUrl : undefined}
+            />
+          </div>
+        </aside>
+      </div>
+
+      {/* Sticky Footer Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-[#667085]">
+            <span className="font-medium text-[#101E57]">{eventName || 'Untitled Event'}</span>
+            <span>·</span>
+            <span className="capitalize">{meetingType.replace('_', ' ')}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {success && (
+              <div className="flex items-center gap-2 bg-green-50 text-green-700 text-sm px-3 py-1.5 rounded-lg">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {success}
+              </div>
+            )}
+            <Link
+              href={`/admin/events/${id}`}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium text-sm"
+            >
+              Cancel
+            </Link>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#6F71EE] text-white px-5 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium text-sm"
+            >
+              {saving ? 'Saving...' : 'Save Settings'}
+            </button>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

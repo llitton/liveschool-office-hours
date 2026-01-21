@@ -48,14 +48,28 @@ const helpSections: HelpSection[] = [
         body: 'Sessions are the booking types you offer. Create one to let people schedule time with you.',
         steps: [
           'Click Create New Session on the Sessions page',
-          'Choose a template or start from scratch',
-          'Enter a name, duration, and capacity',
+          'Choose a Quick Start template or configure from scratch',
+          'Select a meeting type: 1:1, Group, Round-Robin, Collective, or Webinar',
+          'Enter a name, duration, and customize your URL slug',
           'Add any questions you want to ask attendees',
           'Click Create Session',
         ],
+        lists: [
+          {
+            label: 'Meeting types',
+            items: [
+              '1:1 — Private sessions with one attendee',
+              'Group — Multiple attendees at the same time',
+              'Round-Robin — Distribute across your team automatically',
+              'Collective — Requires all hosts to be available',
+              'Webinar — Scheduled sessions with manual time slots',
+            ],
+          },
+        ],
         tips: [
-          'Use templates to save time on common session types',
-          'You can always edit settings later',
+          'Use Quick Start templates for common session types',
+          'Your URL slug is auto-generated but can be customized',
+          'You can always edit settings after creation',
         ],
       },
       {
@@ -92,13 +106,13 @@ const helpSections: HelpSection[] = [
         id: 'share-link',
         title: 'Sharing Your Booking Link',
         description: 'Send your link or QR code to let people schedule sessions.',
-        body: 'Share your booking link via email, Slack, your website, or print a QR code for in-person events.',
+        body: 'Share your booking link via email, Slack, your website, or print a QR code for in-person events. Each event has a unique URL that you can customize.',
         steps: [
           'Go to the Sessions page',
-          'Find your session and click Copy Link',
+          'Find your session and click the Copy Link button (primary action)',
           'Share the link with attendees',
         ],
-        code: 'yoursite.com/book/session-slug',
+        code: 'liveschoolhelp.com/book/your-session-slug',
         lists: [
           {
             label: 'People who visit this link can',
@@ -106,6 +120,14 @@ const helpSections: HelpSection[] = [
               'See your available time slots',
               'Select a time that works for them',
               'Fill in their information and book',
+            ],
+          },
+          {
+            label: 'Quick actions on the dashboard',
+            items: [
+              'Copy Link — instantly copy the booking URL to clipboard',
+              'View public page — preview what attendees see',
+              'Duplicate event — create a copy with the same settings',
             ],
           },
           {
@@ -134,6 +156,7 @@ const helpSections: HelpSection[] = [
             label: 'Basic settings',
             items: [
               'Name and description — what attendees see when booking',
+              'URL slug — customize your booking link (validated in real-time)',
               'Duration — how long each session lasts',
               'Capacity — maximum attendees per slot',
             ],
@@ -149,6 +172,14 @@ const helpSections: HelpSection[] = [
           {
             label: 'Buffers',
             items: ['Add time before or after sessions for prep or breaks'],
+          },
+          {
+            label: 'Round-robin settings',
+            items: [
+              'Add team members as participating hosts',
+              'Set host priorities (1-5 stars) for assignment order',
+              'Choose a distribution strategy',
+            ],
           },
         ],
       },
@@ -477,21 +508,39 @@ const helpSections: HelpSection[] = [
         id: 'round-robin',
         title: 'Round-Robin Events',
         description: 'Distribute bookings across multiple hosts automatically.',
-        body: 'Round-robin events spread bookings evenly across your team. Great for support and sales teams.',
+        body: 'Round-robin events spread bookings evenly across your team. All distribution strategies show the same available time slots to attendees—the strategy only affects which host gets assigned when someone books.',
         steps: [
           'Create an event and select Round-Robin type',
           'Add team members as participating hosts',
-          'Choose a distribution strategy (cycle or least bookings)',
+          'Set host priorities (optional) — higher priority hosts get meetings first',
+          'Choose a distribution strategy',
           'Bookings are automatically assigned to available hosts',
         ],
         lists: [
           {
             label: 'Distribution strategies',
             items: [
-              'Cycle — rotate through hosts in order',
-              'Least Bookings — assign to host with fewest sessions',
+              'Maximize Availability (Priority) — assigns to highest-priority available host, like Calendly',
+              'Load Balanced — assigns to host with fewest sessions for even distribution',
+              'Round Robin (Cycle) — rotates through hosts in order',
+              'Availability Weighted — considers availability windows when assigning',
             ],
           },
+          {
+            label: 'Setting host priorities',
+            items: [
+              'Each team member has a weight from 1-10 (slider)',
+              'Weights are converted to percentages showing expected distribution',
+              'Higher weight = more meetings assigned to that host',
+              'Great for senior team members or specialists',
+              'Visual preview shows percentage breakdown by host',
+            ],
+          },
+        ],
+        tips: [
+          'For maximum calendar coverage, use "Maximize Availability" with priorities',
+          'All strategies show the same slots—only assignment logic differs',
+          'Team members must connect their Google Calendar to participate',
         ],
       },
       {
@@ -691,15 +740,24 @@ const helpSections: HelpSection[] = [
         id: 'hubspot',
         title: 'HubSpot Integration',
         description: 'Sync bookings and attendance with HubSpot CRM.',
-        body: 'Connect HubSpot to automatically log meetings, update contacts, and track engagement.',
+        body: 'Connect HubSpot to automatically log meetings, update contacts, and track engagement. You can also map events to specific HubSpot meeting types for better tracking and reporting.',
         lists: [
           {
             label: 'What syncs automatically',
             items: [
               'New bookings create or update contacts',
-              'Meeting activities are logged',
+              'Meeting activities are logged with the correct meeting type',
               'Attendance status is recorded',
               'No-shows are tracked for follow-up',
+            ],
+          },
+          {
+            label: 'HubSpot Meeting Types',
+            items: [
+              'Map each event to a HubSpot meeting type (e.g., "First Demo", "Discovery Call")',
+              'Meetings are logged with the correct hs_activity_type for reporting',
+              'Configure in Event Settings under HubSpot Integration',
+              'Types are fetched directly from your HubSpot account',
             ],
           },
         ],
@@ -708,6 +766,12 @@ const helpSections: HelpSection[] = [
           'Click Connect HubSpot',
           'Authorize access to your HubSpot account',
           'Bookings will now sync automatically',
+          'To set meeting types: Go to Event Settings > HubSpot Integration',
+          'Select the meeting type from the dropdown',
+        ],
+        tips: [
+          'Meeting types help you track stats across different session categories',
+          'Create custom meeting types in HubSpot Settings > Properties > Meetings',
         ],
       },
       {

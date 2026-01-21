@@ -59,7 +59,7 @@ export default function WelcomeChecklist({
     {
       id: 'event',
       title: 'Create Your First Event',
-      description: 'Set up an event type that people can book, like "Office Hours" or "1:1 Support".',
+      description: 'Set up a 1:1, Group, or Round-Robin event. Use Quick Start templates or customize your own.',
       action: {
         label: hasEvents ? 'View Events' : 'Create Event',
         href: hasEvents ? '/admin' : '/admin/events/new',

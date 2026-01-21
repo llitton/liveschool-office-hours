@@ -26,7 +26,7 @@ function generateManageToken(): string {
 // Helper to sync booking to HubSpot
 async function syncBookingToHubSpot(
   booking: { id: string; status?: string },
-  event: { name: string; description?: string },
+  event: { name: string; description?: string; hubspot_meeting_type?: string | null },
   slot: { start_time: string; end_time: string; google_meet_link?: string },
   firstName: string,
   lastName: string,
