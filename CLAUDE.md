@@ -89,7 +89,8 @@ Copy `.env.local.example` to `.env.local`. Required:
 Six types in `MeetingType` enum: `one_on_one`, `group`, `collective`, `round_robin`, `panel`, `webinar`
 
 ### Round-Robin Strategies
-Four strategies: `cycle`, `least_bookings`, `availability_weighted`, `priority`
+Three strategies (enforced by DB CHECK constraint): `cycle`, `least_bookings`, `availability_weighted`
+Note: TypeScript types include `priority` but it's NOT in the database - don't use it without a migration
 
 ### Booking Flow
 1. Public page loads event config
