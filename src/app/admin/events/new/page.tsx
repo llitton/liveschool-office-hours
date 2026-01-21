@@ -67,6 +67,7 @@ export default function NewEventPage() {
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [slugSuggestions, setSlugSuggestions] = useState<string[]>([]);
   const [existingEventName, setExistingEventName] = useState<string | null>(null);
+  const [slugCopied, setSlugCopied] = useState(false);
 
   // Fetch current user profile and templates on mount
   useEffect(() => {
@@ -289,40 +290,53 @@ export default function NewEventPage() {
           <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 text-sm">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Quick Start: Templates */}
+        <form id="new-event-form" onSubmit={handleSubmit} className="space-y-8">
+          {/* Quick Start: Templates - Compact horizontal scroll */}
           {!loadingTemplates && templates.length > 0 && (
-            <div className="bg-gradient-to-r from-[#6F71EE]/5 to-[#417762]/5 rounded-lg border border-[#6F71EE]/20 p-6">
-              <h2 className="text-lg font-semibold text-[#101E57] mb-2">Quick Start</h2>
-              <p className="text-sm text-[#667085] mb-4">
-                Choose a template to pre-fill settings, or start from scratch below.
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-r from-[#6F71EE]/5 to-[#417762]/5 rounded-lg border border-[#6F71EE]/20 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🚀</span>
+                  <h2 className="font-semibold text-[#101E57]">Quick Start</h2>
+                </div>
+                {selectedTemplate && (
+                  <span className="text-xs text-[#417762] flex items-center gap-1 bg-[#417762]/10 px-2 py-1 rounded-full">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Template applied
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin scrollbar-thumb-gray-300">
                 {templates.map((template) => (
                   <button
                     key={template.id}
                     type="button"
                     onClick={() => applyTemplate(template)}
-                    className={`p-4 rounded-lg border-2 text-left transition ${
+                    className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-left transition whitespace-nowrap ${
                       selectedTemplate === template.id
                         ? 'border-[#6F71EE] bg-white shadow-sm'
                         : 'border-gray-200 bg-white hover:border-[#6F71EE]/50'
                     }`}
                   >
-                    <span className="text-2xl mb-2 block">{template.icon}</span>
-                    <p className="font-medium text-[#101E57] text-sm">{template.name}</p>
-                    <p className="text-xs text-[#667085] mt-1 line-clamp-2">{template.description}</p>
+                    <span className="text-xl">{template.icon}</span>
+                    <span className="font-medium text-[#101E57] text-sm">{template.name}</span>
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setSelectedTemplate(null)}
+                  className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-left transition whitespace-nowrap ${
+                    selectedTemplate === null
+                      ? 'border-[#6F71EE] bg-white shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-[#6F71EE]/50'
+                  }`}
+                >
+                  <span className="text-xl">✨</span>
+                  <span className="font-medium text-[#101E57] text-sm">Start Fresh</span>
+                </button>
               </div>
-              {selectedTemplate && (
-                <p className="text-sm text-[#417762] mt-3 flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Template applied! Customize settings below.
-                </p>
-              )}
             </div>
           )}
 
@@ -454,58 +468,100 @@ export default function NewEventPage() {
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {teamMembers.map((member) => (
-                      <label
-                        key={member.id}
-                        className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
-                          selectedHosts.includes(member.id)
-                            ? 'border-[#6F71EE] bg-[#6F71EE]/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedHosts.includes(member.id)}
-                          onChange={() => toggleHost(member.id)}
-                          className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
-                        />
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="w-8 h-8 rounded-full bg-[#6F71EE]/10 text-[#6F71EE] flex items-center justify-center text-sm font-medium flex-shrink-0">
-                            {member.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-[#101E57]">
-                              {member.name || member.email.split('@')[0]}
-                            </p>
-                            <p className="text-sm text-[#667085]">{member.email}</p>
-                            {member.availability_summary && (
-                              <p className={`text-xs mt-1 ${
-                                member.google_connected === false
-                                  ? 'text-amber-600'
-                                  : member.availability_summary.includes('No availability') || member.availability_summary.includes('Unable')
-                                  ? 'text-[#667085]'
-                                  : 'text-[#417762]'
+                    {teamMembers.map((member) => {
+                      const hasConnectionIssue = member.google_connected === false;
+                      const hasNoAvailability = member.availability_summary?.includes('No availability') || member.availability_summary?.includes('Unable');
+                      const isHealthy = member.next_available_slots && member.next_available_slots.length > 0;
+
+                      return (
+                        <label
+                          key={member.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${
+                            selectedHosts.includes(member.id)
+                              ? hasConnectionIssue
+                                ? 'border-amber-400 bg-amber-50'
+                                : 'border-[#6F71EE] bg-[#6F71EE]/5'
+                              : hasConnectionIssue
+                              ? 'border-amber-200 hover:border-amber-300'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedHosts.includes(member.id)}
+                            onChange={() => toggleHost(member.id)}
+                            className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                          />
+                          <div className="flex items-start gap-3 flex-1">
+                            {/* Avatar with status indicator */}
+                            <div className="relative flex-shrink-0">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                hasConnectionIssue
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-[#6F71EE]/10 text-[#6F71EE]'
                               }`}>
-                                {member.google_connected === false ? (
-                                  <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                {member.name?.charAt(0) || member.email.charAt(0).toUpperCase()}
+                              </div>
+                              {/* Status badge */}
+                              {hasConnectionIssue && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                   </svg>
-                                ) : member.next_available_slots && member.next_available_slots.length > 0 ? (
-                                  <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </div>
+                              )}
+                              {isHealthy && !hasConnectionIssue && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                  <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                   </svg>
-                                ) : (
-                                  <svg className="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                )}
-                                {member.availability_summary}
-                              </p>
-                            )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-[#101E57]">
+                                  {member.name || member.email.split('@')[0]}
+                                </p>
+                              </div>
+                              <p className="text-sm text-[#667085]">{member.email}</p>
+                              {/* Connection warning with action link */}
+                              {hasConnectionIssue && (
+                                <div className="mt-1.5 flex items-center gap-2">
+                                  <span className="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-medium">
+                                    Calendar not connected
+                                  </span>
+                                  <Link
+                                    href="/admin/settings"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-xs text-[#6F71EE] hover:text-[#5a5cd0] underline"
+                                  >
+                                    Connect Calendar →
+                                  </Link>
+                                </div>
+                              )}
+                              {/* Availability status for connected users */}
+                              {!hasConnectionIssue && member.availability_summary && (
+                                <p className={`text-xs mt-1 flex items-center gap-1 ${
+                                  hasNoAvailability ? 'text-[#667085]' : 'text-[#417762]'
+                                }`}>
+                                  {isHealthy ? (
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  )}
+                                  {member.availability_summary}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </label>
-                    ))}
+                        </label>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -515,9 +571,16 @@ export default function NewEventPage() {
                   </p>
                 )}
 
-                {/* Round-robin strategy - only show for round-robin */}
+                {/* Round-robin assignment logic - only show for round-robin */}
                 {meetingType === 'round_robin' && (
-                  <div className="mt-6 space-y-4">
+                  <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <h4 className="font-medium text-[#101E57]">Assignment Logic</h4>
+                    </div>
+
                     {/* Coverage explanation */}
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-blue-800">
@@ -534,7 +597,7 @@ export default function NewEventPage() {
                         <select
                           value={roundRobinStrategy}
                           onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] bg-white"
                         >
                           <option value="least_bookings">Load Balanced (Recommended)</option>
                           <option value="cycle">Simple Rotation</option>
@@ -549,7 +612,7 @@ export default function NewEventPage() {
                         <select
                           value={roundRobinPeriod}
                           onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] disabled:bg-gray-50 disabled:text-gray-400"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] bg-white disabled:bg-gray-100 disabled:text-gray-400"
                           disabled={roundRobinStrategy === 'cycle' || roundRobinStrategy === 'priority'}
                         >
                           <option value="day">Daily</option>
@@ -689,12 +752,41 @@ export default function NewEventPage() {
                   </div>
                 )}
                 {slugStatus === 'available' && formData.slug.length >= 2 && (
-                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    This URL is available
-                  </p>
+                  <div className="mt-2 flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm text-green-700 font-mono">
+                        liveschoolhelp.com/book/{formData.slug}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://liveschoolhelp.com/book/${formData.slug}`);
+                        setSlugCopied(true);
+                        setTimeout(() => setSlugCopied(false), 2000);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-white border border-green-300 rounded hover:bg-green-100 text-green-700 transition"
+                    >
+                      {slugCopied ? (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy Link
+                        </>
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -1001,54 +1093,118 @@ export default function NewEventPage() {
             </div>
           )}
 
-          {/* Timezone - Simplified inline for group, or Step 3/4 for others */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">
-                {meetingType === 'group' ? '3' : '4'}
-              </span>
-              <h2 className="text-lg font-semibold text-[#101E57]">Timezone</h2>
+          {/* Timezone - Hidden for round-robin/collective since hosts have different timezones */}
+          {(meetingType === 'round_robin' || meetingType === 'collective') ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">4</span>
+                <h2 className="text-lg font-semibold text-[#101E57]">Timezone</h2>
+              </div>
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start gap-2">
+                <svg className="w-5 h-5 text-[#667085] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm text-[#101E57] font-medium">Automatic timezone handling</p>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Since your team members may be in different timezones, times are automatically shown to attendees in their detected timezone.
+                    Each host&apos;s availability is calculated in their own timezone.
+                  </p>
+                </div>
+              </div>
             </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="w-6 h-6 bg-[#6F71EE] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                  {meetingType === 'group' ? '3' : '4'}
+                </span>
+                <h2 className="text-lg font-semibold text-[#101E57]">Timezone</h2>
+              </div>
 
-            <div className="flex items-center gap-4">
-              <TimezoneSelector
-                value={displayTimezone}
-                onChange={setDisplayTimezone}
-                className="flex-1 max-w-sm"
-              />
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="checkbox"
-                  checked={lockTimezone}
-                  onChange={(e) => setLockTimezone(e.target.checked)}
-                  className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              <div className="flex items-center gap-4">
+                <TimezoneSelector
+                  value={displayTimezone}
+                  onChange={setDisplayTimezone}
+                  className="flex-1 max-w-sm"
                 />
-                <span className="text-[#667085]">Lock timezone</span>
-              </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                  <input
+                    type="checkbox"
+                    checked={lockTimezone}
+                    onChange={(e) => setLockTimezone(e.target.checked)}
+                    className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                  />
+                  <span className="text-[#667085]">Lock timezone</span>
+                </label>
+              </div>
+              <p className="text-xs text-[#667085] mt-2">
+                Times will be shown in this timezone. {lockTimezone ? 'Attendee timezone detection is disabled.' : 'Attendees can view in their own timezone.'}
+              </p>
             </div>
-            <p className="text-xs text-[#667085] mt-2">
-              Times will be shown in this timezone. {lockTimezone ? 'Attendee timezone detection is disabled.' : 'Attendees can view in their own timezone.'}
-            </p>
-          </div>
+          )}
 
-          {/* Submit */}
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              disabled={loading || slugStatus === 'taken' || slugStatus === 'checking'}
-              className="bg-[#6F71EE] text-white px-6 py-3 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {loading ? 'Creating...' : slugStatus === 'taken' ? 'Fix URL slug to continue' : 'Create Event'}
-            </button>
+          {/* Spacer for sticky footer */}
+          <div className="h-24" />
+        </form>
+      </main>
+
+      {/* Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-[#667085]">
+            {formData.name ? (
+              <>
+                <span className="font-medium text-[#101E57]">{formData.name}</span>
+                {slugStatus === 'available' && (
+                  <span className="text-green-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Ready
+                  </span>
+                )}
+                {slugStatus === 'taken' && (
+                  <span className="text-red-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Fix URL
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="italic">Enter event name to continue</span>
+            )}
+          </div>
+          <div className="flex gap-3">
             <Link
               href="/admin"
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
+              className="px-5 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
             >
               Cancel
             </Link>
+            <button
+              type="submit"
+              form="new-event-form"
+              disabled={loading || slugStatus === 'taken' || slugStatus === 'checking' || !formData.name}
+              className="bg-[#6F71EE] text-white px-5 py-2.5 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                'Create Event'
+              )}
+            </button>
           </div>
-        </form>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }
