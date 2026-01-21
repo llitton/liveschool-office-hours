@@ -54,7 +54,7 @@ export default function NewEventPage() {
   // Round-robin settings
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
-  const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('least_bookings');
+  const [roundRobinStrategy, setRoundRobinStrategy] = useState<RoundRobinStrategy>('priority');
   const [roundRobinPeriod, setRoundRobinPeriod] = useState<RoundRobinPeriod>('week');
   const [loadingTeam, setLoadingTeam] = useState(false);
 
@@ -599,7 +599,8 @@ export default function NewEventPage() {
                           onChange={(e) => setRoundRobinStrategy(e.target.value as RoundRobinStrategy)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] bg-white"
                         >
-                          <option value="least_bookings">Load Balanced (Recommended)</option>
+                          <option value="least_bookings">Load Balanced</option>
+                          <option value="priority">Maximize Availability (Recommended)</option>
                           <option value="cycle">Simple Rotation</option>
                           <option value="availability_weighted">Availability Weighted</option>
                         </select>
@@ -612,7 +613,7 @@ export default function NewEventPage() {
                           value={roundRobinPeriod}
                           onChange={(e) => setRoundRobinPeriod(e.target.value as RoundRobinPeriod)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] bg-white disabled:bg-gray-100 disabled:text-gray-400"
-                          disabled={roundRobinStrategy === 'cycle'}
+                          disabled={roundRobinStrategy === 'cycle' || roundRobinStrategy === 'priority'}
                         >
                           <option value="day">Daily</option>
                           <option value="week">Weekly</option>
@@ -630,6 +631,9 @@ export default function NewEventPage() {
                       )}
                       {roundRobinStrategy === 'availability_weighted' && (
                         <>Assign more bookings to hosts with more available hours. Use this if someone with a fuller calendar should take proportionally more meetings.</>
+                      )}
+                      {roundRobinStrategy === 'priority' && (
+                        <>Shows all times when any host is free. The highest-priority available host gets the booking. If tied, the one with fewer recent meetings wins. Set priorities in event settings after creation.</>
                       )}
                     </p>
                   </div>
