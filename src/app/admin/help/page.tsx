@@ -832,6 +832,99 @@ const helpSections: HelpSection[] = [
       },
     ],
   },
+  {
+    id: 'development',
+    title: 'Development & Testing',
+    articles: [
+      {
+        id: 'running-tests',
+        title: 'Running Tests',
+        description: 'Run automated tests to verify the application works correctly.',
+        body: 'LiveSchool Sessions uses Vitest for unit and integration tests, and Playwright for end-to-end browser tests. Tests help ensure new features work correctly and existing functionality isn\'t broken.',
+        lists: [
+          {
+            label: 'Test commands',
+            items: [
+              'npm run test — Run all unit/integration tests in watch mode',
+              'npm run test -- --run — Run tests once (for CI)',
+              'npm run test:unit — Run only unit tests',
+              'npm run test:integration — Run only integration tests',
+              'npm run test:e2e — Run end-to-end browser tests',
+              'npm run test:coverage — Generate coverage report',
+            ],
+          },
+          {
+            label: 'What each test type covers',
+            items: [
+              'Unit tests — Individual functions like booking validation, availability calculation',
+              'Integration tests — API endpoints, database operations, service integrations',
+              'E2E tests — Full user flows in a real browser (booking flow, admin dashboard)',
+            ],
+          },
+        ],
+        tips: [
+          'Run tests before deploying new features',
+          'E2E tests require a running dev server (started automatically)',
+          'Check CLAUDE.md for detailed test patterns and examples',
+        ],
+      },
+      {
+        id: 'test-coverage',
+        title: 'Test Coverage Areas',
+        description: 'Understand what parts of the codebase are tested.',
+        lists: [
+          {
+            label: 'Well-tested areas',
+            items: [
+              'Booking constraints — validation rules (100% coverage)',
+              'Availability calculation — slot generation logic (60%+)',
+              'HubSpot integration — contact sync, meeting types (80%)',
+              'Round-robin selection — host assignment strategies (70%)',
+            ],
+          },
+          {
+            label: 'Test file locations',
+            items: [
+              'tests/unit/lib/ — Unit tests for business logic',
+              'tests/integration/api/ — API endpoint tests',
+              'tests/e2e/ — Browser-based end-to-end tests',
+              'tests/mocks/ — Reusable mock factories',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'writing-tests',
+        title: 'Writing New Tests',
+        description: 'Guidelines for adding tests when building new features.',
+        body: 'When adding new functionality, write tests to verify it works correctly. The codebase includes helpful utilities for mocking Supabase and external services.',
+        lists: [
+          {
+            label: 'Test patterns',
+            items: [
+              'Use createMockSupabase() from tests/mocks/supabase.ts for database mocking',
+              'Mock external services (Google, HubSpot) with vi.mock()',
+              'Group related tests with describe() blocks',
+              'Use clear test names that describe the behavior being tested',
+            ],
+          },
+          {
+            label: 'When to write tests',
+            items: [
+              'New API endpoints — integration tests',
+              'New business logic — unit tests',
+              'User-facing features — E2E tests',
+              'Bug fixes — regression tests to prevent recurrence',
+            ],
+          },
+        ],
+        tips: [
+          'Refer to existing test files for patterns and examples',
+          'See CLAUDE.md for the full testing guide',
+        ],
+      },
+    ],
+  },
 ];
 
 function CodeBlock({ code }: { code: string }) {

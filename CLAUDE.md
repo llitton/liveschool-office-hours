@@ -69,12 +69,113 @@ Core tables prefixed with `oh_`:
 ## Commands
 
 ```bash
-npm run dev          # Start dev server (localhost:3000)
-npm run build        # Production build
-npm run test         # Run tests (Vitest watch)
-npm run test:e2e     # Playwright e2e tests
-npm run lint         # ESLint
+npm run dev              # Start dev server (localhost:3000)
+npm run build            # Production build
+npm run lint             # ESLint
 ```
+
+## Testing
+
+### Test Framework Overview
+
+| Framework | Purpose | Command |
+|-----------|---------|---------|
+| Vitest | Unit & integration tests | `npm run test` |
+| Playwright | E2E browser tests | `npm run test:e2e` |
+| Testing Library | React component testing | (via Vitest) |
+
+### Running Tests
+
+```bash
+# Run all unit/integration tests (watch mode)
+npm run test
+
+# Run tests once (CI mode)
+npm run test -- --run
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Run E2E tests
+npm run test:e2e
+
+# Generate coverage report
+npm run test:coverage
+
+# Run specific test file
+npm run test -- tests/unit/lib/hubspot.test.ts
+
+# Run tests matching a pattern
+npm run test -- --grep "round-robin"
+```
+
+### Test File Structure
+
+```
+tests/
+├── setup.ts                  # Global test configuration
+├── mocks/
+│   └── supabase.ts           # Comprehensive Supabase mock factory
+├── unit/
+│   └── lib/
+│       ├── availability.test.ts      # Slot generation logic
+│       ├── booking-constraints.test.ts # Validation rules
+│       ├── hubspot.test.ts           # HubSpot API integration
+│       └── round-robin.test.ts       # Host selection strategies
+├── integration/
+│   └── api/
+│       ├── bookings.test.ts          # Booking API endpoints
+│       ├── events.test.ts            # Event CRUD operations
+│       └── slots.test.ts             # Slot generation API
+└── e2e/
+    ├── booking-flow.spec.ts          # Public booking flows
+    └── round-robin-booking.spec.ts   # Team booking + admin UI
+```
+
+### Test Coverage Areas
+
+| Area | Coverage | Files |
+|------|----------|-------|
+| Booking Constraints | ~100% | `booking-constraints.ts` |
+| Availability Logic | ~60% | `availability.ts` |
+| HubSpot Integration | ~80% | `hubspot.ts` |
+| Round-Robin Selection | ~70% | `round-robin.ts` |
+| API Routes | ~40% | Various API endpoints |
+
+### Writing Tests
+
+**Mock Supabase queries** using the factory in `tests/mocks/supabase.ts`:
+```typescript
+import { createMockSupabase, createMockEvent, createMockBooking } from '../../mocks/supabase';
+
+const mockSupabase = createMockSupabase({
+  events: [createMockEvent({ name: 'Test' })],
+  bookings: [],
+});
+```
+
+**Mock external services** (Google, HubSpot, Slack):
+```typescript
+vi.mock('@/lib/google', () => ({
+  addAttendeeToEvent: vi.fn().mockResolvedValue(undefined),
+}));
+```
+
+### E2E Test Requirements
+
+E2E tests require a running dev server. Playwright automatically starts it via the config:
+```typescript
+// playwright.config.ts
+webServer: {
+  command: 'npm run dev',
+  url: 'http://localhost:3000',
+}
+```
+
+Run with `RUN_E2E=true npm run test:e2e` to force tests in non-Chromium browsers.
 
 ## Environment
 

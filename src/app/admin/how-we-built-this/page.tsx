@@ -114,6 +114,11 @@ export default function HowWeBuiltThisPage() {
               description: 'Lets the app read your calendar to know when you\'re busy, and create calendar events when someone books a session.',
               icon: '📅',
             },
+            {
+              name: 'Vitest & Playwright',
+              description: 'Automated testing tools that verify the app works correctly. Like having a robot click through everything and check for bugs before users see them.',
+              icon: '🧪',
+            },
           ].map((tool) => (
             <div key={tool.name} className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-start gap-4">
@@ -199,7 +204,8 @@ export default function HowWeBuiltThisPage() {
             { feature: 'SMS reminders', desc: 'Text notifications with delivery tracking dashboard' },
             { feature: 'HubSpot integration', desc: 'Contacts and meetings sync automatically' },
             { feature: 'Round-robin scheduling', desc: 'Distribute bookings with priority-based assignment' },
-            { feature: 'Host priorities', desc: 'Set 1-5 star priorities for team members' },
+            { feature: 'Host priorities', desc: 'Set 1-10 weight priorities with % distribution preview' },
+            { feature: 'HubSpot meeting types', desc: 'Map events to HubSpot activity types for tracking' },
             { feature: 'Waitlist management', desc: 'Auto-promote when spots open' },
             { feature: 'Email validation', desc: 'Block fake/disposable emails with MX check' },
             { feature: 'Phone pre-fill', desc: 'Auto-fill from HubSpot contacts' },
@@ -213,6 +219,9 @@ export default function HowWeBuiltThisPage() {
             { feature: 'Bulk slot creation', desc: 'Copy weeks, import CSV files' },
             { feature: 'QR code generator', desc: 'Print codes for easy booking' },
             { feature: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
+            { feature: 'Automated test suite', desc: 'Unit, integration, and E2E tests for reliability' },
+            { feature: 'Event settings UX', desc: 'Sidebar nav, live preview, sticky save buttons' },
+            { feature: 'Buffer visualization', desc: 'Visual timeline showing meeting and buffer times' },
           ].map((item) => (
             <div key={item.feature} className="bg-white rounded-xl border border-gray-200 p-4">
               <h3 className="font-medium text-[#101E57] mb-1">{item.feature}</h3>
