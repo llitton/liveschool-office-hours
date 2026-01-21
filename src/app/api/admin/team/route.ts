@@ -138,17 +138,17 @@ export async function POST(request: NextRequest) {
         inviter.google_refresh_token,
         {
           to: email,
-          subject: `${inviterName} invited you to LiveSchool Sessions`,
+          subject: `${inviterName} invited you to Connect with LiveSchool`,
           htmlBody: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #1a1a1a; margin-bottom: 20px;">You've been invited to LiveSchool Sessions!</h2>
+              <h2 style="color: #1a1a1a; margin-bottom: 20px;">You've been invited to Connect with LiveSchool!</h2>
 
               <p style="color: #444; font-size: 16px; line-height: 1.6;">
                 Hi ${inviteeName},
               </p>
 
               <p style="color: #444; font-size: 16px; line-height: 1.6;">
-                ${inviterName} has invited you to join <strong>LiveSchool Sessions</strong> — our internal scheduling tool for demos, support calls, onboardings, and office hours.
+                ${inviterName} has invited you to join <strong>Connect with LiveSchool</strong> — our internal scheduling tool for demos, support calls, onboardings, and office hours.
               </p>
 
               <div style="margin: 30px 0;">

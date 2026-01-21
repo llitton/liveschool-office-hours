@@ -29,7 +29,7 @@ const helpSections: HelpSection[] = [
         id: 'connect-google',
         title: 'Connecting Google Calendar',
         description: 'Sync your calendar to check availability, create Meet links, and add bookings.',
-        body: 'Connecting your Google Calendar allows LiveSchool Sessions to check your availability, automatically create Google Meet links, and add bookings to your calendar.',
+        body: 'Connecting your Google Calendar allows Connect with LiveSchool to check your availability, automatically create Google Meet links, and add bookings to your calendar.',
         steps: [
           'Go to Settings, then Integrations',
           'Click Connect Google Calendar',
@@ -840,7 +840,7 @@ const helpSections: HelpSection[] = [
         id: 'running-tests',
         title: 'Running Tests',
         description: 'Run automated tests to verify the application works correctly.',
-        body: 'LiveSchool Sessions uses Vitest for unit and integration tests, and Playwright for end-to-end browser tests. Tests help ensure new features work correctly and existing functionality isn\'t broken.',
+        body: 'Connect with LiveSchool uses Vitest for unit and integration tests, and Playwright for end-to-end browser tests. Tests help ensure new features work correctly and existing functionality isn\'t broken.',
         lists: [
           {
             label: 'Test commands',
@@ -973,6 +973,46 @@ const helpSections: HelpSection[] = [
           'Migrations 006 and 031 contain all RLS policies',
           'API routes use getServiceSupabase() which bypasses RLS',
           'See CLAUDE.md for the full security guide',
+        ],
+      },
+      {
+        id: 'branding',
+        title: 'Branding & Favicon',
+        description: 'Brand colors, favicon, and visual identity guidelines.',
+        body: 'Connect with LiveSchool uses a consistent visual identity across the application. The favicon is a purple calendar with checkmark that stands out in browser tabs.',
+        lists: [
+          {
+            label: 'Brand colors',
+            items: [
+              'Primary Purple (#6F71EE) — main brand color, buttons, links, interactive elements',
+              'Navy (#101E57) — headers, dark text, sidebar navigation',
+              'Green (#417762) — success states, confirmations, positive actions',
+              'Gray (#667085) — secondary text, descriptions, muted elements',
+            ],
+          },
+          {
+            label: 'Favicon',
+            items: [
+              'Located at src/app/icon.svg',
+              'Calendar icon with checkmark in brand purple',
+              'SVG format for crisp display at all sizes',
+              'Next.js App Router serves it automatically',
+            ],
+          },
+          {
+            label: 'When to use each color',
+            items: [
+              'Purple — primary actions, active states, links, focus rings',
+              'Navy — page titles, card headers, navigation items',
+              'Green — success messages, connected status, confirmations',
+              'Gray — helper text, disabled states, borders',
+            ],
+          },
+        ],
+        tips: [
+          'Maintain consistency by using Tailwind classes like text-[#6F71EE] for brand purple',
+          'The favicon helps users identify the app among many browser tabs',
+          'See CLAUDE.md for the full branding guide',
         ],
       },
     ],
@@ -1172,7 +1212,7 @@ export default function HelpPage() {
     <PageContainer>
       <PageHeader
         title="Help Center"
-        description="Learn how to get the most out of LiveSchool Sessions."
+        description="Learn how to get the most out of Connect with LiveSchool."
       />
 
         {/* Search */}

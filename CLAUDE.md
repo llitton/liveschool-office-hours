@@ -1,4 +1,4 @@
-# LiveSchool Scheduling Platform
+# Connect with LiveSchool
 
 Full-featured scheduling platform replacing Calendly/HubSpot Scheduler. Supports one-on-one, group, round-robin, collective, panel, and webinar meeting types.
 
@@ -25,7 +25,8 @@ src/
 │   ├── embed/[slug]/       # Embeddable widget
 │   ├── route/[slug]/       # Lead routing forms
 │   ├── vote/[slug]/        # Availability polls
-│   └── api/                # API routes (~97 endpoints)
+│   ├── api/                # API routes (~97 endpoints)
+│   └── icon.svg            # Favicon (calendar + checkmark in brand purple)
 ├── components/             # React components (32 files)
 ├── lib/                    # Business logic (22 modules)
 ├── contexts/               # React Context providers
@@ -216,6 +217,17 @@ webServer: {
 ```
 
 Run with `RUN_E2E=true npm run test:e2e` to force tests in non-Chromium browsers.
+
+## Branding
+
+| Element | Value | Notes |
+|---------|-------|-------|
+| **Primary Purple** | `#6F71EE` | Main brand color, buttons, links |
+| **Navy** | `#101E57` | Headers, dark text |
+| **Green** | `#417762` | Success states, confirmations |
+| **Favicon** | `src/app/icon.svg` | Calendar with checkmark in brand purple |
+
+The favicon is an SVG calendar icon with a checkmark, designed to be recognizable at small sizes in browser tabs. Next.js App Router automatically serves `icon.svg` as the favicon.
 
 ## Environment
 
