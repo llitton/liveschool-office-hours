@@ -392,7 +392,7 @@ export default function NewEventPage() {
                 <div className="flex-1">
                   <span className="font-medium text-[#101E57]">Group Session</span>
                   <p className="text-sm text-[#667085] mt-0.5">
-                    Multiple attendees can join the same time slot. Perfect for webinars, group trainings, or Q&A sessions.
+                    Multiple attendees can join the same time slot. Perfect for office hours, group trainings, or Q&A sessions.
                   </p>
                 </div>
               </label>
@@ -461,7 +461,7 @@ export default function NewEventPage() {
                 <div className="flex-1">
                   <span className="font-medium text-[#101E57]">Webinar</span>
                   <p className="text-sm text-[#667085] mt-0.5">
-                    Scheduled sessions at specific times. You manually create time slots and attendees book those exact times.
+                    Scheduled sessions with multiple attendees. Create specific time slots, add co-hosts, and all hosts must be available.
                   </p>
                 </div>
               </label>

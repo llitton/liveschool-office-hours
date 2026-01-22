@@ -20,11 +20,11 @@ export const MEETING_TYPE_LABELS: Record<MeetingType, string> = {
 
 export const MEETING_TYPE_DESCRIPTIONS: Record<MeetingType, string> = {
   one_on_one: 'Single host meets with one attendee at a time',
-  group: 'Single host meets with multiple attendees (group style)',
-  collective: 'All selected hosts must be available for the meeting',
+  group: 'Single host meets with multiple attendees (office hours, trainings)',
+  collective: 'All selected hosts must be available for one-on-one meetings',
   round_robin: 'Meetings are distributed across team members',
   panel: 'Multiple hosts interview or meet with one attendee',
-  webinar: 'Presentation-style event with set date/time for many attendees',
+  webinar: 'Scheduled sessions with multiple attendees, all co-hosts must be available',
 };
 
 // Meeting types that don't need minimum notice (events happen at set times)
