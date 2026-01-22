@@ -3,7 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession, getHostWithTokens } from '@/lib/auth';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { checkTimeAvailability, checkCollectiveAvailability } from '@/lib/availability';
-import { getParticipatingHosts } from '@/lib/round-robin';
+import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping, addHours, addDays, isBefore, isAfter } from 'date-fns';
 
 // GET slots for an event
@@ -293,12 +293,23 @@ export async function POST(request: NextRequest) {
 
   // For collective events and webinars with co-hosts, get all co-host emails
   let coHostEmails: string[] = [];
-  if ((event.meeting_type === 'collective' || event.meeting_type === 'webinar') && hasCoHosts) {
+  if (event.meeting_type === 'collective' && hasCoHosts) {
+    // For collective: use participating hosts (owner/host roles only)
     const { data: coHosts } = await supabase
       .from('oh_admins')
       .select('email')
       .in('id', participatingHosts);
     coHostEmails = coHosts?.map(h => h.email) || [];
+  } else if (event.meeting_type === 'webinar') {
+    // For webinars: include ALL hosts (including backup role) for calendar invitations
+    const allHosts = await getAllEventHosts(event_id);
+    if (allHosts.length > 0) {
+      const { data: coHosts } = await supabase
+        .from('oh_admins')
+        .select('email')
+        .in('id', allHosts);
+      coHostEmails = coHosts?.map(h => h.email) || [];
+    }
   }
 
   if (calendarAccessToken && calendarRefreshToken) {

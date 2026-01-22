@@ -46,6 +46,27 @@ export async function getParticipatingHosts(eventId: string): Promise<string[]> 
 }
 
 /**
+ * Get ALL hosts for an event (including backup role)
+ * Used for webinars where all co-hosts should receive calendar invitations
+ */
+export async function getAllEventHosts(eventId: string): Promise<string[]> {
+  const supabase = getServiceSupabase();
+
+  const { data, error } = await supabase
+    .from('oh_event_hosts')
+    .select('admin_id')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Failed to get event hosts:', error);
+    return [];
+  }
+
+  return (data || []).map((h) => h.admin_id);
+}
+
+/**
  * Get booking counts per host within a period
  */
 export async function getHostBookingCounts(

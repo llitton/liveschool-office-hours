@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { addAttendeeToEvent } from '@/lib/google';
-import { getParticipatingHosts } from '@/lib/round-robin';
+import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 
 // POST /api/slots/add-cohosts
 // Add co-hosts to existing calendar events for webinar/collective event slots
@@ -36,10 +36,14 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  // Get participating hosts
-  const participatingHosts = await getParticipatingHosts(event_id);
+  // Get hosts based on meeting type
+  // For webinars: include ALL hosts (including backup role)
+  // For collective: only owner/host roles
+  const hostIds = event.meeting_type === 'webinar'
+    ? await getAllEventHosts(event_id)
+    : await getParticipatingHosts(event_id);
 
-  if (participatingHosts.length === 0) {
+  if (hostIds.length === 0) {
     return NextResponse.json({ error: 'No co-hosts found for this event' }, { status: 400 });
   }
 
@@ -47,7 +51,7 @@ export async function POST(request: NextRequest) {
   const { data: coHosts } = await supabase
     .from('oh_admins')
     .select('id, email')
-    .in('id', participatingHosts);
+    .in('id', hostIds);
 
   if (!coHosts || coHosts.length === 0) {
     return NextResponse.json({ error: 'Could not fetch co-host information' }, { status: 500 });
