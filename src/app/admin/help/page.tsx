@@ -39,6 +39,8 @@ const helpSections: HelpSection[] = [
         tips: [
           'Your calendar syncs automatically after connecting',
           'You can disconnect and reconnect at any time',
+          'Calendar events use your session name as the title (e.g., "Office Hours")',
+          'For webinars with co-hosts, all co-hosts receive calendar invitations automatically',
         ],
       },
       {
@@ -590,6 +592,7 @@ const helpSections: HelpSection[] = [
               'Calendar automatically shows combined availability',
               'Only times when ALL hosts are free appear as available',
               'Co-host names shown in the legend',
+              'Co-hosts automatically receive calendar invitations when you create slots',
             ],
           },
           {

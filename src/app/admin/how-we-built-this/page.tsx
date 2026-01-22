@@ -37,6 +37,7 @@ const featureCategories = [
     features: [
       { name: 'Round-robin scheduling', desc: 'Distribute bookings with priority-based assignment' },
       { name: 'Host priorities', desc: 'Set 1-10 weight priorities with % distribution preview' },
+      { name: 'Co-host calendar sync', desc: 'All co-hosts automatically receive calendar invites' },
       { name: 'Routing forms', desc: 'Direct people to right event type' },
       { name: 'Quick Links', desc: 'Personal booking URLs for team' },
     ],

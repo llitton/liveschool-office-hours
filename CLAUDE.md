@@ -264,6 +264,11 @@ Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 4. POST `/api/bookings` creates booking
 5. Syncs to Google Calendar, sends confirmation email
 
+### Google Calendar Integration
+- **Event titles:** Calendar events use the event name directly (e.g., "Office Hours"), not prefixed with "[Connect]"
+- **Co-host invitations:** For webinars and collective events, all co-hosts automatically receive calendar invitations when slots are created
+- **Attendee invitations:** When someone books, they're added as an attendee to the existing calendar event
+
 ### Multi-Host
 Events can have multiple hosts via `oh_event_hosts` with roles and permissions (`can_manage_slots`, `can_view_bookings`)
 
@@ -314,6 +319,12 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - **Consolidated actions:** Group slot creation modes (Calendar, Single, Bulk, Recurring, Copy Week, Import) in a dropdown menu rather than tabs
 - **Combined availability for co-hosts:** When webinars have co-hosts, show merged availability where ANY host busy = cell unavailable. Show co-host names in legend, not in every cell
 - **Empty state CTAs:** When no slots exist, show prominent call-to-action to create the first slot
+
+### Public Booking Page
+- **Minimum slots:** Always show at least 2 time slots on initial load - dynamically includes additional days if the first day has fewer slots
+- **Progressive disclosure:** Start with limited slots, expand with "Show more days" button
+- **Prominent expand button:** "Show more days" is a styled button (not just text link) with count of remaining days
+- **Wider content:** Uses `max-w-lg` (512px) for comfortable reading on the main card
 
 ## Current State
 
