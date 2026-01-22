@@ -265,9 +265,10 @@ Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 5. Syncs to Google Calendar, sends confirmation email
 
 ### Google Calendar Integration
-- **Event titles:** Calendar events use the event name directly (e.g., "Office Hours"), not prefixed with "[Connect]"
+- **Event titles:** Calendar events use the event name directly (e.g., "Office Hours"), no prefix added
 - **Co-host invitations:** For webinars and collective events, all co-hosts automatically receive calendar invitations when slots are created
 - **Attendee invitations:** When someone books, they're added as an attendee to the existing calendar event
+- **Retroactive fixes:** Use `POST /api/slots/add-cohosts` with `{"event_id": "..."}` to add co-hosts to existing calendar events
 
 ### Multi-Host
 Events can have multiple hosts via `oh_event_hosts` with roles and permissions (`can_manage_slots`, `can_view_bookings`)
