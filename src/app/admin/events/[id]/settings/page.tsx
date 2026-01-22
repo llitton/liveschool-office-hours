@@ -760,18 +760,20 @@ export default function EventSettingsPage({
           </p>
 
           <div className="grid gap-3">
-            {(['one_on_one', 'group', 'webinar', 'round_robin'] as MeetingType[]).map((type) => {
+            {(['one_on_one', 'group', 'round_robin', 'collective', 'webinar'] as MeetingType[]).map((type) => {
               const labels: Record<string, string> = {
                 one_on_one: 'One-on-One',
                 group: 'Group Session',
-                webinar: 'Webinar',
                 round_robin: 'Round-Robin',
+                collective: 'Collective',
+                webinar: 'Webinar',
               };
               const descriptions: Record<string, string> = {
                 one_on_one: 'Single host meets with one attendee at a time',
-                group: 'Single host meets with multiple attendees (group style)',
-                webinar: 'Presentation-style event with set date/time for many attendees',
+                group: 'Multiple attendees can join. Perfect for office hours or trainings',
                 round_robin: 'Bookings are automatically distributed across team members',
+                collective: 'All selected hosts must be available for the meeting',
+                webinar: 'Scheduled sessions with multiple attendees, all co-hosts must be available',
               };
               return (
                 <label
