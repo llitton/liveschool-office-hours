@@ -196,11 +196,11 @@ export default function NewEventPage() {
     // Auto-set max attendees based on type
     if (type === 'one_on_one' || type === 'round_robin' || type === 'collective') {
       setMaxAttendeesInput('1');
-    } else if (type === 'group' && parseInt(maxAttendeesInput) === 1) {
+    } else if ((type === 'group' || type === 'webinar') && parseInt(maxAttendeesInput) === 1) {
       setMaxAttendeesInput('30');
     }
-    // Set sensible defaults for group sessions (hosts create slots manually)
-    if (type === 'group') {
+    // Set sensible defaults for group/webinar sessions (hosts create slots manually)
+    if (type === 'group' || type === 'webinar') {
       setMinNoticeHours(0);
       setBookingWindowDays(365);
     } else {
@@ -439,6 +439,29 @@ export default function NewEventPage() {
                   <span className="font-medium text-[#101E57]">Collective</span>
                   <p className="text-sm text-[#667085] mt-0.5">
                     All selected hosts must be available. Great for sales calls with AE + SDR, interviews, or support escalations.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${
+                  meetingType === 'webinar'
+                    ? 'border-[#6F71EE] bg-[#6F71EE]/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="meeting_type"
+                  value="webinar"
+                  checked={meetingType === 'webinar'}
+                  onChange={() => handleMeetingTypeChange('webinar')}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                />
+                <div className="flex-1">
+                  <span className="font-medium text-[#101E57]">Webinar</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Scheduled sessions at specific times. You manually create time slots and attendees book those exact times.
                   </p>
                 </div>
               </label>
