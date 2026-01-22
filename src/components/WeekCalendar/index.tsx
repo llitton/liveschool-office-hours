@@ -88,6 +88,7 @@ export default function WeekCalendar({
   const [hoveredCell, setHoveredCell] = useState<{ date: string; time: string } | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ date: string; time: string } | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   // Generate time labels
   const timeLabels = useMemo(() => {
@@ -147,6 +148,7 @@ export default function WeekCalendar({
       return;
     }
 
+    setCreateError('');
     setSelectedCell({ date, time });
   };
 
@@ -154,6 +156,7 @@ export default function WeekCalendar({
     if (!selectedCell) return;
 
     setCreating(true);
+    setCreateError('');
     try {
       await onSlotCreate(selectedCell.date, selectedCell.time);
       setSelectedCell(null);
@@ -169,6 +172,8 @@ export default function WeekCalendar({
       }
     } catch (err) {
       console.error('Failed to create slot:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create slot';
+      setCreateError(errorMessage);
     } finally {
       setCreating(false);
     }
@@ -176,6 +181,7 @@ export default function WeekCalendar({
 
   const handleCancelCreate = () => {
     setSelectedCell(null);
+    setCreateError('');
   };
 
   if (loading) {
@@ -420,6 +426,11 @@ export default function WeekCalendar({
               </strong>
               ?
             </p>
+            {createError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{createError}</p>
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={handleCancelCreate}
