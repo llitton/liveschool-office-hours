@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
           admin.google_access_token,
           admin.google_refresh_token,
           {
-            summary: `[Connect] ${event.name}`,
+            summary: event.name,
             description: event.description || '',
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),

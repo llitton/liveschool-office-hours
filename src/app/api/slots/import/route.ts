@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth, getHostWithTokens } from '@/lib/auth';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
+import { getParticipatingHosts } from '@/lib/round-robin';
 import { parseISO, addMinutes, startOfDay, endOfDay, areIntervalsOverlapping, isValid, parse } from 'date-fns';
 
 interface SlotRow {
@@ -229,17 +230,31 @@ export async function POST(request: NextRequest) {
     const calendarRefreshToken = hostAdmin?.google_refresh_token || session.google_refresh_token;
     const hostEmail = hostAdmin?.email || event.host_email;
 
+    // For collective events and webinars with co-hosts, get all co-host emails
+    let coHostEmails: string[] = [];
+    if (event.meeting_type === 'collective' || event.meeting_type === 'webinar') {
+      const participatingHosts = await getParticipatingHosts(eventId);
+      if (participatingHosts.length > 0) {
+        const { data: coHosts } = await supabase
+          .from('oh_admins')
+          .select('email')
+          .in('id', participatingHosts);
+        coHostEmails = coHosts?.map(h => h.email) || [];
+      }
+    }
+
     if (calendarAccessToken && calendarRefreshToken) {
       try {
         const calendarResult = await createCalendarEvent(
           calendarAccessToken,
           calendarRefreshToken,
           {
-            summary: `[Connect] ${event.name}`,
+            summary: event.name,
             description: event.description || '',
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             hostEmail: hostEmail,
+            coHostEmails: coHostEmails.length > 0 ? coHostEmails : undefined,
           }
         );
         googleEventId = calendarResult.eventId || null;

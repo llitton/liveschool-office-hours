@@ -1036,10 +1036,27 @@ export default function BookingPage({
   }
 
   // Progressive disclosure - scroll-free first screen
-  const INITIAL_DAYS = 1; // Show only 1 day - fits in viewport
+  const MIN_SLOTS_TO_SHOW = 2; // Always show at least 2 slots
   const MAX_INITIAL_SLOTS = 5; // Cap slots to prevent scrolling
   const DAYS_PER_EXPAND = 3; // Show 3 more days each expansion
   const sortedDates = Object.keys(groupedSlots).sort();
+
+  // Calculate how many days needed to show at least MIN_SLOTS_TO_SHOW
+  const calculateInitialDays = () => {
+    let totalSlots = 0;
+    let daysNeeded = 0;
+    for (const date of sortedDates) {
+      daysNeeded++;
+      const dateSlots = groupedSlots[date];
+      // For one-on-one, only count available slots
+      const availableCount = event.meeting_type === 'one_on_one'
+        ? dateSlots.filter(s => s.booking_count === 0).length
+        : dateSlots.length;
+      totalSlots += availableCount;
+      if (totalSlots >= MIN_SLOTS_TO_SHOW) break;
+    }
+    return Math.max(1, daysNeeded); // At least 1 day
+  };
 
   // If user selected a specific date, show that date
   // Otherwise use progressive disclosure
@@ -1055,8 +1072,9 @@ export default function BookingPage({
     remainingDates = sortedDates.length - 1;
     isFirstView = false; // Show all slots for selected date
   } else {
-    // Default progressive disclosure
-    const totalVisibleDays = INITIAL_DAYS + (visibleWeeks - 1) * DAYS_PER_EXPAND;
+    // Default progressive disclosure - show enough days to have at least MIN_SLOTS_TO_SHOW
+    const initialDays = visibleWeeks === 1 ? calculateInitialDays() : 1;
+    const totalVisibleDays = initialDays + (visibleWeeks - 1) * DAYS_PER_EXPAND;
     visibleDates = sortedDates.slice(0, totalVisibleDays);
     hasMoreDates = sortedDates.length > visibleDates.length;
     remainingDates = sortedDates.length - visibleDates.length;
@@ -1078,7 +1096,7 @@ export default function BookingPage({
   // Main slot selection screen - designed to fit in one viewport
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F6F6F9] to-[#EEEEF4] py-6 px-4">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-lg mx-auto">
         {/* Card with subtle brand accent */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
           {/* Brand accent line */}
@@ -1296,7 +1314,7 @@ export default function BookingPage({
                 })}
 
                 {/* Actions: More dates + Pick specific date */}
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center justify-between pt-4">
                   {/* Show more dates */}
                   {hasMoreDates ? (
                     <button
@@ -1304,9 +1322,12 @@ export default function BookingPage({
                         setSelectedDate(null);
                         setVisibleWeeks(prev => prev + 1);
                       }}
-                      className="text-sm text-[#667085] hover:text-[#6F71EE] transition"
+                      className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6F71EE] bg-[#6F71EE]/10 rounded-lg hover:bg-[#6F71EE]/20 transition"
                     >
-                      + Show more days
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Show more days ({remainingDates} more)
                     </button>
                   ) : (
                     <span />

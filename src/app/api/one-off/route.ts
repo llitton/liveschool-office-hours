@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
           admin.google_access_token,
           admin.google_refresh_token,
           {
-            summary: `[Connect] ${name}`,
+            summary: name,
             description: description || '',
             startTime: slot.start,
             endTime: slot.end,

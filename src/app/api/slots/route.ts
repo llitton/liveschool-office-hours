@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
         calendarAccessToken,
         calendarRefreshToken,
         {
-          summary: `[Connect] ${event.name}`,
+          summary: event.name,
           description: event.description || '',
           startTime: start_time,
           endTime: end_time,
