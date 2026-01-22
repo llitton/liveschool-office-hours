@@ -266,12 +266,18 @@ Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 
 ### Google Calendar Integration
 - **Event titles:** Calendar events use the event name directly (e.g., "Office Hours"), no prefix added
-- **Co-host invitations:** For webinars and collective events, all co-hosts automatically receive calendar invitations when slots are created
+- **Co-host invitations:**
+  - **Webinars:** All co-hosts receive calendar invitations regardless of role (owner, host, or backup)
+  - **Collective events:** Only hosts with "owner" or "host" roles receive invitations (uses `getParticipatingHosts()`)
+  - Implementation: Webinars use `getAllEventHosts()` from `src/lib/round-robin.ts` which includes all roles
 - **Attendee invitations:** When someone books, they're added as an attendee to the existing calendar event
 - **Retroactive fixes:** Use `POST /api/slots/add-cohosts` with `{"event_id": "..."}` to add co-hosts to existing calendar events
 
 ### Multi-Host
-Events can have multiple hosts via `oh_event_hosts` with roles and permissions (`can_manage_slots`, `can_view_bookings`)
+Events can have multiple hosts via `oh_event_hosts` with roles and permissions (`can_manage_slots`, `can_view_bookings`):
+- **owner:** Primary host, full permissions
+- **host:** Participating host, included in round-robin distribution and collective availability checks
+- **backup:** Receives calendar invitations for webinars but not included in round-robin/collective assignment
 
 ## Conventions
 
