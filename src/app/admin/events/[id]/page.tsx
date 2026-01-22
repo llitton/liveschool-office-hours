@@ -1166,7 +1166,10 @@ export default function ManageEventPage({
               slotDuration={event?.duration_minutes || 30}
               coHostIds={event?.meeting_type === 'webinar' ? coHostIds : undefined}
               onSlotCreate={async (date, time) => {
-                const startTime = new Date(`${date}T${time}:00`);
+                // Pad time to ensure valid ISO format (e.g., "9:00" -> "09:00")
+                const [hours, minutes] = time.split(':');
+                const paddedTime = `${hours.padStart(2, '0')}:${minutes}`;
+                const startTime = new Date(`${date}T${paddedTime}:00`);
                 await createSlot(startTime);
                 await fetchData();
               }}

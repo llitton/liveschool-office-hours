@@ -90,12 +90,13 @@ export default function WeekCalendar({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
 
-  // Generate time labels
+  // Generate time labels with zero-padded hours for valid ISO format
   const timeLabels = useMemo(() => {
     const labels: string[] = [];
     for (let hour = START_HOUR; hour < END_HOUR; hour++) {
-      labels.push(`${hour}:00`);
-      labels.push(`${hour}:30`);
+      const paddedHour = hour.toString().padStart(2, '0');
+      labels.push(`${paddedHour}:00`);
+      labels.push(`${paddedHour}:30`);
     }
     return labels;
   }, []);
