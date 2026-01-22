@@ -494,7 +494,7 @@ export default function BookingPage({
 
     return (
       <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
-        <div className="max-w-lg mx-auto">
+        <div className="mx-auto max-w-[650px]">
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             {/* Header */}
             <div className={`${isWaitlisted ? 'bg-amber-50' : 'bg-[#417762]'} p-6`}>
@@ -651,7 +651,7 @@ export default function BookingPage({
   if (selectedSlot) {
     return (
       <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
-        <div className="max-w-lg mx-auto">
+        <div className="mx-auto max-w-[650px]">
           <button
             onClick={() => setSelectedSlot(null)}
             className="text-[#6F71EE] hover:text-[#5a5cd0] mb-4 flex items-center gap-1 font-medium"
@@ -1096,7 +1096,7 @@ export default function BookingPage({
   // Main slot selection screen - designed to fit in one viewport
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F6F6F9] to-[#EEEEF4] py-6 px-4">
-      <div className="max-w-lg mx-auto">
+      <div className="mx-auto max-w-[650px]">
         {/* Card with subtle brand accent */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
           {/* Brand accent line */}

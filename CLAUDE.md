@@ -324,7 +324,7 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - **Minimum slots:** Always show at least 2 time slots on initial load - dynamically includes additional days if the first day has fewer slots
 - **Progressive disclosure:** Start with limited slots, expand with "Show more days" button
 - **Prominent expand button:** "Show more days" is a styled button (not just text link) with count of remaining days
-- **Wider content:** Uses `max-w-lg` (512px) for comfortable reading on the main card
+- **Wider content:** Uses 650px max-width for comfortable reading on the main card
 
 ## Current State
 
