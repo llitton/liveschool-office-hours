@@ -365,6 +365,58 @@ export default function EmbedBookingPage({
                         onChange={(e) => setQuestionResponses((prev) => ({ ...prev, [q.id]: e.target.value }))}
                         style={styles.input}
                       />
+                    ) : q.type === 'phone' ? (
+                      <input
+                        type="tel"
+                        required={q.required}
+                        placeholder="(555) 123-4567"
+                        value={questionResponses[q.id] || ''}
+                        onChange={(e) => setQuestionResponses((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                        style={styles.input}
+                      />
+                    ) : q.type === 'radio' && q.options ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {q.options.map((opt) => (
+                          <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input
+                              type="radio"
+                              name={`question-${q.id}`}
+                              value={opt}
+                              checked={questionResponses[q.id] === opt}
+                              onChange={(e) => setQuestionResponses((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                              style={{ width: '16px', height: '16px' }}
+                            />
+                            <span style={{ fontSize: '14px', color: '#101E57' }}>{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : q.type === 'checkbox' && q.options ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {q.options.map((opt) => {
+                          const currentValues = questionResponses[q.id] ? questionResponses[q.id].split(', ') : [];
+                          const isChecked = currentValues.includes(opt);
+                          return (
+                            <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                value={opt}
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  const newValues = e.target.checked
+                                    ? [...currentValues, opt]
+                                    : currentValues.filter((v) => v !== opt);
+                                  setQuestionResponses((prev) => ({
+                                    ...prev,
+                                    [q.id]: newValues.join(', '),
+                                  }));
+                                }}
+                                style={{ width: '16px', height: '16px' }}
+                              />
+                              <span style={{ fontSize: '14px', color: '#101E57' }}>{opt}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <input
                         type="text"

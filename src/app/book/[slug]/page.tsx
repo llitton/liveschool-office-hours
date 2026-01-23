@@ -1124,6 +1124,71 @@ export default function BookingPage({
                             ))}
                           </select>
                         )}
+                        {q.type === 'phone' && (
+                          <input
+                            type="tel"
+                            required={q.required}
+                            value={questionResponses[q.id] || ''}
+                            onChange={(e) =>
+                              setQuestionResponses((prev) => ({
+                                ...prev,
+                                [q.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="(555) 123-4567"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                          />
+                        )}
+                        {q.type === 'radio' && q.options && (
+                          <div className="space-y-2">
+                            {q.options.map((opt) => (
+                              <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`question-${q.id}`}
+                                  value={opt}
+                                  checked={questionResponses[q.id] === opt}
+                                  onChange={(e) =>
+                                    setQuestionResponses((prev) => ({
+                                      ...prev,
+                                      [q.id]: e.target.value,
+                                    }))
+                                  }
+                                  className="w-4 h-4 text-[#6F71EE] border-gray-300 focus:ring-[#6F71EE]"
+                                />
+                                <span className="text-sm text-[#101E57]">{opt}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {q.type === 'checkbox' && q.options && (
+                          <div className="space-y-2">
+                            {q.options.map((opt) => {
+                              const currentValues = questionResponses[q.id] ? questionResponses[q.id].split(', ') : [];
+                              const isChecked = currentValues.includes(opt);
+                              return (
+                                <label key={opt} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    value={opt}
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const newValues = e.target.checked
+                                        ? [...currentValues, opt]
+                                        : currentValues.filter((v) => v !== opt);
+                                      setQuestionResponses((prev) => ({
+                                        ...prev,
+                                        [q.id]: newValues.join(', '),
+                                      }));
+                                    }}
+                                    className="w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                                  />
+                                  <span className="text-sm text-[#101E57]">{opt}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

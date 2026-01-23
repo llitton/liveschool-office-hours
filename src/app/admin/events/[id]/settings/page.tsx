@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { OHEvent, CustomQuestion, MeetingType, RoundRobinStrategy, RoundRobinPeriod } from '@/types';
+import type { OHEvent, CustomQuestion, MeetingType, RoundRobinStrategy, RoundRobinPeriod, QuestionType } from '@/types';
 import { MEETING_TYPES_NO_MIN_NOTICE } from '@/types';
 import Breadcrumb from '@/components/Breadcrumb';
 import TimezoneSelector from '@/components/TimezoneSelector';
@@ -568,13 +568,16 @@ export default function EventSettingsPage({
                             value={question.type}
                             onChange={(e) =>
                               updateQuestion(index, {
-                                type: e.target.value as 'text' | 'textarea' | 'select',
+                                type: e.target.value as QuestionType,
                               })
                             }
                             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                           >
                             <option value="text">Short text</option>
                             <option value="textarea">Long text</option>
+                            <option value="phone">Phone number</option>
+                            <option value="radio">Radio buttons (single choice)</option>
+                            <option value="checkbox">Checkboxes (multiple choice)</option>
                             <option value="select">Dropdown</option>
                           </select>
                         </div>
@@ -594,7 +597,8 @@ export default function EventSettingsPage({
                         </div>
                       </div>
 
-                      {question.type === 'select' && (
+                      {/* Options field for types that need predefined choices */}
+                      {(question.type === 'select' || question.type === 'radio' || question.type === 'checkbox') && (
                         <div>
                           <label className="block text-sm font-medium text-[#101E57] mb-1">
                             Options (one per line)

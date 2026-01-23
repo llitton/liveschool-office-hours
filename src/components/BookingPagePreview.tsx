@@ -1,14 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-
-interface CustomQuestion {
-  id: string;
-  question: string;
-  type: 'text' | 'textarea' | 'select';
-  required: boolean;
-  options?: string[];
-}
+import type { CustomQuestion } from '@/types';
 
 interface BookingPagePreviewProps {
   eventName: string;
@@ -197,6 +190,37 @@ export default function BookingPagePreview({
                       <option key={j}>{opt}</option>
                     ))}
                   </select>
+                ) : q.type === 'phone' ? (
+                  <input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    className="w-full px-2.5 py-1.5 border border-gray-200 rounded text-sm"
+                    disabled
+                  />
+                ) : q.type === 'radio' && q.options ? (
+                  <div className="space-y-1">
+                    {q.options.slice(0, 3).map((opt, j) => (
+                      <label key={j} className="flex items-center gap-1.5 text-xs text-[#667085]">
+                        <input type="radio" disabled className="w-3 h-3" />
+                        {opt}
+                      </label>
+                    ))}
+                    {q.options.length > 3 && (
+                      <p className="text-xs text-[#98A2B3]">+{q.options.length - 3} more</p>
+                    )}
+                  </div>
+                ) : q.type === 'checkbox' && q.options ? (
+                  <div className="space-y-1">
+                    {q.options.slice(0, 3).map((opt, j) => (
+                      <label key={j} className="flex items-center gap-1.5 text-xs text-[#667085]">
+                        <input type="checkbox" disabled className="w-3 h-3 rounded" />
+                        {opt}
+                      </label>
+                    ))}
+                    {q.options.length > 3 && (
+                      <p className="text-xs text-[#98A2B3]">+{q.options.length - 3} more</p>
+                    )}
+                  </div>
                 ) : (
                   <input
                     type="text"

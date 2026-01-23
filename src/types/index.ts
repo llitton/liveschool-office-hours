@@ -1,9 +1,11 @@
+export type QuestionType = 'text' | 'textarea' | 'radio' | 'checkbox' | 'select' | 'phone';
+
 export interface CustomQuestion {
   id: string;
   question: string;
-  type: 'text' | 'textarea' | 'select';
+  type: QuestionType;
   required: boolean;
-  options?: string[]; // For select type
+  options?: string[]; // For radio, checkbox, and select types
 }
 
 // Meeting type enum
