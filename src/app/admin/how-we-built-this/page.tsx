@@ -61,6 +61,7 @@ const featureCategories = [
     features: [
       { name: 'HubSpot integration', desc: 'Contacts and meetings sync automatically' },
       { name: 'HubSpot meeting types', desc: 'Map events to HubSpot activity types for tracking' },
+      { name: 'Slack notifications', desc: 'Per-event booking alerts with attendee context' },
       { name: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
     ],
   },
@@ -72,7 +73,8 @@ const featureCategories = [
       { name: 'Event settings UX', desc: 'Sidebar nav, live preview, sticky save buttons' },
       { name: 'Buffer visualization', desc: 'Visual timeline showing meeting and buffer times' },
       { name: 'Real-time URL validation', desc: 'Check slug availability as you type' },
-      { name: 'Event templates', desc: 'Quick Start templates for common session types' },
+      { name: 'Event templates', desc: 'Create, edit, and apply templates for quick event setup' },
+      { name: 'What\'s New changelog', desc: 'Badge notification for new features with per-user tracking' },
       { name: 'QR code generator', desc: 'Print codes for easy booking' },
       { name: 'Visual consistency', desc: 'Same action = same color (brand purple for all calendar icons)' },
       { name: 'Mobile-first design', desc: '44px+ touch targets for accessibility on all devices' },

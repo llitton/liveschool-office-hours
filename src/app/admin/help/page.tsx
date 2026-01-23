@@ -143,6 +143,36 @@ const helpSections: HelpSection[] = [
           },
         ],
       },
+      {
+        id: 'whats-new',
+        title: 'What\'s New',
+        description: 'Stay updated on new features and improvements.',
+        body: 'Connect is always improving. The What\'s New page shows you the latest features, improvements, and fixes so you never miss an update.',
+        lists: [
+          {
+            label: 'How it works',
+            items: [
+              'Look for the megaphone icon in the header (next to Help)',
+              'A badge shows how many updates you haven\'t seen yet',
+              'Click to view the changelog with all recent updates',
+              'Updates are grouped by month with "New" badges on unseen items',
+            ],
+          },
+          {
+            label: 'Update categories',
+            items: [
+              'New Feature — major new capabilities',
+              'Improvement — enhancements to existing features',
+              'Fix — bug fixes and corrections',
+            ],
+          },
+        ],
+        tips: [
+          'The badge clears automatically when you visit the changelog',
+          'Check back periodically to see what\'s new',
+          'Each update includes details on how to use the new feature',
+        ],
+      },
     ],
   },
   {

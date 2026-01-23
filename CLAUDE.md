@@ -537,6 +537,34 @@ laura@example.com
 - Question labels come from `event.custom_questions[].question` field
 - Timezone comes from `event.timezone` (defaults to America/Chicago)
 
+### What's New Changelog
+The app includes a changelog system to communicate new features to users.
+
+**User-facing:**
+- Megaphone icon in header with badge showing unseen update count
+- `/admin/changelog` page with updates grouped by month
+- "New" badges on entries the user hasn't seen yet
+- Badge clears automatically when user visits the page
+
+**Adding new entries:**
+Edit `src/lib/changelog.ts` and add entries at the TOP of the array:
+```typescript
+{
+  id: '2026-01-24-feature-name',  // unique id
+  date: '2026-01-24',              // ISO date
+  title: 'Feature Title',
+  description: 'Short description.',
+  category: 'feature',             // 'feature' | 'improvement' | 'fix'
+  details: ['Bullet 1', 'Bullet 2'],  // optional
+},
+```
+
+**Technical notes:**
+- User's last viewed timestamp stored in `oh_admins.last_seen_changelog_at` (migration 038)
+- API: `GET /api/changelog` returns entries + unseen status
+- API: `POST /api/changelog` marks as seen (updates timestamp)
+- Badge in header fetches status on mount (except on changelog page)
+
 ## Current State
 
 Working features:
@@ -550,5 +578,8 @@ Working features:
 - Waitlist management
 - Series bookings
 - Polls/availability voting
+- Event templates (create, edit, apply)
+- Per-event Slack notifications
+- What's New changelog with badge
 
 See `SCHEDULING_PLATFORM_ROADMAP.md` for detailed feature roadmap.
