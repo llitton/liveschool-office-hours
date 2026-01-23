@@ -960,18 +960,31 @@ const helpSections: HelpSection[] = [
       {
         id: 'slack',
         title: 'Slack Notifications',
-        description: 'Get notified in Slack when bookings happen.',
-        body: 'Connect Slack to receive real-time notifications about new bookings and important events.',
+        description: 'Get notified in Slack when bookings happen with context to help you prepare.',
+        body: 'Connect Slack to receive real-time notifications about new bookings. Notifications include helpful context so hosts can prepare for sessions.',
         lists: [
           {
-            label: 'Notification types',
+            label: 'New booking notifications include',
             items: [
-              'New booking received',
-              'Booking cancelled',
-              'Attendee joined waitlist',
-              'Session starting soon',
+              'Attendee name and email',
+              'First-time or returning status (e.g., "First session" or "3 previous sessions")',
+              'Date and time with relative indicator (e.g., "Friday at 3pm (in 2 days)")',
+              'All booking question responses with their labels',
+              'Link to HubSpot contact record (if connected)',
             ],
           },
+          {
+            label: 'Other notification types',
+            items: [
+              'Daily digest — summary of upcoming sessions',
+              'Post-session summary — attendance and topics discussed',
+            ],
+          },
+        ],
+        tips: [
+          'Google Meet links are not included since hosts already have them in calendar invitations',
+          'First-time/returning status helps hosts tailor their approach',
+          'Question responses help hosts prepare discussion topics',
         ],
       },
       {

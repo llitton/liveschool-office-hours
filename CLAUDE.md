@@ -355,6 +355,29 @@ When a booking is created, the API returns integration status:
 ```
 The booking confirmation page shows a warning banner if calendar/email failed.
 
+### Serverless Background Tasks
+Vercel serverless functions terminate shortly after the response is returned. **"Fire and forget" patterns don't work reliably.**
+
+**What doesn't work:**
+```typescript
+// DON'T DO THIS - function may terminate before completion
+someAsyncTask().catch(console.error);  // fire and forget
+(async () => { await slowOperation(); })();  // async IIFE
+```
+
+**What works:**
+```typescript
+// DO THIS - await before returning response
+await someAsyncTask();  // runs synchronously
+return NextResponse.json(result);
+```
+
+**Guidelines:**
+- Critical operations (Slack notifications, analytics) must complete before response
+- Non-critical operations (HubSpot sync) can use fire-and-forget but may fail silently
+- If an external API is slow (>2s), consider skipping enrichment rather than blocking
+- Add timeouts to prevent slow APIs from blocking the response
+
 ### Structured Logging
 Use `src/lib/logger.ts` for consistent logging:
 ```typescript
@@ -464,6 +487,25 @@ CHECK constraints prevent invalid data at the database level:
 - **Same action = same color:** Similar interactive elements (e.g., all calendar buttons) should use the same color - brand purple (#6F71EE) for consistency
 - **Don't mix brand colors:** Avoid Google blue, Outlook blue, Apple black when they appear side-by-side - unify to brand color or all different
 - **Touch targets:** 44px minimum for accessibility on mobile devices
+
+### Slack Notifications
+New booking notifications include context for the host to prepare:
+
+**What's included:**
+- Attendee name and email
+- First-time vs returning status (from booking history)
+- Date/time with relative indicator ("in 2 days", "tomorrow")
+- All booking question responses with their labels
+- HubSpot contact link (if available)
+
+**What's NOT included:**
+- Google Meet link (host has it in calendar invitation)
+- Organization name (requires slow HubSpot API - may add later via background job)
+
+**Technical notes:**
+- Runs synchronously before response to avoid serverless timeout
+- Uses `src/lib/slack.ts` `notifyNewBooking()` function
+- Question labels come from `event.custom_questions` array
 
 ## Current State
 
