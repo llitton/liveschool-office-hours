@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-23-resend-invites',
+    date: '2026-01-23',
+    title: 'Resend Team Invitations',
+    description: 'Easily resend invitation emails to team members who haven\'t activated their account yet.',
+    category: 'feature',
+    details: [
+      'Team page now shows "Active" vs "Pending" status for each member',
+      'Click "Resend Invite" to send a reminder email',
+      'See when the last invitation was sent',
+      'Pending members can connect Google whenever they\'re ready',
+    ],
+  },
+  {
     id: '2026-01-23-dashboard-ux',
     date: '2026-01-23',
     title: 'Dashboard UX Improvements',

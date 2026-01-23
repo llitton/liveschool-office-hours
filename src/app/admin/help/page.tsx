@@ -173,6 +173,40 @@ const helpSections: HelpSection[] = [
           'Each update includes details on how to use the new feature',
         ],
       },
+      {
+        id: 'team-members',
+        title: 'Adding Team Members',
+        description: 'Invite colleagues to access the admin dashboard.',
+        body: 'Add team members so they can manage their own sessions, view bookings, and participate in round-robin events.',
+        steps: [
+          'Go to People → Team in the navigation',
+          'Enter their email address and optionally their name',
+          'Click Add Team Member to send an invitation',
+          'They\'ll receive an email with a link to get started',
+        ],
+        lists: [
+          {
+            label: 'Team member status',
+            items: [
+              'Active — Google connected, ready to use the dashboard',
+              'Pending — Waiting to connect their Google account',
+            ],
+          },
+          {
+            label: 'Resending invitations',
+            items: [
+              'Find the pending team member in the list',
+              'Click "Resend Invite" to send another email',
+              'Shows when the last invite was sent (e.g., "2d ago")',
+            ],
+          },
+        ],
+        tips: [
+          'You need Google connected to send invitation emails',
+          'Pending users can still sign in at any time - the invite is just a reminder',
+          'Team members get full admin access once they connect Google',
+        ],
+      },
     ],
   },
   {

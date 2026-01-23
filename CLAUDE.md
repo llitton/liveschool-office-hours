@@ -334,6 +334,14 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - **host:** Participating host, included in round-robin distribution and collective availability checks
 - **backup:** Receives calendar invitations for webinars but not included in round-robin/collective assignment
 
+### Team Member Invitations
+Team members are added via `/admin/team` (now under People → Team in nav):
+- **Invitation tracking:** `invitation_sent_at` and `invitation_last_sent_at` columns on `oh_admins` (migration 039)
+- **Status display:** "Active" (Google connected) vs "Pending" (waiting to connect Google)
+- **Resend capability:** `POST /api/admin/team/[id]/resend-invite` sends reminder email
+- **Email content:** Subject says "Reminder:" for resends, points to `/admin` to get started
+- **Requirements:** Inviter must have Google connected to send emails via Gmail API
+
 ## Error Handling & Reliability
 
 ### User-Friendly Error Messages
