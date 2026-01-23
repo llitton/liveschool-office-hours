@@ -774,6 +774,105 @@ const helpSections: HelpSection[] = [
     ],
   },
   {
+    id: 'troubleshooting',
+    title: 'Troubleshooting',
+    articles: [
+      {
+        id: 'booking-errors',
+        title: 'Booking Errors & Warnings',
+        description: 'Understand what happens when something goes wrong during booking.',
+        body: 'Connect with LiveSchool is designed to be resilient. When something goes wrong, we try to complete as much as possible and tell you exactly what happened.',
+        lists: [
+          {
+            label: 'What you might see',
+            items: [
+              'Green success — everything worked perfectly',
+              'Amber warning — booking saved but calendar/email had issues',
+              'Red error — booking could not be completed',
+            ],
+          },
+          {
+            label: 'If calendar invite fails',
+            items: [
+              'Your booking is still saved and confirmed',
+              'You will see a warning to add the event manually',
+              'The system retries automatically up to 3 times',
+              'Check your Google Calendar connection in Settings',
+            ],
+          },
+          {
+            label: 'If confirmation email fails',
+            items: [
+              'Your booking is still saved and confirmed',
+              'Take a screenshot of the confirmation page',
+              'Check your spam folder',
+              'The system retries automatically',
+            ],
+          },
+        ],
+        tips: [
+          'Error messages are designed to be helpful, not technical',
+          'If you see repeated errors, check Integrations in Settings',
+          'Calendar sync issues often resolve by reconnecting Google',
+        ],
+      },
+      {
+        id: 'calendar-sync',
+        title: 'Calendar Sync Issues',
+        description: 'Fix common Google Calendar connection problems.',
+        body: 'If your availability is not showing correctly or calendar events are not being created, try these steps.',
+        steps: [
+          'Go to Settings → Integrations',
+          'Click Disconnect next to Google Calendar',
+          'Wait a few seconds, then click Connect Google Calendar',
+          'Make sure to grant all requested permissions',
+          'Your availability will resync automatically',
+        ],
+        lists: [
+          {
+            label: 'Common causes',
+            items: [
+              'Token expired — reconnecting fixes this',
+              'Permissions changed — reconnect to re-grant',
+              'Calendar was renamed or deleted — check Google Calendar settings',
+              'Network issues — usually resolve automatically with retries',
+            ],
+          },
+        ],
+        tips: [
+          'Calendar operations automatically retry up to 3 times',
+          'If issues persist after reconnecting, contact support',
+        ],
+      },
+      {
+        id: 'integration-status',
+        title: 'Understanding Integration Status',
+        description: 'Learn what the status indicators mean for your integrations.',
+        body: 'Each integration shows its connection status. Green means connected, amber means needs attention, gray means not set up.',
+        lists: [
+          {
+            label: 'Status meanings',
+            items: [
+              'Connected (green) — working normally',
+              'Needs Attention (amber) — credentials may have expired',
+              'Not Connected (gray) — not yet set up',
+              'Error (red) — connection failed, needs reconnection',
+            ],
+          },
+          {
+            label: 'Integrations to check',
+            items: [
+              'Google Calendar — required for availability and Meet links',
+              'HubSpot — optional, for CRM sync',
+              'Slack — optional, for notifications',
+              'SMS (Twilio/Aircall) — optional, for text reminders',
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'integrations',
     title: 'Integrations',
     articles: [

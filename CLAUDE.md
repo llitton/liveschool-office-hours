@@ -50,6 +50,8 @@ tests/                      # Unit, integration, e2e tests
 | SMS abstraction | `src/lib/sms.ts`, `src/lib/sms-providers/` |
 | Lead routing | `src/lib/routing.ts` |
 | Auth utilities | `src/lib/auth.ts` |
+| Error utilities | `src/lib/errors.ts` |
+| Structured logging | `src/lib/logger.ts` |
 | Type definitions | `src/types/index.ts` |
 
 ## Database Tables (Supabase)
@@ -322,10 +324,62 @@ Events can have multiple hosts via `oh_event_hosts` with roles and permissions (
 - **host:** Participating host, included in round-robin distribution and collective availability checks
 - **backup:** Receives calendar invitations for webinars but not included in round-robin/collective assignment
 
+## Error Handling & Reliability
+
+### User-Friendly Error Messages
+The app uses `src/lib/errors.ts` to provide consistent, user-friendly error messages:
+- `getUserFriendlyError(error)` - Converts database errors to human-readable messages
+- `CommonErrors` - Standard error messages for common scenarios (NOT_FOUND, UNAUTHORIZED, etc.)
+- PostgreSQL error codes (23505, 23503, etc.) are mapped to helpful explanations
+- Technical details are sanitized from user-facing messages
+
+### Google API Retry Logic
+All Google Calendar and Gmail API calls include automatic retry with exponential backoff:
+- Max 3 retries for transient failures
+- Handles rate limits (429), server errors (5xx), network issues
+- Exponential backoff: 1s → 2s → 4s (with jitter)
+- Non-retryable errors fail immediately
+
+### Integration Status Tracking
+When a booking is created, the API returns integration status:
+```json
+{
+  "id": "booking-id",
+  "integrations": {
+    "calendar": "sent" | "failed" | "skipped",
+    "email": "sent" | "failed" | "skipped",
+    "calendarError": "...",  // Only if failed
+    "emailError": "..."      // Only if failed
+  }
+}
+```
+The booking confirmation page shows a warning banner if calendar/email failed.
+
+### Structured Logging
+Use `src/lib/logger.ts` for consistent logging:
+```typescript
+import { calendarLogger, bookingLogger } from '@/lib/logger';
+
+calendarLogger.error('Failed to create event', {
+  operation: 'createCalendarEvent',
+  eventId: '...',
+  adminId: '...'
+}, error);
+```
+- JSON output in production (for log aggregation)
+- Human-readable format in development
+- Pre-configured loggers: `calendarLogger`, `emailLogger`, `hubspotLogger`, `smsLogger`, `bookingLogger`
+
+### Database Constraints (Migration 034)
+CHECK constraints prevent invalid data at the database level:
+- `oh_slots`: start_time must be before end_time
+- `oh_events`: duration 1-480 minutes, positive max_attendees, non-negative buffers
+
 ## Conventions
 
 - Use server components by default, client components only when needed
 - API routes return `{ error: string }` on failure with appropriate status codes
+- Use `getUserFriendlyError()` or `CommonErrors` for error responses (not raw error.message)
 - Supabase queries use `getServiceSupabase()` for server-side operations
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
