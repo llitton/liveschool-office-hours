@@ -71,7 +71,7 @@ export default function BulkActionsBar({
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#101E57] text-white rounded-xl shadow-xl px-4 py-3 flex items-center gap-4 z-40 animate-slide-up">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#101E57] text-white rounded-xl shadow-xl px-4 py-3 flex items-center gap-4 z-40 animate-in fade-in slide-in-from-bottom-4 duration-200">
         <div className="flex items-center gap-2 pr-4 border-r border-white/20">
           <span className="bg-[#6F71EE] px-2 py-0.5 rounded font-semibold">
             {selectedCount}
@@ -200,21 +200,6 @@ export default function BulkActionsBar({
         </div>
       )}
 
-      <style jsx global>{`
-        @keyframes slide-up {
-          from {
-            transform: translateX(-50%) translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.2s ease-out;
-        }
-      `}</style>
     </>
   );
 }

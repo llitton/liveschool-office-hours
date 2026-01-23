@@ -61,7 +61,8 @@ export default function AvatarStack({
         <div
           key={index}
           className={`${sizeClasses[size]} ${index > 0 ? overlapClasses[size] : ''}
-            rounded-full border-2 border-white flex items-center justify-center relative z-[${10 - index}]`}
+            rounded-full border-2 border-white flex items-center justify-center relative`}
+          style={{ zIndex: 10 - index }}
           title={avatar.name}
         >
           {avatar.image ? (

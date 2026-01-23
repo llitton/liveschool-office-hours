@@ -85,8 +85,8 @@ function createLogEntry(
     message,
     timestamp: new Date().toISOString(),
     ...context,
-    ...(error && { error: formatError(error) }),
-    ...(duration !== undefined && { duration }),
+    ...(error ? { error: formatError(error) } : {}),
+    ...(duration !== undefined ? { duration } : {}),
   };
 }
 

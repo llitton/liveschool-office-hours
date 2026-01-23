@@ -32,13 +32,13 @@ export default function SortableEventCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="relative group/sortable">
+    <div ref={setNodeRef} style={style} className="relative group">
       {/* Drag handle */}
       {!disabled && (
         <div
           {...attributes}
           {...listeners}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 opacity-0 group-hover/sortable:opacity-100 transition cursor-grab active:cursor-grabbing"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing"
         >
           <div className="p-1.5 rounded hover:bg-[#F6F6F9]">
             <svg
