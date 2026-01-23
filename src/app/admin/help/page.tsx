@@ -377,22 +377,23 @@ const helpSections: HelpSection[] = [
         id: 'today-view',
         title: 'Today\'s Sessions',
         description: 'See all sessions happening today at a glance.',
-        body: 'The dashboard shows your upcoming sessions, attendee counts, and quick actions.',
+        body: 'The dashboard shows your upcoming sessions, attendee counts, and quick actions. Sessions with attendees get expanded cards while empty sessions show as compact rows.',
         lists: [
           {
             label: 'What you will see',
             items: [
               'Upcoming sessions with attendee counts',
-              'First-time attendees highlighted',
-              'Quick access to join Google Meet',
+              'First-time attendees highlighted with "New" badge',
+              'First 3 attendees shown inline with "View All" for larger sessions',
+              'Reminder status badges showing 24h and 1h notification status',
               'Session status (upcoming, in progress, completed)',
             ],
           },
           {
             label: 'Quick actions',
             items: [
-              'Click a session to see attendee details',
-              'Join Google Meet directly from the card',
+              'Click the prominent Join Meet button (with video icon) to join your session',
+              'Click "View All" to see the complete attendee list in a modal',
               'Start the wrap-up workflow after sessions',
             ],
           },

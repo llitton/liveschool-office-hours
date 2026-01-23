@@ -75,6 +75,7 @@ const featureCategories = [
       { name: 'Real-time URL validation', desc: 'Check slug availability as you type' },
       { name: 'Event templates', desc: 'Create, edit, and apply templates for quick event setup' },
       { name: 'What\'s New changelog', desc: 'Badge notification for new features with per-user tracking' },
+      { name: 'Dashboard UX', desc: 'Collapsible attendee lists, prominent Join Meet button, dimmed inactive cards' },
       { name: 'QR code generator', desc: 'Print codes for easy booking' },
       { name: 'Visual consistency', desc: 'Same action = same color (brand purple for all calendar icons)' },
       { name: 'Mobile-first design', desc: '44px+ touch targets for accessibility on all devices' },

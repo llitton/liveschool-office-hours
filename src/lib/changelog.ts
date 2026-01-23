@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-23-dashboard-ux',
+    date: '2026-01-23',
+    title: 'Dashboard UX Improvements',
+    description: 'Better information hierarchy and visual feedback on the admin dashboard.',
+    category: 'improvement',
+    details: [
+      'Prominent Join Meet button with video icon for quick session access',
+      'Collapsible attendee lists show first 3 with "View All" modal',
+      'Improved reminder badges with clock and bell icons',
+      'Disabled events now appear dimmed to reduce visual clutter',
+    ],
+  },
+  {
     id: '2026-01-23-slack-per-event',
     date: '2026-01-23',
     title: 'Per-Event Slack Notifications',

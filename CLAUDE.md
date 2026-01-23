@@ -447,6 +447,14 @@ CHECK constraints prevent invalid data at the database level:
 - **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit`; persists to `display_order` column via `/api/events/reorder`
 - **Disabled Status Badge:** Gray badge for `is_active=false` events, distinct from active/full states
 - **Reorder restriction:** Drag-and-drop only enabled when no filters are active (all events visible)
+- **Dimmed inactive cards:** Events with `is_active=false` or webinars with no slots render at 60% opacity to visually deprioritize them
+
+### Today's Sessions Component
+- **Collapsible attendee list:** Show first 3 attendees inline; "View All (N)" button opens modal for sessions with 4+ attendees
+- **Prominent Join Meet button:** Large button with video camera icon, shadow, and increased padding (`px-4 py-2.5`) for primary action visibility
+- **Reminder status badges:** Pill-style badges with clock icon (24h) and bell icon (1h); green when sent, gray when pending
+- **Compact vs expanded:** Sessions with attendees get expanded card view; empty/past sessions get compact single-line rows
+- **AttendeeListModal:** Scrollable modal following QRCodeModal pattern with fixed overlay and close button
 
 ### Event Settings Page
 - **Sidebar navigation:** Left sidebar with section links that highlights active section on scroll (General, Questions, Team Settings, Booking Rules, HubSpot, SMS, etc.)
