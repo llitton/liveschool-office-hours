@@ -200,6 +200,16 @@ const helpSections: HelpSection[] = [
               'Shows when the last invite was sent (e.g., "2d ago")',
             ],
           },
+          {
+            label: 'Invitation email design',
+            items: [
+              'Prominent "Get Started →" button in brand purple',
+              '"Takes less than 60 seconds" reassurance below the button',
+              'Emoji icons make features scannable at a glance',
+              'Your profile photo appears in the signature',
+              'Resend emails include "Reminder:" in the subject line',
+            ],
+          },
         ],
         tips: [
           'You need Google connected to send invitation emails',

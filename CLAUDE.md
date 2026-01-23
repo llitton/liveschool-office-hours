@@ -365,6 +365,15 @@ Team members are managed at **People → Team** (`/admin/people`):
 - API: `src/app/api/admin/team/route.ts` (GET, POST, DELETE)
 - Resend API: `src/app/api/admin/team/[id]/resend-invite/route.ts`
 
+**Invitation email design:**
+- Brand purple CTA button (#6F71EE) with arrow: "Get Started →"
+- "Takes less than 60 seconds" reassurance below button
+- Emoji icons for scannable feature list (📅 👥 📋 🎥)
+- Bold action verbs highlight what recipients can do
+- Sender's profile image in signature (if available)
+- Mobile-responsive centered button layout
+- Resend emails include "Reminder:" in subject and heading
+
 ## Error Handling & Reliability
 
 ### User-Friendly Error Messages
