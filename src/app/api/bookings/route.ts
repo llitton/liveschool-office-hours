@@ -304,6 +304,24 @@ export async function POST(request: NextRequest) {
   }
   // === END PHONE VALIDATION ===
 
+  // === CUSTOM QUESTION VALIDATION ===
+  // Validate that all required questions have been answered
+  const customQuestions = slot.event.custom_questions as Array<{ id: string; label: string; required?: boolean }> | null;
+  if (customQuestions && Array.isArray(customQuestions)) {
+    for (const question of customQuestions) {
+      if (question.required) {
+        const response = question_responses?.[question.id];
+        if (!response || (typeof response === 'string' && response.trim() === '')) {
+          return NextResponse.json(
+            { error: `Please answer the required question: "${question.label}"` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+  }
+  // === END CUSTOM QUESTION VALIDATION ===
+
   // === BOOKING CONSTRAINT VALIDATION ===
   const now = new Date();
   const slotStart = parseISO(slot.start_time);
@@ -334,13 +352,21 @@ export async function POST(request: NextRequest) {
     const dayStart = startOfDay(slotStart);
     const dayEnd = endOfDay(slotStart);
 
-    const { count: dailyCount } = await supabase
+    const { count: dailyCount, error: dailyError } = await supabase
       .from('oh_bookings')
       .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
       .eq('slot.event_id', event.id)
       .gte('slot.start_time', dayStart.toISOString())
       .lte('slot.start_time', dayEnd.toISOString())
       .is('cancelled_at', null);
+
+    if (dailyError) {
+      console.error('Failed to check daily booking limit:', dailyError);
+      return NextResponse.json(
+        { error: 'Unable to verify booking limits. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     if ((dailyCount || 0) >= event.max_daily_bookings) {
       return NextResponse.json(
@@ -355,13 +381,21 @@ export async function POST(request: NextRequest) {
     const weekStart = startOfWeek(slotStart, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(slotStart, { weekStartsOn: 0 });
 
-    const { count: weeklyCount } = await supabase
+    const { count: weeklyCount, error: weeklyError } = await supabase
       .from('oh_bookings')
       .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
       .eq('slot.event_id', event.id)
       .gte('slot.start_time', weekStart.toISOString())
       .lte('slot.start_time', weekEnd.toISOString())
       .is('cancelled_at', null);
+
+    if (weeklyError) {
+      console.error('Failed to check weekly booking limit:', weeklyError);
+      return NextResponse.json(
+        { error: 'Unable to verify booking limits. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     if ((weeklyCount || 0) >= event.max_weekly_bookings) {
       return NextResponse.json(
@@ -445,15 +479,22 @@ export async function POST(request: NextRequest) {
 
   // Check if slot is full
   const bookingCount = slot.bookings?.[0]?.count || 0;
-  const confirmedBookings = await supabase
+  const { count: confirmedCount, error: confirmedError } = await supabase
     .from('oh_bookings')
     .select('id', { count: 'exact', head: true })
     .eq('slot_id', slot_id)
     .is('cancelled_at', null)
     .eq('is_waitlisted', false);
 
-  const confirmedCount = confirmedBookings.count || 0;
-  const isSlotFull = confirmedCount >= slot.event.max_attendees;
+  if (confirmedError) {
+    console.error('Failed to check slot capacity:', confirmedError);
+    return NextResponse.json(
+      { error: 'Unable to verify slot availability. Please try again.' },
+      { status: 500 }
+    );
+  }
+
+  const isSlotFull = (confirmedCount || 0) >= slot.event.max_attendees;
   let isWaitlisted = false;
   let waitlistPosition: number | null = null;
 
@@ -468,12 +509,20 @@ export async function POST(request: NextRequest) {
 
     // Check waitlist limit if set
     if (slot.event.waitlist_limit) {
-      const { count: waitlistCount } = await supabase
+      const { count: waitlistCount, error: waitlistLimitError } = await supabase
         .from('oh_bookings')
         .select('id', { count: 'exact', head: true })
         .eq('slot_id', slot_id)
         .is('cancelled_at', null)
         .eq('is_waitlisted', true);
+
+      if (waitlistLimitError) {
+        console.error('Failed to check waitlist limit:', waitlistLimitError);
+        return NextResponse.json(
+          { error: 'Unable to verify waitlist availability. Please try again.' },
+          { status: 500 }
+        );
+      }
 
       if ((waitlistCount || 0) >= slot.event.waitlist_limit) {
         return NextResponse.json(
@@ -484,12 +533,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate waitlist position
-    const { count: currentWaitlistCount } = await supabase
+    const { count: currentWaitlistCount, error: waitlistPosError } = await supabase
       .from('oh_bookings')
       .select('id', { count: 'exact', head: true })
       .eq('slot_id', slot_id)
       .is('cancelled_at', null)
       .eq('is_waitlisted', true);
+
+    if (waitlistPosError) {
+      console.error('Failed to calculate waitlist position:', waitlistPosError);
+      return NextResponse.json(
+        { error: 'Unable to add to waitlist. Please try again.' },
+        { status: 500 }
+      );
+    }
 
     isWaitlisted = true;
     waitlistPosition = (currentWaitlistCount || 0) + 1;
@@ -551,6 +608,14 @@ export async function POST(request: NextRequest) {
       .eq('id', slot.event.id);
   }
 
+  // Track integration status to return to frontend
+  const integrationStatus = {
+    calendar: 'skipped' as 'sent' | 'failed' | 'skipped',
+    email: 'skipped' as 'sent' | 'failed' | 'skipped',
+    calendarError: null as string | null,
+    emailError: null as string | null,
+  };
+
   // Get admin with tokens to send emails and add to calendar
   // For round-robin events, use the assigned host; otherwise use the event's host
   let admin: OHAdmin | null = assignedHost;
@@ -594,8 +659,12 @@ export async function POST(request: NextRequest) {
           .from('oh_bookings')
           .update({ calendar_invite_sent_at: new Date().toISOString() })
           .eq('id', booking.id);
+
+        integrationStatus.calendar = 'sent';
       } catch (err) {
         console.error('Failed to add attendee to calendar:', err);
+        integrationStatus.calendar = 'failed';
+        integrationStatus.calendarError = err instanceof Error ? err.message : 'Calendar invite failed';
       }
     }
 
@@ -792,6 +861,8 @@ export async function POST(request: NextRequest) {
         .update({ confirmation_sent_at: new Date().toISOString() })
         .eq('id', booking.id);
 
+      integrationStatus.email = 'sent';
+
       // Send notification emails to guests (non-blocking, don't fail the booking)
       if (validatedGuestEmails.length > 0 && !isWaitlisted && bookingStatus === 'confirmed') {
         const sessionTime = format(parseISO(slot.start_time), 'EEEE, MMMM d \'at\' h:mm a');
@@ -851,6 +922,8 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       console.error('Failed to send confirmation email:', err);
+      integrationStatus.email = 'failed';
+      integrationStatus.emailError = err instanceof Error ? err.message : 'Email sending failed';
     }
   }
 
@@ -895,7 +968,8 @@ export async function POST(request: NextRequest) {
     })();
   }
 
-  return NextResponse.json({
+  // Build response with integration status for frontend to display
+  const response = {
     ...booking,
     booking, // Include nested booking object for analytics tracking
     event: slot.event,
@@ -904,7 +978,17 @@ export async function POST(request: NextRequest) {
       end_time: slot.end_time,
       google_meet_link: slot.google_meet_link,
     },
-  });
+    // Include integration status so frontend can show warnings for partial failures
+    integrations: {
+      calendar: integrationStatus.calendar,
+      email: integrationStatus.email,
+      // Only include error details if there was a failure
+      ...(integrationStatus.calendarError && { calendarError: integrationStatus.calendarError }),
+      ...(integrationStatus.emailError && { emailError: integrationStatus.emailError }),
+    },
+  };
+
+  return NextResponse.json(response);
 }
 
 // GET bookings for a slot (admin only via query param check)

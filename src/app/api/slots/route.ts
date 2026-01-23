@@ -101,6 +101,24 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate that start_time is before end_time
+  const parsedStart = parseISO(start_time);
+  const parsedEnd = parseISO(end_time);
+
+  if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
+    return NextResponse.json(
+      { error: 'Invalid date format for start_time or end_time' },
+      { status: 400 }
+    );
+  }
+
+  if (parsedStart >= parsedEnd) {
+    return NextResponse.json(
+      { error: 'start_time must be before end_time' },
+      { status: 400 }
+    );
+  }
+
   const supabase = getServiceSupabase();
 
   // Get the event details

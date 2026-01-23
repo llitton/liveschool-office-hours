@@ -255,8 +255,22 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Return 500 if there were critical errors (more than 50% of bookings failed)
+  const totalAttempted = emailRemindersSent + errors.length;
+  const hasCriticalFailures = errors.length > 0 && errors.length > totalAttempted / 2;
+
+  if (hasCriticalFailures) {
+    return NextResponse.json({
+      success: false,
+      emailRemindersSent,
+      smsRemindersSent,
+      errors,
+      message: 'Critical: More than half of reminder emails failed to send',
+    }, { status: 500 });
+  }
+
   return NextResponse.json({
-    success: true,
+    success: errors.length === 0,
     emailRemindersSent,
     smsRemindersSent,
     errors: errors.length > 0 ? errors : undefined,

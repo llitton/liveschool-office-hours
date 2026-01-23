@@ -20,6 +20,7 @@ export async function GET() {
   let noShowSent = 0;
   let feedbackSent = 0;
   let recordingsSent = 0;
+  const errors: string[] = [];
 
   // =============================================
   // 1. Send follow-up emails (2-3 hours after session)
@@ -144,7 +145,9 @@ export async function GET() {
 
         followupSent++;
       } catch (err) {
-        console.error('Failed to send follow-up email:', err);
+        const errorMsg = `Failed to send follow-up email to ${booking.email}: ${err}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
       }
     }
   }
@@ -277,7 +280,9 @@ export async function GET() {
 
         noShowSent++;
       } catch (err) {
-        console.error('Failed to send no-show re-engagement email:', err);
+        const errorMsg = `Failed to send no-show email to ${booking.email}: ${err}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
       }
     }
   }
@@ -352,7 +357,9 @@ export async function GET() {
 
         feedbackSent++;
       } catch (err) {
-        console.error('Failed to send feedback request:', err);
+        const errorMsg = `Failed to send feedback request to ${booking.email}: ${err}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
       }
     }
   }
@@ -414,16 +421,36 @@ export async function GET() {
 
         recordingsSent++;
       } catch (err) {
-        console.error('Failed to send recording email:', err);
+        const errorMsg = `Failed to send recording email to ${booking.email}: ${err}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
       }
     }
   }
 
+  // Calculate total attempted and determine if there are critical failures
+  const totalSent = followupSent + noShowSent + feedbackSent + recordingsSent;
+  const totalAttempted = totalSent + errors.length;
+  const hasCriticalFailures = errors.length > 0 && errors.length > totalAttempted / 2;
+
+  if (hasCriticalFailures) {
+    return NextResponse.json({
+      success: false,
+      followupSent,
+      noShowSent,
+      feedbackSent,
+      recordingsSent,
+      errors,
+      message: 'Critical: More than half of post-session emails failed to send',
+    }, { status: 500 });
+  }
+
   return NextResponse.json({
-    success: true,
+    success: errors.length === 0,
     followupSent,
     noShowSent,
     feedbackSent,
     recordingsSent,
+    errors: errors.length > 0 ? errors : undefined,
   });
 }
