@@ -247,11 +247,15 @@ export async function notifyNewBooking(booking: {
       }
     }
 
+    console.log('[Slack] Question labels map:', JSON.stringify(questionLabels));
+    console.log('[Slack] Question responses keys:', Object.keys(booking.question_responses));
+
     // Add each question/response as a section
     for (const [questionId, response] of Object.entries(booking.question_responses)) {
       // Ensure response is a non-empty string
       if (response && typeof response === 'string' && response.trim()) {
         const label = questionLabels[questionId] || 'Response';
+        console.log(`[Slack] Question ID "${questionId}" -> Label "${label}"`);
         message.blocks!.push({
           type: 'section',
           text: {
@@ -263,27 +267,18 @@ export async function notifyNewBooking(booking: {
     }
   }
 
-  // Add divider before action links
-  message.blocks!.push({
-    type: 'divider',
-  } as SlackBlock);
-
-  // Build action links
-  const actionLinks: string[] = [];
-  if (slot.google_meet_link) {
-    actionLinks.push(`<${slot.google_meet_link}|Join Google Meet>`);
-  }
+  // Add HubSpot link if available (Google Meet link omitted - host has it in calendar)
   if (enrichment?.hubspotContactId) {
-    const hubspotUrl = `https://app.hubspot.com/contacts/${process.env.HUBSPOT_PORTAL_ID || ''}/contact/${enrichment.hubspotContactId}`;
-    actionLinks.push(`<${hubspotUrl}|View in HubSpot>`);
-  }
+    message.blocks!.push({
+      type: 'divider',
+    } as SlackBlock);
 
-  if (actionLinks.length > 0) {
+    const hubspotUrl = `https://app.hubspot.com/contacts/${process.env.HUBSPOT_PORTAL_ID || ''}/contact/${enrichment.hubspotContactId}`;
     message.blocks!.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: actionLinks.join('  •  '),
+        text: `<${hubspotUrl}|View in HubSpot>`,
       },
     });
   }
