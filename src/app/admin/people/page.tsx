@@ -16,6 +16,8 @@ interface Admin {
   default_buffer_before: number;
   default_buffer_after: number;
   profile_image: string | null;
+  invitation_sent_at: string | null;
+  invitation_last_sent_at: string | null;
 }
 
 const TIMEZONE_LABELS: Record<string, string> = {
@@ -37,6 +39,7 @@ export default function PeoplePage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -118,6 +121,56 @@ export default function PeoplePage() {
       setError('Failed to remove team member');
       console.error(err);
     }
+  };
+
+  const handleResendInvite = async (adminId: string, email: string) => {
+    setResending(adminId);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch(`/api/admin/team/${adminId}/resend-invite`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to resend invitation');
+      }
+
+      const { sent_at } = await response.json();
+
+      // Update the admin in the list with new invitation timestamp
+      setAdmins(admins.map((a) =>
+        a.id === adminId
+          ? { ...a, invitation_last_sent_at: sent_at }
+          : a
+      ));
+
+      setSuccess(`Invitation resent to ${email}`);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend invitation');
+    } finally {
+      setResending(null);
+    }
+  };
+
+  // Format relative time for invitation sent
+  const formatInviteSentTime = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   if (loading) {
@@ -268,25 +321,43 @@ export default function PeoplePage() {
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                               </svg>
-                              Connected
+                              Active
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
-                              Not connected
+                              Pending
                             </span>
                           )}
                         </div>
                         <p className="text-sm text-[#667085]">{admin.email}</p>
                       </div>
                     </div>
-                    {index !== 0 && (
-                      <button
-                        onClick={() => handleRemoveAdmin(admin.id, admin.email)}
-                        className="text-sm text-red-600 hover:text-red-700 font-medium"
-                      >
-                        Remove
-                      </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {/* Show invitation status for pending users */}
+                      {!admin.google_connected && admin.invitation_last_sent_at && (
+                        <span className="text-xs text-[#667085]">
+                          Invite sent {formatInviteSentTime(admin.invitation_last_sent_at)}
+                        </span>
+                      )}
+                      {/* Resend invite button for pending users */}
+                      {!admin.google_connected && (
+                        <button
+                          onClick={() => handleResendInvite(admin.id, admin.email)}
+                          disabled={resending === admin.id}
+                          className="text-sm text-[#6F71EE] hover:text-[#5a5cd0] font-medium disabled:opacity-50"
+                        >
+                          {resending === admin.id ? 'Sending...' : 'Resend Invite'}
+                        </button>
+                      )}
+                      {index !== 0 && (
+                        <button
+                          onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                          className="text-sm text-red-600 hover:text-red-700 font-medium"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="ml-[52px] grid grid-cols-4 gap-3">
