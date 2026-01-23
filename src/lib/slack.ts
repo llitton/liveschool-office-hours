@@ -159,7 +159,7 @@ export async function notifyNewBooking(booking: {
 }, event: {
   name: string;
   slug: string;
-  custom_questions?: Array<{ id: string; label: string }> | null;
+  custom_questions?: Array<{ id: string; question: string }> | null;
 }, slot: {
   start_time: string;
   end_time: string;
@@ -237,12 +237,12 @@ export async function notifyNewBooking(booking: {
 
   // Add all question responses with their labels
   if (booking.question_responses && typeof booking.question_responses === 'object') {
-    // Create a map of question IDs to labels
+    // Create a map of question IDs to their question text
     const questionLabels: Record<string, string> = {};
     if (event.custom_questions && Array.isArray(event.custom_questions)) {
       for (const q of event.custom_questions) {
-        if (q && q.id && q.label) {
-          questionLabels[q.id] = q.label;
+        if (q && q.id && q.question) {
+          questionLabels[q.id] = q.question;
         }
       }
     }
