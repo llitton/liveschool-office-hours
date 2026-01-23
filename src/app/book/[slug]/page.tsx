@@ -635,10 +635,10 @@ export default function BookingPage({
                       href={googleCalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 transition min-h-[80px]"
+                      className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#4285F4] hover:bg-[#4285F4]/5 transition min-h-[80px]"
                     >
-                      <svg className="w-6 h-6 text-[#4285F4]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19.5 3h-15A1.5 1.5 0 003 4.5v15A1.5 1.5 0 004.5 21h15a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0019.5 3zm-2.25 6.75h-4.5v4.5h4.5v-4.5z"/>
+                      <svg className="w-6 h-6 text-[#4285F4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span className="text-sm font-medium text-[#101E57]">Google</span>
                     </a>
@@ -646,20 +646,20 @@ export default function BookingPage({
                       href={outlookUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 transition min-h-[80px]"
+                      className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#0078D4] hover:bg-[#0078D4]/5 transition min-h-[80px]"
                     >
-                      <svg className="w-6 h-6 text-[#0078D4]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M21.75 5.25h-7.5v13.5h7.5a.75.75 0 00.75-.75V6a.75.75 0 00-.75-.75zM2.25 6v12a.75.75 0 00.75.75h7.5V5.25H3a.75.75 0 00-.75.75z"/>
+                      <svg className="w-6 h-6 text-[#0078D4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       <span className="text-sm font-medium text-[#101E57]">Outlook</span>
                     </a>
                     {bookingResult.manage_token && (
                       <a
                         href={`/api/manage/${bookingResult.manage_token}/ical`}
-                        className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 transition min-h-[80px]"
+                        className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#333] hover:bg-gray-50 transition min-h-[80px]"
                       >
-                        <svg className="w-6 h-6 text-[#101E57]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <svg className="w-6 h-6 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span className="text-sm font-medium text-[#101E57]">Apple (.ics)</span>
                       </a>
