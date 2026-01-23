@@ -116,6 +116,12 @@ export default function BookingPage({
     manage_token?: string;
     is_waitlisted?: boolean;
     waitlist_position?: number | null;
+    integrations?: {
+      calendar: 'sent' | 'failed' | 'skipped';
+      email: 'sent' | 'failed' | 'skipped';
+      calendarError?: string;
+      emailError?: string;
+    };
   } | null>(null);
 
   // Timezone
@@ -523,13 +529,38 @@ export default function BookingPage({
                     You&apos;re booked, {formData.first_name}!
                   </h1>
                   <p className="text-white/90 mt-1">
-                    A calendar invite is on its way to <strong>{formData.email}</strong>
+                    {bookingResult.integrations?.email === 'failed'
+                      ? <>We&apos;ve saved your booking for <strong>{formData.email}</strong></>
+                      : <>A calendar invite is on its way to <strong>{formData.email}</strong></>
+                    }
                   </p>
                 </div>
               )}
             </div>
 
             <div className="p-6">
+              {/* Integration warnings - show if calendar or email failed */}
+              {bookingResult.integrations && (bookingResult.integrations.calendar === 'failed' || bookingResult.integrations.email === 'failed') && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-amber-800 font-medium">Your booking is confirmed, but:</p>
+                      <ul className="text-amber-700 text-sm mt-1 space-y-1">
+                        {bookingResult.integrations.calendar === 'failed' && (
+                          <li>• Calendar invite could not be sent. Please add this event to your calendar manually.</li>
+                        )}
+                        {bookingResult.integrations.email === 'failed' && (
+                          <li>• Confirmation email could not be sent. Please save this page or take a screenshot.</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Session details card */}
               <div className="border border-gray-200 rounded-lg p-4 mb-5">
                 <div className="flex items-center gap-2 text-[#667085] text-sm mb-3">

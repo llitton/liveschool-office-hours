@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { CommonErrors } from '@/lib/errors';
 
 // GET routing form by slug (public endpoint)
 export async function GET(
@@ -17,7 +18,7 @@ export async function GET(
     .single();
 
   if (error || !form) {
-    return NextResponse.json({ error: 'Routing form not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   return NextResponse.json({ form });

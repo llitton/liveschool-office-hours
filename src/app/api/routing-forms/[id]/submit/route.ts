@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { evaluateRules, encodeResponses } from '@/lib/routing';
+import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
 import type { OHRoutingRule } from '@/types';
 
 // POST submit routing form and get redirect URL (public endpoint)
@@ -32,7 +33,7 @@ export async function POST(
     .single();
 
   if (formError || !form) {
-    return NextResponse.json({ error: 'Routing form not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Get all rules for this form
@@ -48,7 +49,7 @@ export async function POST(
     .order('priority', { ascending: true });
 
   if (rulesError) {
-    return NextResponse.json({ error: rulesError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(rulesError) }, { status: 500 });
   }
 
   // Evaluate rules
@@ -93,7 +94,7 @@ export async function POST(
   }
 
   if (!targetEventSlug) {
-    return NextResponse.json({ error: 'Target event not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Build redirect URL

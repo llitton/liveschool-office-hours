@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
+import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
 import {
   processTemplate,
   createEmailVariables,
@@ -16,7 +17,7 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const { id } = await params;
@@ -41,7 +42,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(slot);
@@ -54,7 +55,7 @@ export async function DELETE(
 ) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const { id } = await params;
@@ -74,7 +75,7 @@ export async function DELETE(
     .single();
 
   if (slotError || !slot) {
-    return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Mark as cancelled
@@ -84,7 +85,7 @@ export async function DELETE(
     .eq('id', id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Send cancellation notifications to all attendees

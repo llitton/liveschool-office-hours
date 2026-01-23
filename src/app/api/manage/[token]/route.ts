@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { sendEmail, removeAttendeeFromEvent } from '@/lib/google';
+import { CommonErrors } from '@/lib/errors';
 import {
   processTemplate,
   createEmailVariables,
@@ -31,7 +32,7 @@ export async function GET(
     .single();
 
   if (error || !booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Get other available slots for rescheduling
@@ -98,7 +99,7 @@ export async function PUT(
     .single();
 
   if (bookingError || !booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Verify new slot exists and has capacity
@@ -114,12 +115,12 @@ export async function PUT(
     .single();
 
   if (slotError || !newSlot) {
-    return NextResponse.json({ error: 'New slot not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   const bookingCount = newSlot.bookings?.[0]?.count || 0;
   if (bookingCount >= newSlot.event.max_attendees) {
-    return NextResponse.json({ error: 'This time slot is full' }, { status: 400 });
+    return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
   }
 
   // Update booking to new slot
@@ -129,7 +130,7 @@ export async function PUT(
     .eq('id', booking.id);
 
   if (updateError) {
-    return NextResponse.json({ error: 'Failed to reschedule' }, { status: 500 });
+    return NextResponse.json({ error: CommonErrors.SERVER_ERROR }, { status: 500 });
   }
 
   // Send confirmation email for the reschedule
@@ -217,7 +218,7 @@ export async function DELETE(
     .single();
 
   if (bookingError || !booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   const wasWaitlisted = booking.is_waitlisted;
@@ -232,7 +233,7 @@ export async function DELETE(
     .eq('id', booking.id);
 
   if (updateError) {
-    return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 });
+    return NextResponse.json({ error: CommonErrors.SERVER_ERROR }, { status: 500 });
   }
 
   // Get admin for Google API access

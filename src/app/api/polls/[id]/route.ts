@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
 
 // GET poll details with all votes
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
   try {
     session = await requireAuth();
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const supabase = getServiceSupabase();
@@ -26,7 +27,7 @@ export async function GET(
     .single();
 
   if (!admin) {
-    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Get poll with options and votes
@@ -60,7 +61,7 @@ export async function GET(
     .single();
 
   if (error || !poll) {
-    return NextResponse.json({ error: 'Poll not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Calculate unique participants
@@ -87,7 +88,7 @@ export async function PATCH(
   try {
     session = await requireAuth();
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const body = await request.json();
@@ -103,7 +104,7 @@ export async function PATCH(
     .single();
 
   if (!admin) {
-    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Verify ownership
@@ -114,7 +115,7 @@ export async function PATCH(
     .single();
 
   if (!poll || poll.host_id !== admin.id) {
-    return NextResponse.json({ error: 'Poll not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   if (action === 'close') {
@@ -134,7 +135,7 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
     }
 
     return NextResponse.json(updated);
@@ -157,7 +158,7 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
     }
 
     return NextResponse.json(updated);
@@ -177,7 +178,7 @@ export async function DELETE(
   try {
     session = await requireAuth();
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const supabase = getServiceSupabase();
@@ -190,7 +191,7 @@ export async function DELETE(
     .single();
 
   if (!admin) {
-    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Verify ownership and delete

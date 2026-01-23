@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
 
 // POST submit votes (public - no auth required)
 export async function POST(
@@ -39,7 +40,7 @@ export async function POST(
     .single();
 
   if (pollError || !poll) {
-    return NextResponse.json({ error: 'Poll not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   if (poll.status !== 'open') {
@@ -107,7 +108,7 @@ export async function POST(
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(insertError) }, { status: 500 });
   }
 
   return NextResponse.json({

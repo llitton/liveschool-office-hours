@@ -1,5 +1,96 @@
 import { google } from 'googleapis';
 
+/**
+ * Retry configuration for Google API calls
+ * Implements exponential backoff for transient failures
+ */
+interface RetryConfig {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
+
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+};
+
+/**
+ * Check if an error is retryable (transient network/rate limit issues)
+ */
+function isRetryableError(error: unknown): boolean {
+  if (!error) return false;
+
+  // Check for rate limiting (429) or server errors (5xx)
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (
+      message.includes('rate limit') ||
+      message.includes('quota exceeded') ||
+      message.includes('too many requests') ||
+      message.includes('temporarily unavailable') ||
+      message.includes('service unavailable') ||
+      message.includes('internal error') ||
+      message.includes('backend error') ||
+      message.includes('econnreset') ||
+      message.includes('etimedout') ||
+      message.includes('socket hang up')
+    ) {
+      return true;
+    }
+  }
+
+  // Check for HTTP status codes
+  const status = (error as { code?: number; status?: number }).code || (error as { code?: number; status?: number }).status;
+  if (status) {
+    // Retry on rate limits (429) and server errors (500, 502, 503, 504)
+    return status === 429 || (status >= 500 && status <= 504);
+  }
+
+  return false;
+}
+
+/**
+ * Execute a function with exponential backoff retry logic
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  config: RetryConfig = DEFAULT_RETRY_CONFIG,
+  operationName: string = 'Google API call'
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < config.maxRetries && isRetryableError(error)) {
+        // Calculate delay with exponential backoff + jitter
+        const delay = Math.min(
+          config.baseDelayMs * Math.pow(2, attempt) + Math.random() * 1000,
+          config.maxDelayMs
+        );
+
+        console.warn(
+          `${operationName} failed (attempt ${attempt + 1}/${config.maxRetries + 1}), ` +
+          `retrying in ${Math.round(delay)}ms...`,
+          error instanceof Error ? error.message : error
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        // Non-retryable error or max retries exceeded
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
@@ -109,37 +200,44 @@ export async function createCalendarEvent(
     }
   }
 
-  const response = await calendar.events.insert({
-    calendarId: 'primary',
-    conferenceDataVersion: 1,
-    sendUpdates: 'all',
-    requestBody: {
-      summary: event.summary,
-      description: event.description,
-      start: {
-        dateTime: event.startTime,
-        timeZone: 'America/New_York',
-      },
-      end: {
-        dateTime: event.endTime,
-        timeZone: 'America/New_York',
-      },
-      attendees,
-      conferenceData: {
-        createRequest: {
-          requestId: `oh-${Date.now()}`,
-          conferenceSolutionKey: { type: 'hangoutsMeet' },
+  // Use retry logic for calendar event creation
+  return withRetry(
+    async () => {
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        conferenceDataVersion: 1,
+        sendUpdates: 'all',
+        requestBody: {
+          summary: event.summary,
+          description: event.description,
+          start: {
+            dateTime: event.startTime,
+            timeZone: 'America/New_York',
+          },
+          end: {
+            dateTime: event.endTime,
+            timeZone: 'America/New_York',
+          },
+          attendees,
+          conferenceData: {
+            createRequest: {
+              requestId: `oh-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              conferenceSolutionKey: { type: 'hangoutsMeet' },
+            },
+          },
+          guestsCanSeeOtherGuests: false,
         },
-      },
-      guestsCanSeeOtherGuests: false,
-    },
-  });
+      });
 
-  return {
-    eventId: response.data.id,
-    meetLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null,
-    htmlLink: response.data.htmlLink,
-  };
+      return {
+        eventId: response.data.id,
+        meetLink: response.data.conferenceData?.entryPoints?.[0]?.uri || null,
+        htmlLink: response.data.htmlLink,
+      };
+    },
+    DEFAULT_RETRY_CONFIG,
+    'Create calendar event'
+  );
 }
 
 // Add attendee to existing calendar event
@@ -151,30 +249,36 @@ export async function addAttendeeToEvent(
 ) {
   const calendar = getCalendarClient(accessToken, refreshToken);
 
-  // First get the current event
-  const currentEvent = await calendar.events.get({
-    calendarId: 'primary',
-    eventId,
-  });
+  return withRetry(
+    async () => {
+      // First get the current event
+      const currentEvent = await calendar.events.get({
+        calendarId: 'primary',
+        eventId,
+      });
 
-  const existingAttendees = currentEvent.data.attendees || [];
+      const existingAttendees = currentEvent.data.attendees || [];
 
-  // Add new attendee
-  const updatedAttendees = [
-    ...existingAttendees,
-    { email: attendeeEmail },
-  ];
+      // Add new attendee
+      const updatedAttendees = [
+        ...existingAttendees,
+        { email: attendeeEmail },
+      ];
 
-  const response = await calendar.events.patch({
-    calendarId: 'primary',
-    eventId,
-    sendUpdates: 'all',
-    requestBody: {
-      attendees: updatedAttendees,
+      const response = await calendar.events.patch({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all',
+        requestBody: {
+          attendees: updatedAttendees,
+        },
+      });
+
+      return response.data;
     },
-  });
-
-  return response.data;
+    DEFAULT_RETRY_CONFIG,
+    'Add attendee to calendar event'
+  );
 }
 
 // Remove attendee from existing calendar event
@@ -186,29 +290,35 @@ export async function removeAttendeeFromEvent(
 ) {
   const calendar = getCalendarClient(accessToken, refreshToken);
 
-  // First get the current event
-  const currentEvent = await calendar.events.get({
-    calendarId: 'primary',
-    eventId,
-  });
+  return withRetry(
+    async () => {
+      // First get the current event
+      const currentEvent = await calendar.events.get({
+        calendarId: 'primary',
+        eventId,
+      });
 
-  const existingAttendees = currentEvent.data.attendees || [];
+      const existingAttendees = currentEvent.data.attendees || [];
 
-  // Remove the attendee
-  const updatedAttendees = existingAttendees.filter(
-    (attendee) => attendee.email?.toLowerCase() !== attendeeEmail.toLowerCase()
-  );
+      // Remove the attendee
+      const updatedAttendees = existingAttendees.filter(
+        (attendee) => attendee.email?.toLowerCase() !== attendeeEmail.toLowerCase()
+      );
 
-  const response = await calendar.events.patch({
-    calendarId: 'primary',
-    eventId,
-    sendUpdates: 'all', // This will send cancellation notice to the removed attendee
-    requestBody: {
-      attendees: updatedAttendees,
+      const response = await calendar.events.patch({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all', // This will send cancellation notice to the removed attendee
+        requestBody: {
+          attendees: updatedAttendees,
+        },
+      });
+
+      return response.data;
     },
-  });
-
-  return response.data;
+    DEFAULT_RETRY_CONFIG,
+    'Remove attendee from calendar event'
+  );
 }
 
 // Get free/busy information from Google Calendar
@@ -221,20 +331,26 @@ export async function getFreeBusy(
 ): Promise<Array<{ start: string; end: string }>> {
   const calendar = getCalendarClient(accessToken, refreshToken);
 
-  const response = await calendar.freebusy.query({
-    requestBody: {
-      timeMin,
-      timeMax,
-      timeZone: 'America/New_York',
-      items: [{ id: calendarId }],
-    },
-  });
+  return withRetry(
+    async () => {
+      const response = await calendar.freebusy.query({
+        requestBody: {
+          timeMin,
+          timeMax,
+          timeZone: 'America/New_York',
+          items: [{ id: calendarId }],
+        },
+      });
 
-  const busyTimes = response.data.calendars?.[calendarId]?.busy || [];
-  return busyTimes.map((block) => ({
-    start: block.start || '',
-    end: block.end || '',
-  }));
+      const busyTimes = response.data.calendars?.[calendarId]?.busy || [];
+      return busyTimes.map((block) => ({
+        start: block.start || '',
+        end: block.end || '',
+      }));
+    },
+    DEFAULT_RETRY_CONFIG,
+    'Get calendar free/busy'
+  );
 }
 
 // Send email via Gmail API
@@ -265,12 +381,18 @@ export async function sendEmail(
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 
-  await gmail.users.messages.send({
-    userId: 'me',
-    requestBody: {
-      raw: encodedMessage,
+  return withRetry(
+    async () => {
+      await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: encodedMessage,
+        },
+      });
     },
-  });
+    DEFAULT_RETRY_CONFIG,
+    'Send email via Gmail'
+  );
 }
 
 // Google Meet participant interface

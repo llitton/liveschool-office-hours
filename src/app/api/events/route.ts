@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
+import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
 
 // GET all events (public)
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Flatten host profile_image into the event object
@@ -33,7 +34,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const body = await request.json();
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // For round-robin events, add the selected hosts

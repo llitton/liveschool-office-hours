@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { updateMeetingOutcome } from '@/lib/hubspot';
+import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
 
 // PATCH update booking (attendance status, etc.)
 export async function PATCH(
@@ -11,7 +12,7 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
   const { id } = await params;
@@ -32,7 +33,7 @@ export async function PATCH(
     .single();
 
   if (bookingError || !booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   // Build update object
@@ -112,7 +113,7 @@ export async function PATCH(
     .single();
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(updateError) }, { status: 500 });
   }
 
   // Sync attendance outcome to HubSpot
@@ -158,7 +159,7 @@ export async function GET(
     .single();
 
   if (error || !booking) {
-    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
   return NextResponse.json(booking);
