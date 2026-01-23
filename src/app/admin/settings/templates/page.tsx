@@ -62,7 +62,7 @@ export default function TemplatesPage() {
     <PageContainer>
       <PageHeader
         title="Event Templates"
-        description="Manage reusable templates for quick event creation."
+        description="Templates capture complete event configurations including email templates, SMS, booking rules, and more."
         action={
           <Link
             href="/admin/events/new"
@@ -158,6 +158,16 @@ export default function TemplatesPage() {
                       {template.sms_reminders_enabled && (
                         <span className="px-2 py-1 bg-green-50 text-green-700 rounded">
                           SMS
+                        </span>
+                      )}
+                      {template.no_show_emails_enabled && (
+                        <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded">
+                          No-show emails
+                        </span>
+                      )}
+                      {template.ignore_busy_blocks && (
+                        <span className="px-2 py-1 bg-orange-50 text-orange-700 rounded">
+                          Any time
                         </span>
                       )}
                     </div>

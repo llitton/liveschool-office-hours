@@ -250,6 +250,40 @@ Four strategies (enforced by DB CHECK constraint after migration 029):
 
 Host priorities (1-10 weight slider) are set in `oh_event_hosts.priority` column, configured in event settings. The UI shows expected percentage distribution based on weights (e.g., weight 6 + weight 4 = 60%/40% split).
 
+### Event Templates
+Templates capture a complete event configuration for quick reuse. Stored in `oh_session_templates` table.
+
+**What templates capture:**
+- Meeting type, duration, max attendees
+- Booking rules (notice, window, daily/weekly limits, approval required)
+- Buffer times, start time increments
+- Timezone settings
+- Guest settings
+- Email templates (confirmation, reminder, cancellation, no-show)
+- SMS templates (24h and 1h reminders)
+- Waitlist settings
+- Custom questions and prep materials
+- Banner image, subtitle
+- "Allow Any Time" setting (ignore_busy_blocks)
+
+**Creating templates:**
+- From event settings: Click "Save as Template" to capture all current settings
+- System templates are pre-defined (is_system = true)
+- Custom templates are user-created (created_by = admin_id)
+
+**Applying templates:**
+- On new event page, "Quick Start" section shows available templates
+- Clicking a template applies ALL fields to the form
+- Auto-generates unique slug (e.g., "demo-event-2" if "demo-event" exists)
+- Host name/email NOT copied (assigned dynamically or from current user)
+
+**APIs:**
+- `GET /api/session-templates` - List all templates
+- `POST /api/events/[id]/save-as-template` - Save event as template
+- `GET /api/events/check-slug?slug=xxx` - Check slug availability
+
+**Database:** `oh_session_templates` table (migration 033 added extended fields)
+
 ### HubSpot Meeting Types
 Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 - Fetch available types via `GET /api/hubspot/meeting-types`

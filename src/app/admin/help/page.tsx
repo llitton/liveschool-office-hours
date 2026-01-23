@@ -237,9 +237,22 @@ const helpSections: HelpSection[] = [
       {
         id: 'templates',
         title: 'Session Templates',
-        description: 'Save and reuse event configurations for quick setup.',
-        body: 'Templates save time when creating sessions you run often. Use built-in templates or save your own.',
+        description: 'Save and reuse complete event configurations for quick setup.',
+        body: 'Templates capture your entire event configuration — not just basic settings, but everything including email templates, SMS messages, booking rules, and more. When you apply a template, your new event is fully pre-configured.',
         lists: [
+          {
+            label: 'What templates capture',
+            items: [
+              'Meeting type, duration, and capacity',
+              'Booking rules (notice time, window, daily/weekly limits)',
+              'Buffer times and start time increments',
+              'Email templates (confirmation, reminder, cancellation, no-show)',
+              'SMS reminder templates',
+              'Custom questions and prep materials',
+              'Waitlist and guest settings',
+              'Timezone and "Allow Any Time" settings',
+            ],
+          },
           {
             label: 'Built-in templates',
             items: [
@@ -252,17 +265,23 @@ const helpSections: HelpSection[] = [
           {
             label: 'Save your own templates',
             items: [
-              'Configure an event exactly how you want it',
+              'Configure an event exactly how you want it (including email templates, SMS, etc.)',
               'Click the menu (...) and choose Save as Template',
               'Name your template and add a description',
-              'Reuse it from Settings → Templates',
+              'Your complete configuration is saved for reuse',
             ],
           },
         ],
         steps: [
-          'To use a template: Click Create New Session → Choose a template',
-          'To save a template: Open any event → Menu → Save as Template',
-          'To manage templates: Go to Settings → Templates',
+          'To use a template: Click Create New Session → Choose a Quick Start template',
+          'All fields are pre-filled with the template configuration',
+          'A unique URL slug is auto-generated (e.g., "my-event-2" if "my-event" exists)',
+          'Customize any fields you want, then create your event',
+        ],
+        tips: [
+          'Templates save ALL settings, so you can recreate complex event setups instantly',
+          'Host name/email are not saved — they are set from the current user or assigned dynamically',
+          'Manage templates in Settings → Templates',
         ],
       },
     ],
