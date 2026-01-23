@@ -267,6 +267,7 @@ Templates capture a complete event configuration for quick reuse. Stored in `oh_
 - Custom questions and prep materials
 - Banner image, subtitle
 - "Allow Any Time" setting (ignore_busy_blocks)
+- Slack notification preference
 
 **Creating templates:**
 - From event settings: Click "Save as Template" to capture all current settings
@@ -279,8 +280,17 @@ Templates capture a complete event configuration for quick reuse. Stored in `oh_
 - Auto-generates unique slug (e.g., "demo-event-2" if "demo-event" exists)
 - Host name/email NOT copied (assigned dynamically or from current user)
 
+**Managing templates:**
+- View all templates at `/admin/settings/templates`
+- Edit custom templates by clicking the pencil icon (system templates are read-only)
+- Delete custom templates with the trash icon
+- Edit page allows updating name, description, meeting type, and all settings
+
 **APIs:**
 - `GET /api/session-templates` - List all templates
+- `GET /api/session-templates/[id]` - Get single template
+- `PUT /api/session-templates/[id]` - Update custom template
+- `DELETE /api/session-templates/[id]` - Delete custom template
 - `POST /api/events/[id]/save-as-template` - Save event as template
 - `GET /api/events/check-slug?slug=xxx` - Check slug availability
 
@@ -489,7 +499,12 @@ CHECK constraints prevent invalid data at the database level:
 - **Touch targets:** 44px minimum for accessibility on mobile devices
 
 ### Slack Notifications
-New booking notifications include context for the host to prepare:
+New booking notifications include context for the host to prepare. **Notifications are per-event** - enable them only for events where you want alerts.
+
+**Enabling notifications:**
+- Go to event settings → Slack section
+- Toggle "Enable Slack Notifications" on
+- Configure your Slack webhook in Settings → Integrations
 
 **What's included:**
 - Attendee name and email (single-column layout to prevent wrapping)
@@ -516,6 +531,7 @@ laura@example.com
 ```
 
 **Technical notes:**
+- Controlled by `slack_notifications_enabled` on `oh_events` (migration 037)
 - Runs synchronously before response to avoid serverless timeout
 - Uses `src/lib/slack.ts` `notifyNewBooking()` function
 - Question labels come from `event.custom_questions[].question` field

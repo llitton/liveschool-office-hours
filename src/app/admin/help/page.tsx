@@ -294,6 +294,7 @@ const helpSections: HelpSection[] = [
               'Custom questions and prep materials',
               'Waitlist and guest settings',
               'Timezone and "Allow Any Time" settings',
+              'Slack notification preference',
             ],
           },
           {
@@ -314,6 +315,15 @@ const helpSections: HelpSection[] = [
               'Your complete configuration is saved for reuse',
             ],
           },
+          {
+            label: 'Manage templates',
+            items: [
+              'Go to Settings → Templates to view all your templates',
+              'Click the pencil icon to edit a custom template',
+              'Update the name, description, or any settings',
+              'System templates (built-in) cannot be edited',
+            ],
+          },
         ],
         steps: [
           'To use a template: Click Create New Session → Choose a Quick Start template',
@@ -324,7 +334,7 @@ const helpSections: HelpSection[] = [
         tips: [
           'Templates save ALL settings, so you can recreate complex event setups instantly',
           'Host name/email are not saved — they are set from the current user or assigned dynamically',
-          'Manage templates in Settings → Templates',
+          'Edit templates anytime at Settings → Templates to fix descriptions or update settings',
         ],
       },
     ],
@@ -961,8 +971,17 @@ const helpSections: HelpSection[] = [
         id: 'slack',
         title: 'Slack Notifications',
         description: 'Get notified in Slack when bookings happen with context to help you prepare.',
-        body: 'Connect Slack to receive real-time notifications about new bookings. Notifications include helpful context so hosts can prepare for sessions.',
+        body: 'Connect Slack to receive real-time notifications about new bookings. You can enable notifications per event, so only the sessions you care about will alert your team.',
         lists: [
+          {
+            label: 'Enabling notifications for an event',
+            items: [
+              'Go to the event\'s Settings page',
+              'Find the Slack section in the sidebar',
+              'Toggle "Enable Slack Notifications" on',
+              'New bookings for this event will now notify your Slack channel',
+            ],
+          },
           {
             label: 'New booking notifications include',
             items: [
@@ -982,10 +1001,10 @@ const helpSections: HelpSection[] = [
           },
         ],
         tips: [
+          'Enable notifications only for events where you need alerts (e.g., Office Hours) — not demos or internal bookings',
           'Times are displayed in the event\'s timezone so they match the host\'s calendar',
           'Google Meet links are not included since hosts already have them in calendar invitations',
           'First-time/returning status helps hosts tailor their approach',
-          'Question responses help hosts prepare discussion topics',
         ],
       },
       {
