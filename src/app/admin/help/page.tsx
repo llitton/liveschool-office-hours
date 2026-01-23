@@ -275,15 +275,18 @@ const helpSections: HelpSection[] = [
           {
             label: 'Question types',
             items: [
-              'Text — short answer for names or topics',
-              'Long text — detailed answers or descriptions',
-              'Select — choose from predefined options (dropdown)',
+              'Short text — single line for names or brief answers',
+              'Long text — multiple lines for detailed responses',
+              'Phone number — formatted phone input',
+              'Radio buttons — single choice from options',
+              'Checkboxes — multiple choice (select all that apply)',
+              'Dropdown — single choice from a dropdown menu',
             ],
           },
           {
-            label: 'Adding dropdown options',
+            label: 'Adding options (radio, checkbox, dropdown)',
             items: [
-              'Select "Dropdown" as the answer type',
+              'Select the answer type that needs options',
               'Enter each option on its own line in the Options field',
               'Press Enter to add more options',
               'Empty lines are automatically cleaned up when you click away',

@@ -310,6 +310,27 @@ Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 4. POST `/api/bookings` creates booking
 5. Syncs to Google Calendar, sends confirmation email
 
+### Custom Questions
+Events can have custom questions configured via `custom_questions` JSON field on `oh_events`.
+
+**Question types** (`QuestionType` in `src/types/index.ts`):
+- `text` — Single-line short text input
+- `textarea` — Multi-line long text input
+- `phone` — Phone number input (type="tel")
+- `radio` — Single choice from options (radio buttons)
+- `checkbox` — Multiple choice from options (checkboxes)
+- `select` — Single choice from dropdown
+
+**Types with options:** `radio`, `checkbox`, and `select` require an `options` array.
+
+**Checkbox response format:** Multiple selections stored as comma-separated string (e.g., "Option A, Option C").
+
+**Files:**
+- Type definitions: `src/types/index.ts`
+- Admin editing: `src/app/admin/events/[id]/settings/page.tsx`
+- Public booking: `src/app/book/[slug]/page.tsx`
+- Embed booking: `src/app/embed/[slug]/page.tsx`
+
 ### Allow Any Time (Internal Booking Links)
 For ad-hoc bookings outside normal availability, enable "Allow Any Time" in event settings:
 - Bypasses availability patterns AND Google Calendar conflict checks

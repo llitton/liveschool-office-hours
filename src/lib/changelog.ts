@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-23-new-question-types',
+    date: '2026-01-23',
+    title: 'New Question Types',
+    description: 'More ways to collect information from attendees with radio buttons, checkboxes, and phone number fields.',
+    category: 'feature',
+    details: [
+      'Radio buttons — single choice from a list of options',
+      'Checkboxes — multiple choice (select all that apply)',
+      'Phone number — formatted phone input field',
+      'All types available in event settings under Questions',
+    ],
+  },
+  {
     id: '2026-01-23-dropdown-options-fix',
     date: '2026-01-23',
     title: 'Dropdown Options Input Fixed',
