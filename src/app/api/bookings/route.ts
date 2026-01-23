@@ -841,11 +841,8 @@ export async function POST(request: NextRequest) {
   );
 
   // Send Slack notification (runs before response to ensure it completes)
-  // Skip HubSpot enrichment for now - just use database for first-time check
   try {
-    console.log('[Slack] Starting notification for booking:', booking.id);
-
-    // Quick database check for first-time status (fast query)
+    // Quick database check for first-time status
     const { count: previousBookingCount } = await supabase
       .from('oh_bookings')
       .select('id', { count: 'exact', head: true })
@@ -853,14 +850,7 @@ export async function POST(request: NextRequest) {
       .neq('id', booking.id)
       .is('cancelled_at', null);
 
-    const enrichment = {
-      isFirstTime: (previousBookingCount || 0) === 0,
-      previousBookings: previousBookingCount || 0,
-    };
-
-    console.log('[Slack] Enrichment:', JSON.stringify(enrichment));
-
-    const slackResult = await notifyNewBooking(
+    await notifyNewBooking(
       {
         id: booking.id,
         attendee_name: `${first_name} ${last_name}`,
@@ -878,9 +868,11 @@ export async function POST(request: NextRequest) {
         end_time: slot.end_time,
         google_meet_link: slot.google_meet_link,
       },
-      enrichment
+      {
+        isFirstTime: (previousBookingCount || 0) === 0,
+        previousBookings: previousBookingCount || 0,
+      }
     );
-    console.log('[Slack] Result:', slackResult);
   } catch (err) {
     // Don't fail the booking if Slack fails
     console.error('[Slack] Notification failed:', err);

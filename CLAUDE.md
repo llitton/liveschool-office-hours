@@ -492,20 +492,34 @@ CHECK constraints prevent invalid data at the database level:
 New booking notifications include context for the host to prepare:
 
 **What's included:**
-- Attendee name and email
-- First-time vs returning status (from booking history)
-- Date/time with relative indicator ("in 2 days", "tomorrow")
-- All booking question responses with their labels
-- HubSpot contact link (if available)
+- Attendee name and email (single-column layout to prevent wrapping)
+- First-time vs returning status (from booking history, shown inline with name)
+- Date/time in event's timezone with abbreviation (e.g., "3:00 PM CT")
+- Relative time indicator ("in 2 days", "tomorrow")
+- All booking question responses with their question text as labels
 
 **What's NOT included:**
 - Google Meet link (host has it in calendar invitation)
 - Organization name (requires slow HubSpot API - may add later via background job)
 
+**Example format:**
+```
+📅 New Booking: LiveSchool Office Hours
+
+👤 *Laura Litton*  ✨ First session
+laura@example.com
+
+🕐 *Friday, Jan 23 at 3:00 PM CT* (in 3 hours)
+
+💬 *What topics are you hoping to cover today?*
+>How do I add rewards?
+```
+
 **Technical notes:**
 - Runs synchronously before response to avoid serverless timeout
 - Uses `src/lib/slack.ts` `notifyNewBooking()` function
-- Question labels come from `event.custom_questions` array
+- Question labels come from `event.custom_questions[].question` field
+- Timezone comes from `event.timezone` (defaults to America/Chicago)
 
 ## Current State
 

@@ -968,9 +968,9 @@ const helpSections: HelpSection[] = [
             items: [
               'Attendee name and email',
               'First-time or returning status (e.g., "First session" or "3 previous sessions")',
-              'Date and time with relative indicator (e.g., "Friday at 3pm (in 2 days)")',
-              'All booking question responses with their labels',
-              'Link to HubSpot contact record (if connected)',
+              'Date and time in the event\'s timezone (e.g., "Friday at 3:00 PM CT")',
+              'Relative time indicator (e.g., "in 2 days", "tomorrow")',
+              'All booking question responses with their question text',
             ],
           },
           {
@@ -982,6 +982,7 @@ const helpSections: HelpSection[] = [
           },
         ],
         tips: [
+          'Times are displayed in the event\'s timezone so they match the host\'s calendar',
           'Google Meet links are not included since hosts already have them in calendar invitations',
           'First-time/returning status helps hosts tailor their approach',
           'Question responses help hosts prepare discussion topics',

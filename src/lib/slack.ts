@@ -102,7 +102,6 @@ export async function sendSlackMessage(message: SlackMessage): Promise<boolean> 
   }
 
   try {
-    console.log('[Slack] Sending message to webhook...');
     const response = await fetch(config.webhook_url, {
       method: 'POST',
       headers: {
@@ -114,8 +113,6 @@ export async function sendSlackMessage(message: SlackMessage): Promise<boolean> 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[Slack] Webhook error:', response.status, errorText);
-    } else {
-      console.log('[Slack] Message sent successfully');
     }
 
     return response.ok;
@@ -248,15 +245,11 @@ export async function notifyNewBooking(booking: {
       }
     }
 
-    console.log('[Slack] Question labels map:', JSON.stringify(questionLabels));
-    console.log('[Slack] Question responses keys:', Object.keys(booking.question_responses));
-
     // Add each question/response as a section
     for (const [questionId, response] of Object.entries(booking.question_responses)) {
       // Ensure response is a non-empty string
       if (response && typeof response === 'string' && response.trim()) {
         const label = questionLabels[questionId] || 'Response';
-        console.log(`[Slack] Question ID "${questionId}" -> Label "${label}"`);
         message.blocks!.push({
           type: 'section',
           text: {
