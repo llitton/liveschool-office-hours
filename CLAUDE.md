@@ -452,11 +452,18 @@ CHECK constraints prevent invalid data at the database level:
 
 ### Email Templates
 - **Modern HTML templates:** Use `generateConfirmationEmailHtml()` and `generateReminderEmailHtml()` from `src/lib/email-html.ts`
-- **Mobile-first:** 44px minimum touch targets, responsive table-based layout
+- **Unicode emoji for icons:** Gmail and many email clients block SVG data URIs - use Unicode characters (✓, 📅, 🎥, etc.) instead of images
+- **Table-based layout:** Use HTML tables for layout, not flexbox/grid - maximum compatibility across email clients
+- **Inline styles only:** All CSS must be inline - no `<style>` blocks or external stylesheets
+- **Mobile-first:** 44px minimum touch targets, responsive width with max-width constraints
 - **Visual hierarchy:** Hero section with confirmation badge, prominent session details with icons
-- **Calendar buttons with icons:** Google, Outlook, Apple buttons instead of text links
-- **Inline styles:** All CSS is inline for maximum email client compatibility
+- **Calendar buttons:** Text-based Google, Outlook, Apple buttons linking to their respective calendar URLs
 - **Prep checklist:** If prep_materials exist, displayed as checkable items
+
+### Visual Consistency
+- **Same action = same color:** Similar interactive elements (e.g., all calendar buttons) should use the same color - brand purple (#6F71EE) for consistency
+- **Don't mix brand colors:** Avoid Google blue, Outlook blue, Apple black when they appear side-by-side - unify to brand color or all different
+- **Touch targets:** 44px minimum for accessibility on mobile devices
 
 ## Current State
 

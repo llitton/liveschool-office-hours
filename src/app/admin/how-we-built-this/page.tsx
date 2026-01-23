@@ -47,10 +47,11 @@ const featureCategories = [
     name: 'Communications',
     icon: '💬',
     features: [
-      { name: 'Email confirmations', desc: 'Automated emails with calendar links' },
+      { name: 'Email confirmations', desc: 'Modern email templates with Unicode emoji for Gmail compatibility' },
       { name: 'SMS reminders', desc: 'Text notifications with delivery tracking dashboard' },
       { name: 'Email validation', desc: 'Block fake/disposable emails with MX check' },
       { name: 'Phone pre-fill', desc: 'Auto-fill from HubSpot contacts' },
+      { name: 'Confirmation page UX', desc: 'Email pill, calendar buttons, copy link as primary action' },
     ],
   },
   {
@@ -73,6 +74,8 @@ const featureCategories = [
       { name: 'Real-time URL validation', desc: 'Check slug availability as you type' },
       { name: 'Event templates', desc: 'Quick Start templates for common session types' },
       { name: 'QR code generator', desc: 'Print codes for easy booking' },
+      { name: 'Visual consistency', desc: 'Same action = same color (brand purple for all calendar icons)' },
+      { name: 'Mobile-first design', desc: '44px+ touch targets for accessibility on all devices' },
     ],
   },
   {

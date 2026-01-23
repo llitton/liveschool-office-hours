@@ -232,6 +232,49 @@ const helpSections: HelpSection[] = [
               '{{google_meet_link}} — meeting link',
             ],
           },
+          {
+            label: 'Email design best practices',
+            items: [
+              'Modern emails use Unicode emoji for visual elements (Gmail blocks SVG images)',
+              'Calendar buttons link directly to Google Calendar, Outlook, and Apple Calendar (.ics)',
+              'Clean, table-based HTML layouts work across all email clients',
+              'Important actions like "Join Meeting" use prominent button styling',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'confirmation-page',
+        title: 'Booking Confirmation Page',
+        description: 'What attendees see after successfully booking a session.',
+        body: 'After booking, attendees see a confirmation page with all the details they need. The page is designed for quick action and easy reference.',
+        lists: [
+          {
+            label: 'Confirmation page elements',
+            items: [
+              'Large green checkmark with success message',
+              'Email verification pill showing where confirmation was sent',
+              'Quick link to reschedule or cancel (at the top, not buried)',
+              'Session details: date, time, duration, host name',
+              'Add to Calendar buttons for Google, Outlook, and Apple',
+              'Copy Meeting Link as the primary action button',
+              'Join Now as secondary action (available close to meeting time)',
+            ],
+          },
+          {
+            label: 'UX design principles',
+            items: [
+              'Calendar buttons all use consistent brand purple styling',
+              'Touch targets are at least 44px for mobile accessibility',
+              'Most important actions (Copy Link, Add to Calendar) are prominently displayed',
+              'Attendees can immediately add the event to their calendar without scrolling',
+            ],
+          },
+        ],
+        tips: [
+          'The confirmation page URL can be shared — attendees can return to it later',
+          'Calendar files (.ics) work with any calendar application',
+          'Copy Meeting Link is recommended over sharing the full Meet URL manually',
         ],
       },
       {
