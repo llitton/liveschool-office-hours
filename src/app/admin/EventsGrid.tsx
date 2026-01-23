@@ -266,10 +266,17 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
     return { label: 'Active', color: 'bg-green-100 text-green-800 border-green-300' };
   };
 
-  // Get hosts for avatar display
+  // Get hosts for avatar display, sorted by role priority (owner > host > backup)
   const getEventHosts = (event: EventWithAnalytics) => {
     if (event.hosts && event.hosts.length > 0) {
-      return event.hosts.map((h) => ({
+      // Sort by role: owner first, then host, then backup
+      const rolePriority: Record<string, number> = { owner: 0, host: 1, backup: 2 };
+      const sortedHosts = [...event.hosts].sort((a, b) => {
+        const priorityA = rolePriority[a.role || 'backup'] ?? 2;
+        const priorityB = rolePriority[b.role || 'backup'] ?? 2;
+        return priorityA - priorityB;
+      });
+      return sortedHosts.map((h) => ({
         name: h.admin?.name || h.admin?.email || 'Unknown',
         image: h.admin?.profile_image,
       }));
