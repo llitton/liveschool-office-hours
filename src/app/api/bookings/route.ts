@@ -177,7 +177,8 @@ export async function POST(request: NextRequest) {
       endTime,
       event_id,
       event.buffer_before || 0,
-      event.buffer_after || 0
+      event.buffer_after || 0,
+      event.ignore_busy_blocks ?? false
     );
 
     if (!availabilityCheck.available) {
@@ -416,7 +417,8 @@ export async function POST(request: NextRequest) {
         event.id,
         slotStartTime,
         slotEndTime,
-        config as { strategy: 'cycle' | 'least_bookings' | 'availability_weighted'; period: 'day' | 'week' | 'month' | 'all_time'; hostIds: string[] }
+        config as { strategy: 'cycle' | 'least_bookings' | 'availability_weighted'; period: 'day' | 'week' | 'month' | 'all_time'; hostIds: string[] },
+        event.ignore_busy_blocks ?? false
       );
 
       if (!assignment) {

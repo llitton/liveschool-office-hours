@@ -160,7 +160,8 @@ export async function POST(request: NextRequest) {
         participatingHosts,
         parseISO(start_time),
         parseISO(end_time),
-        event_id
+        event_id,
+        event.ignore_busy_blocks ?? false
       );
 
       if (!collectiveCheck.available) {
@@ -202,7 +203,8 @@ export async function POST(request: NextRequest) {
 
   // Skip individual availability check for collective (already done above)
   // Check availability against the host's calendar using LIVE Google Calendar data
-  if (hostAdmin?.google_access_token && hostAdmin?.google_refresh_token) {
+  // Skip if ignore_busy_blocks is enabled (for internal booking events)
+  if (!event.ignore_busy_blocks && hostAdmin?.google_access_token && hostAdmin?.google_refresh_token) {
     try {
       const slotStart = parseISO(start_time);
       const slotEnd = parseISO(end_time);
@@ -246,7 +248,8 @@ export async function POST(request: NextRequest) {
           parseISO(end_time),
           event_id,
           bufferBefore,
-          bufferAfter
+          bufferAfter,
+          event.ignore_busy_blocks ?? false
         );
 
         if (!availabilityCheck.available) {
@@ -268,7 +271,8 @@ export async function POST(request: NextRequest) {
         parseISO(end_time),
         event_id,
         bufferBefore,
-        bufferAfter
+        bufferAfter,
+        event.ignore_busy_blocks ?? false
       );
 
       if (!availabilityCheck.available) {

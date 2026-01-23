@@ -72,6 +72,7 @@ export interface OHEvent {
   max_weekly_bookings: number | null;
   booking_window_days: number;
   require_approval: boolean;
+  ignore_busy_blocks: boolean;
   // Start time increments (how often slots appear)
   start_time_increment: number;
   // Timezone settings

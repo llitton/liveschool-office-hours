@@ -286,7 +286,8 @@ async function selectCycleHost(
   eventId: string,
   hostIds: string[],
   slotStart: Date,
-  slotEnd: Date
+  slotEnd: Date,
+  ignoreBusyBlocks: boolean = false
 ): Promise<{ hostId: string; reason: string } | null> {
   const state = await getRoundRobinState(eventId);
 
@@ -314,7 +315,8 @@ async function selectCycleHost(
       slotEnd,
       eventId,
       buffers.before,
-      buffers.after
+      buffers.after,
+      ignoreBusyBlocks
     );
     if (!availability.available) {
       continue;
@@ -345,7 +347,8 @@ async function selectLeastBookingsHost(
   hostIds: string[],
   period: RoundRobinPeriod,
   slotStart: Date,
-  slotEnd: Date
+  slotEnd: Date,
+  ignoreBusyBlocks: boolean = false
 ): Promise<{ hostId: string; reason: string } | null> {
   // Get booking counts for all hosts
   const counts = await getHostBookingCounts(hostIds, period, slotStart);
@@ -364,7 +367,8 @@ async function selectLeastBookingsHost(
       slotEnd,
       eventId,
       buffers.before,
-      buffers.after
+      buffers.after,
+      ignoreBusyBlocks
     );
     if (!availability.available) {
       continue;
@@ -469,7 +473,8 @@ async function selectAvailabilityWeightedHost(
   hostIds: string[],
   period: RoundRobinPeriod,
   slotStart: Date,
-  slotEnd: Date
+  slotEnd: Date,
+  ignoreBusyBlocks: boolean = false
 ): Promise<{ hostId: string; reason: string } | null> {
   // Get booking counts and available hours for all hosts
   const [counts, availableHours] = await Promise.all([
@@ -496,7 +501,8 @@ async function selectAvailabilityWeightedHost(
       slotEnd,
       eventId,
       buffers.before,
-      buffers.after
+      buffers.after,
+      ignoreBusyBlocks
     );
     if (!availability.available) {
       continue;
@@ -617,7 +623,8 @@ async function selectPriorityHost(
   eventId: string,
   hostIds: string[],
   slotStart: Date,
-  slotEnd: Date
+  slotEnd: Date,
+  ignoreBusyBlocks: boolean = false
 ): Promise<{ hostId: string; reason: string } | null> {
   // Get priorities and last booking times
   const [priorities, lastBookings] = await Promise.all([
@@ -643,7 +650,8 @@ async function selectPriorityHost(
       slotEnd,
       eventId,
       buffers.before,
-      buffers.after
+      buffers.after,
+      ignoreBusyBlocks
     );
     if (!availability.available) {
       continue;
@@ -707,7 +715,8 @@ export async function selectNextHost(
   eventId: string,
   slotStart: Date,
   slotEnd: Date,
-  config: RoundRobinConfig
+  config: RoundRobinConfig,
+  ignoreBusyBlocks: boolean = false
 ): Promise<HostAssignment | null> {
   const { strategy, period, hostIds } = config;
 
@@ -720,7 +729,7 @@ export async function selectNextHost(
 
   switch (strategy) {
     case 'cycle':
-      result = await selectCycleHost(eventId, hostIds, slotStart, slotEnd);
+      result = await selectCycleHost(eventId, hostIds, slotStart, slotEnd, ignoreBusyBlocks);
       break;
 
     case 'least_bookings':
@@ -729,7 +738,8 @@ export async function selectNextHost(
         hostIds,
         period,
         slotStart,
-        slotEnd
+        slotEnd,
+        ignoreBusyBlocks
       );
       break;
 
@@ -739,12 +749,13 @@ export async function selectNextHost(
         hostIds,
         period,
         slotStart,
-        slotEnd
+        slotEnd,
+        ignoreBusyBlocks
       );
       break;
 
     case 'priority':
-      result = await selectPriorityHost(eventId, hostIds, slotStart, slotEnd);
+      result = await selectPriorityHost(eventId, hostIds, slotStart, slotEnd, ignoreBusyBlocks);
       break;
 
     default:

@@ -152,7 +152,8 @@ export async function GET(
         earliestBookable,
         latestBookable,
         eventId,
-        startTimeIncrement
+        startTimeIncrement,
+        event.ignore_busy_blocks ?? false
       );
     }
   } else {
@@ -165,7 +166,8 @@ export async function GET(
       earliestBookable,
       latestBookable,
       eventId,
-      startTimeIncrement
+      startTimeIncrement,
+      event.ignore_busy_blocks ?? false
     );
   }
 
@@ -186,7 +188,8 @@ export async function GET(
               earliestBookable,
               latestBookable,
               eventId,
-              startTimeIncrement
+              startTimeIncrement,
+              event.ignore_busy_blocks ?? false
             );
           } catch {
             return [];

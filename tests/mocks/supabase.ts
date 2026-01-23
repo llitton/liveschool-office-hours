@@ -42,6 +42,7 @@ export function createMockEvent(overrides: Partial<OHEvent> = {}): OHEvent {
     max_weekly_bookings: null,
     booking_window_days: 60,
     require_approval: false,
+    ignore_busy_blocks: false,
     start_time_increment: 30,
     display_timezone: 'America/New_York',
     lock_timezone: false,

@@ -264,6 +264,15 @@ Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 4. POST `/api/bookings` creates booking
 5. Syncs to Google Calendar, sends confirmation email
 
+### Allow Any Time (Internal Booking Links)
+For ad-hoc bookings outside normal availability, enable "Allow Any Time" in event settings:
+- Bypasses availability patterns AND Google Calendar conflict checks
+- Generates slots from 6am-10pm every day
+- Company holidays still block bookings
+- Existing slot conflicts still prevented (no double-booking)
+- Useful for internal booking links only you use, but still get HubSpot tracking, reminders, etc.
+- Stored as `ignore_busy_blocks` boolean on `oh_events` (migration 032)
+
 ### Google Calendar Integration
 - **Event titles:** Calendar events use the event name directly (e.g., "Office Hours"), no prefix added
 - **Co-host invitations:**

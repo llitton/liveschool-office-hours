@@ -186,7 +186,8 @@ export async function checkTimeAvailability(
   endTime: Date,
   eventId?: string,
   bufferBefore: number = 0,
-  bufferAfter: number = 0
+  bufferAfter: number = 0,
+  ignoreBusyBlocks: boolean = false
 ): Promise<{ available: boolean; reason?: string }> {
   // Check for company holiday FIRST - blocks all employees
   const holidayCheck = await isCompanyHoliday(startTime);
@@ -201,48 +202,53 @@ export async function checkTimeAvailability(
   const checkStart = bufferBefore > 0 ? addMinutes(startTime, -bufferBefore) : startTime;
   const checkEnd = bufferAfter > 0 ? addMinutes(endTime, bufferAfter) : endTime;
 
-  // Get admin's availability patterns for this day
-  const dayOfWeek = getDay(startTime);
-  const patterns = await getAvailabilityPatterns(adminId);
-  const dayPatterns = patterns.filter((p) => p.day_of_week === dayOfWeek);
+  // Check availability patterns (skip if ignoreBusyBlocks is true - allows any time)
+  if (!ignoreBusyBlocks) {
+    // Get admin's availability patterns for this day
+    const dayOfWeek = getDay(startTime);
+    const patterns = await getAvailabilityPatterns(adminId);
+    const dayPatterns = patterns.filter((p) => p.day_of_week === dayOfWeek);
 
-  // Check if time falls within an availability pattern
-  if (dayPatterns.length > 0) {
-    const timeStr = format(startTime, 'HH:mm:ss');
-    const endTimeStr = format(endTime, 'HH:mm:ss');
-    const isWithinPattern = dayPatterns.some((pattern) => {
-      return timeStr >= pattern.start_time && endTimeStr <= pattern.end_time;
-    });
+    // Check if time falls within an availability pattern
+    if (dayPatterns.length > 0) {
+      const timeStr = format(startTime, 'HH:mm:ss');
+      const endTimeStr = format(endTime, 'HH:mm:ss');
+      const isWithinPattern = dayPatterns.some((pattern) => {
+        return timeStr >= pattern.start_time && endTimeStr <= pattern.end_time;
+      });
 
-    if (!isWithinPattern) {
-      return {
-        available: false,
-        reason: 'Outside of set availability hours',
-      };
+      if (!isWithinPattern) {
+        return {
+          available: false,
+          reason: 'Outside of set availability hours',
+        };
+      }
     }
   }
 
-  // Check against busy blocks
-  const busyBlocks = await getBusyBlocks(
-    adminId,
-    startOfDay(startTime),
-    endOfDay(startTime)
-  );
+  // Check against busy blocks (skip if ignoreBusyBlocks is true)
+  if (!ignoreBusyBlocks) {
+    const busyBlocks = await getBusyBlocks(
+      adminId,
+      startOfDay(startTime),
+      endOfDay(startTime)
+    );
 
-  for (const block of busyBlocks) {
-    const blockStart = parseISO(block.start_time);
-    const blockEnd = parseISO(block.end_time);
+    for (const block of busyBlocks) {
+      const blockStart = parseISO(block.start_time);
+      const blockEnd = parseISO(block.end_time);
 
-    if (
-      areIntervalsOverlapping(
-        { start: checkStart, end: checkEnd },
-        { start: blockStart, end: blockEnd }
-      )
-    ) {
-      return {
-        available: false,
-        reason: 'Conflicts with calendar event',
-      };
+      if (
+        areIntervalsOverlapping(
+          { start: checkStart, end: checkEnd },
+          { start: blockStart, end: blockEnd }
+        )
+      ) {
+        return {
+          available: false,
+          reason: 'Conflicts with calendar event',
+        };
+      }
     }
   }
 
@@ -286,18 +292,22 @@ export async function getAvailableSlots(
   startDate: Date,
   endDate: Date,
   eventId?: string,
-  startTimeIncrement: number = 30 // How often slots appear: 15, 30, 45, or 60 min
+  startTimeIncrement: number = 30, // How often slots appear: 15, 30, 45, or 60 min
+  ignoreBusyBlocks: boolean = false
 ): Promise<TimeSlot[]> {
-  const patterns = await getAvailabilityPatterns(adminId);
-  const busyBlocks = await getBusyBlocks(adminId, startDate, endDate);
+  const patterns = ignoreBusyBlocks ? [] : await getAvailabilityPatterns(adminId);
+  const busyBlocks = ignoreBusyBlocks ? [] : await getBusyBlocks(adminId, startDate, endDate);
   const existingSlots = await getExistingSlots(adminId, eventId || null, startDate, endDate);
 
-  // Get company holidays in date range
+  // Get company holidays in date range (still respected even with ignoreBusyBlocks)
   const companyHolidays = await getCompanyHolidays(startDate, endDate);
   const holidayDates = new Set(companyHolidays.map(h => h.date));
 
   const availableSlots: TimeSlot[] = [];
   let currentDate = startOfDay(startDate);
+
+  // Default timezone for "any time" mode
+  const defaultTz = 'America/New_York';
 
   while (isBefore(currentDate, endDate)) {
     // Skip company holidays
@@ -307,25 +317,46 @@ export async function getAvailableSlots(
       continue;
     }
 
-    const dayOfWeek = getDay(currentDate);
-    const dayPatterns = patterns.filter((p) => p.day_of_week === dayOfWeek);
+    // When ignoreBusyBlocks is true, generate slots for all hours (6am-10pm)
+    // Otherwise, use availability patterns
+    const dayWindows: { startHour: number; startMin: number; endHour: number; endMin: number; timezone: string }[] = [];
 
-    for (const pattern of dayPatterns) {
-      // Parse pattern times
-      const [startHour, startMin] = pattern.start_time.split(':').map(Number);
-      const [endHour, endMin] = pattern.end_time.split(':').map(Number);
+    if (ignoreBusyBlocks) {
+      // "Any time" mode: 6am to 10pm every day
+      dayWindows.push({
+        startHour: 6,
+        startMin: 0,
+        endHour: 22,
+        endMin: 0,
+        timezone: defaultTz,
+      });
+    } else {
+      const dayOfWeek = getDay(currentDate);
+      const dayPatterns = patterns.filter((p) => p.day_of_week === dayOfWeek);
+      for (const pattern of dayPatterns) {
+        const [startHour, startMin] = pattern.start_time.split(':').map(Number);
+        const [endHour, endMin] = pattern.end_time.split(':').map(Number);
+        dayWindows.push({
+          startHour,
+          startMin,
+          endHour,
+          endMin,
+          timezone: pattern.timezone || defaultTz,
+        });
+      }
+    }
 
-      // Create local times in pattern's timezone, then convert to UTC
-      const localSlotStart = setMinutes(setHours(currentDate, startHour), startMin);
-      const localPatternEnd = setMinutes(setHours(currentDate, endHour), endMin);
-      const patternTz = pattern.timezone || 'America/New_York';
+    for (const window of dayWindows) {
+      // Create local times in window's timezone, then convert to UTC
+      const localSlotStart = setMinutes(setHours(currentDate, window.startHour), window.startMin);
+      const localWindowEnd = setMinutes(setHours(currentDate, window.endHour), window.endMin);
 
-      let slotStart = fromZonedTime(localSlotStart, patternTz);
-      const patternEnd = fromZonedTime(localPatternEnd, patternTz);
+      let slotStart = fromZonedTime(localSlotStart, window.timezone);
+      const windowEnd = fromZonedTime(localWindowEnd, window.timezone);
 
-      // Generate slots within this pattern
-      while (isBefore(addMinutes(slotStart, eventDurationMinutes), patternEnd) ||
-             slotStart.getTime() + eventDurationMinutes * 60000 <= patternEnd.getTime()) {
+      // Generate slots within this window
+      while (isBefore(addMinutes(slotStart, eventDurationMinutes), windowEnd) ||
+             slotStart.getTime() + eventDurationMinutes * 60000 <= windowEnd.getTime()) {
         const slotEnd = addMinutes(slotStart, eventDurationMinutes);
 
         // Check if slot is in the past
@@ -380,14 +411,15 @@ export async function checkCollectiveAvailability(
   hostIds: string[],
   startTime: Date,
   endTime: Date,
-  eventId?: string
+  eventId?: string,
+  ignoreBusyBlocks: boolean = false
 ): Promise<{ available: boolean; unavailableHosts: string[]; reasons: Record<string, string> }> {
   const unavailableHosts: string[] = [];
   const reasons: Record<string, string> = {};
 
   // Check each host's availability
   for (const hostId of hostIds) {
-    const result = await checkTimeAvailability(hostId, startTime, endTime, eventId);
+    const result = await checkTimeAvailability(hostId, startTime, endTime, eventId, 0, 0, ignoreBusyBlocks);
     if (!result.available) {
       unavailableHosts.push(hostId);
       reasons[hostId] = result.reason || 'Not available';
@@ -410,29 +442,37 @@ export async function getCollectiveAvailableSlots(
   startDate: Date,
   endDate: Date,
   eventId?: string,
-  startTimeIncrement: number = 30
+  startTimeIncrement: number = 30,
+  ignoreBusyBlocks: boolean = false
 ): Promise<TimeSlot[]> {
   if (hostIds.length === 0) {
     return [];
   }
 
-  // Get availability data for all hosts
-  const allPatterns = await Promise.all(
-    hostIds.map((id) => getAvailabilityPatterns(id))
-  );
-  const allBusyBlocks = await Promise.all(
-    hostIds.map((id) => getBusyBlocks(id, startDate, endDate))
-  );
+  // Get availability data for all hosts (skip patterns if ignoreBusyBlocks)
+  const allPatterns = ignoreBusyBlocks
+    ? hostIds.map(() => [])
+    : await Promise.all(
+        hostIds.map((id) => getAvailabilityPatterns(id))
+      );
+  const allBusyBlocks = ignoreBusyBlocks
+    ? hostIds.map(() => [])
+    : await Promise.all(
+        hostIds.map((id) => getBusyBlocks(id, startDate, endDate))
+      );
   const allExistingSlots = await Promise.all(
     hostIds.map((id) => getExistingSlots(id, eventId || null, startDate, endDate))
   );
 
-  // Get company holidays in date range
+  // Get company holidays in date range (still respected even with ignoreBusyBlocks)
   const companyHolidays = await getCompanyHolidays(startDate, endDate);
   const holidayDates = new Set(companyHolidays.map(h => h.date));
 
   const availableSlots: TimeSlot[] = [];
   let currentDate = startOfDay(startDate);
+
+  // Default timezone for "any time" mode
+  const defaultTz = 'America/New_York';
 
   while (isBefore(currentDate, endDate)) {
     // Skip company holidays
@@ -442,49 +482,58 @@ export async function getCollectiveAvailableSlots(
       continue;
     }
 
-    const dayOfWeek = getDay(currentDate);
+    let commonWindows: { start: string; end: string }[];
+    let patternTz: string;
 
-    // Find the intersection of all hosts' patterns for this day
-    const hostDayPatterns = allPatterns.map((patterns) =>
-      patterns.filter((p) => p.day_of_week === dayOfWeek)
-    );
+    if (ignoreBusyBlocks) {
+      // "Any time" mode: 6am to 10pm every day
+      commonWindows = [{ start: '06:00:00', end: '22:00:00' }];
+      patternTz = defaultTz;
+    } else {
+      const dayOfWeek = getDay(currentDate);
 
-    // Skip if any host has no availability on this day
-    if (hostDayPatterns.some((patterns) => patterns.length === 0)) {
-      currentDate = addDays(currentDate, 1);
-      continue;
-    }
+      // Find the intersection of all hosts' patterns for this day
+      const hostDayPatterns = allPatterns.map((patterns) =>
+        patterns.filter((p) => p.day_of_week === dayOfWeek)
+      );
 
-    // Find common available windows
-    // Start with the first host's patterns and narrow down
-    let commonWindows: { start: string; end: string }[] = hostDayPatterns[0].map((p) => ({
-      start: p.start_time,
-      end: p.end_time,
-    }));
+      // Skip if any host has no availability on this day
+      if (hostDayPatterns.some((patterns) => patterns.length === 0)) {
+        currentDate = addDays(currentDate, 1);
+        continue;
+      }
 
-    // Intersect with each subsequent host's patterns
-    for (let i = 1; i < hostDayPatterns.length; i++) {
-      const hostWindows = hostDayPatterns[i].map((p) => ({
+      // Find common available windows
+      // Start with the first host's patterns and narrow down
+      commonWindows = hostDayPatterns[0].map((p) => ({
         start: p.start_time,
         end: p.end_time,
       }));
 
-      // Calculate intersection
-      const newCommon: { start: string; end: string }[] = [];
-      for (const w1 of commonWindows) {
-        for (const w2 of hostWindows) {
-          const intersectStart = w1.start > w2.start ? w1.start : w2.start;
-          const intersectEnd = w1.end < w2.end ? w1.end : w2.end;
-          if (intersectStart < intersectEnd) {
-            newCommon.push({ start: intersectStart, end: intersectEnd });
+      // Intersect with each subsequent host's patterns
+      for (let i = 1; i < hostDayPatterns.length; i++) {
+        const hostWindows = hostDayPatterns[i].map((p) => ({
+          start: p.start_time,
+          end: p.end_time,
+        }));
+
+        // Calculate intersection
+        const newCommon: { start: string; end: string }[] = [];
+        for (const w1 of commonWindows) {
+          for (const w2 of hostWindows) {
+            const intersectStart = w1.start > w2.start ? w1.start : w2.start;
+            const intersectEnd = w1.end < w2.end ? w1.end : w2.end;
+            if (intersectStart < intersectEnd) {
+              newCommon.push({ start: intersectStart, end: intersectEnd });
+            }
           }
         }
+        commonWindows = newCommon;
       }
-      commonWindows = newCommon;
-    }
 
-    // Get timezone from first host's patterns (assume all use same timezone)
-    const patternTz = hostDayPatterns[0]?.[0]?.timezone || 'America/New_York';
+      // Get timezone from first host's patterns (assume all use same timezone)
+      patternTz = hostDayPatterns[0]?.[0]?.timezone || defaultTz;
+    }
 
     // Generate slots within common windows
     for (const window of commonWindows) {

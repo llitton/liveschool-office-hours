@@ -73,6 +73,7 @@ export default function EventSettingsPage({
   const [maxWeeklyBookings, setMaxWeeklyBookings] = useState<string>('');
   const [bookingWindowDays, setBookingWindowDays] = useState(60);
   const [requireApproval, setRequireApproval] = useState(false);
+  const [ignoreBusyBlocks, setIgnoreBusyBlocks] = useState(false);
   const [startTimeIncrement, setStartTimeIncrement] = useState(30);
 
   // Buffer settings
@@ -205,6 +206,7 @@ export default function EventSettingsPage({
       setMaxWeeklyBookings(eventData.max_weekly_bookings?.toString() || '');
       setBookingWindowDays(eventData.booking_window_days ?? 60);
       setRequireApproval(eventData.require_approval ?? false);
+      setIgnoreBusyBlocks(eventData.ignore_busy_blocks ?? false);
       setStartTimeIncrement(eventData.start_time_increment ?? 30);
 
       // Set buffer settings
@@ -285,6 +287,7 @@ export default function EventSettingsPage({
           max_weekly_bookings: maxWeeklyBookings ? parseInt(maxWeeklyBookings) : null,
           booking_window_days: bookingWindowDays,
           require_approval: requireApproval,
+          ignore_busy_blocks: ignoreBusyBlocks,
           start_time_increment: startTimeIncrement,
           // Buffer settings
           buffer_before: bufferBefore,
@@ -1153,6 +1156,26 @@ export default function EventSettingsPage({
                   <p className="text-sm text-[#667085] mt-0.5">
                     Bookings will be pending until you manually approve them.
                     Attendees won&apos;t receive confirmation until approved.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Allow Any Time */}
+            <div className="pt-4 border-t">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ignoreBusyBlocks}
+                  onChange={(e) => setIgnoreBusyBlocks(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+                />
+                <div>
+                  <span className="font-medium text-[#101E57]">Allow Any Time</span>
+                  <p className="text-sm text-[#667085] mt-0.5">
+                    Skip availability patterns and calendar conflict checks.
+                    Bookings can be made any time from 6am-10pm. Useful for
+                    internal booking links where you control who has access.
                   </p>
                 </div>
               </label>
