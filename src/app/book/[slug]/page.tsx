@@ -110,6 +110,7 @@ export default function BookingPage({
   const [guestEmailError, setGuestEmailError] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
     event: OHEvent;
     slot: { start_time: string; end_time: string; google_meet_link: string | null };
@@ -498,47 +499,89 @@ export default function BookingPage({
   if (bookingComplete && bookingResult) {
     const isWaitlisted = bookingResult.is_waitlisted;
 
+    const handleCopyMeetLink = async () => {
+      if (bookingResult.slot.google_meet_link) {
+        await navigator.clipboard.writeText(bookingResult.slot.google_meet_link);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      }
+    };
+
+    // Generate calendar URLs for easy access
+    const calendarEvent = {
+      title: bookingResult.event.name,
+      description: `${bookingResult.event.description || ''}\n\n${bookingResult.slot.google_meet_link ? `Join: ${bookingResult.slot.google_meet_link}` : ''}`.trim(),
+      location: bookingResult.slot.google_meet_link || 'Google Meet',
+      startTime: parseISO(bookingResult.slot.start_time),
+      endTime: parseISO(bookingResult.slot.end_time),
+    };
+
+    // Simple calendar URL generators (inline to avoid import complexity)
+    const formatDateForCal = (date: Date) => date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const googleCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(calendarEvent.title)}&dates=${formatDateForCal(calendarEvent.startTime)}/${formatDateForCal(calendarEvent.endTime)}&details=${encodeURIComponent(calendarEvent.description)}&location=${encodeURIComponent(calendarEvent.location)}`;
+    const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(calendarEvent.title)}&startdt=${calendarEvent.startTime.toISOString()}&enddt=${calendarEvent.endTime.toISOString()}&body=${encodeURIComponent(calendarEvent.description)}&location=${encodeURIComponent(calendarEvent.location)}`;
+
     return (
       <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">
         <div className="mx-auto max-w-[650px]">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className={`${isWaitlisted ? 'bg-amber-50' : 'bg-[#417762]'} p-6`}>
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            {/* Header - improved visual hierarchy */}
+            <div className={`${isWaitlisted ? 'bg-amber-50' : 'bg-[#417762]'} p-8`}>
               {isWaitlisted ? (
                 // Waitlist header
                 <div className="text-center">
-                  <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-xl font-bold text-amber-600">#{bookingResult.waitlist_position}</span>
+                  <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-[bounce_0.6s_ease-in-out]">
+                    <span className="text-2xl font-bold text-amber-600">#{bookingResult.waitlist_position}</span>
                   </div>
-                  <h1 className="text-xl font-semibold text-amber-800">
+                  <h1 className="text-2xl font-semibold text-amber-800">
                     You&apos;re on the waitlist
                   </h1>
-                  <p className="text-amber-700 mt-1">
-                    We&apos;ll email you at <strong>{formData.email}</strong> if a spot opens
-                  </p>
+                  <div className="mt-3 inline-flex items-center gap-2 bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-medium">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {formData.email}
+                  </div>
                 </div>
               ) : (
-                // Confirmed booking header
+                // Confirmed booking header - larger checkmark with animation
                 <div className="text-center text-white">
-                  <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h1 className="text-xl font-semibold">
+                  <h1 className="text-2xl font-semibold">
                     You&apos;re booked, {formData.first_name}!
                   </h1>
-                  <p className="text-white/90 mt-1">
-                    {bookingResult.integrations?.email === 'failed'
-                      ? <>We&apos;ve saved your booking for <strong>{formData.email}</strong></>
-                      : <>A calendar invite is on its way to <strong>{formData.email}</strong></>
-                    }
-                  </p>
+                  {/* Email verification pill - high contrast */}
+                  <div className="mt-3 inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {formData.email}
+                  </div>
                 </div>
               )}
             </div>
 
             <div className="p-6">
+              {/* Reschedule/Cancel - moved higher, more prominent */}
+              {bookingResult.manage_token && !isWaitlisted && (
+                <div className="flex items-center justify-between bg-[#F6F6F9] rounded-lg px-4 py-3 mb-5">
+                  <span className="text-sm text-[#667085]">Made a mistake?</span>
+                  <a
+                    href={`/manage/${bookingResult.manage_token}`}
+                    className="text-sm font-medium text-[#6F71EE] hover:text-[#5a5cd0] flex items-center gap-1"
+                  >
+                    Reschedule or cancel
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+
               {/* Integration warnings - show if calendar or email failed */}
               {bookingResult.integrations && (bookingResult.integrations.calendar === 'failed' || bookingResult.integrations.email === 'failed') && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
@@ -550,10 +593,10 @@ export default function BookingPage({
                       <p className="text-amber-800 font-medium">Your booking is confirmed, but:</p>
                       <ul className="text-amber-700 text-sm mt-1 space-y-1">
                         {bookingResult.integrations.calendar === 'failed' && (
-                          <li>• Calendar invite could not be sent. Please add this event to your calendar manually.</li>
+                          <li>• Calendar invite could not be sent. Please add this event manually below.</li>
                         )}
                         {bookingResult.integrations.email === 'failed' && (
-                          <li>• Confirmation email could not be sent. Please save this page or take a screenshot.</li>
+                          <li>• Confirmation email could not be sent. Please save this page.</li>
                         )}
                       </ul>
                     </div>
@@ -562,8 +605,8 @@ export default function BookingPage({
               )}
 
               {/* Session details card */}
-              <div className="border border-gray-200 rounded-lg p-4 mb-5">
-                <div className="flex items-center gap-2 text-[#667085] text-sm mb-3">
+              <div className="border border-gray-200 rounded-xl p-5 mb-5">
+                <div className="flex items-center gap-2 text-[#667085] text-sm mb-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
@@ -575,44 +618,109 @@ export default function BookingPage({
                   {formatInTimeZone(parseISO(bookingResult.slot.end_time), timezone, 'h:mm a')}
                 </div>
                 <div className="text-sm text-[#667085] mb-3">{timezone.replace(/_/g, ' ')}</div>
-                <div className="text-[#101E57] font-medium">{bookingResult.event.name}</div>
+                <div className="text-[#101E57] font-medium text-lg">{bookingResult.event.name}</div>
               </div>
 
-              {/* Action buttons - only for confirmed bookings */}
+              {/* Add to Calendar - PRIORITIZED, central position */}
               {!isWaitlisted && (
-                <div className="flex gap-3 mb-5">
-                  {bookingResult.slot.google_meet_link && (
+                <div className="bg-[#F6F6F9] rounded-xl p-5 mb-5">
+                  <h3 className="font-medium text-[#101E57] mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Add to your calendar
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <a
+                      href={googleCalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 transition min-h-[80px]"
+                    >
+                      <svg className="w-6 h-6 text-[#4285F4]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.5 3h-15A1.5 1.5 0 003 4.5v15A1.5 1.5 0 004.5 21h15a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0019.5 3zm-2.25 6.75h-4.5v4.5h4.5v-4.5z"/>
+                      </svg>
+                      <span className="text-sm font-medium text-[#101E57]">Google</span>
+                    </a>
+                    <a
+                      href={outlookUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 transition min-h-[80px]"
+                    >
+                      <svg className="w-6 h-6 text-[#0078D4]" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21.75 5.25h-7.5v13.5h7.5a.75.75 0 00.75-.75V6a.75.75 0 00-.75-.75zM2.25 6v12a.75.75 0 00.75.75h7.5V5.25H3a.75.75 0 00-.75.75z"/>
+                      </svg>
+                      <span className="text-sm font-medium text-[#101E57]">Outlook</span>
+                    </a>
+                    {bookingResult.manage_token && (
+                      <a
+                        href={`/api/manage/${bookingResult.manage_token}/ical`}
+                        className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#6F71EE]/5 transition min-h-[80px]"
+                      >
+                        <svg className="w-6 h-6 text-[#101E57]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span className="text-sm font-medium text-[#101E57]">Apple (.ics)</span>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting Link - Copy Link primary, Join secondary (since meeting is future) */}
+              {!isWaitlisted && bookingResult.slot.google_meet_link && (
+                <div className="mb-5">
+                  <h3 className="font-medium text-[#101E57] mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Meeting link
+                  </h3>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleCopyMeetLink}
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#6F71EE] text-white py-4 rounded-lg hover:bg-[#5a5cd0] transition font-medium text-base min-h-[52px]"
+                    >
+                      {linkCopied ? (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy Meeting Link
+                        </>
+                      )}
+                    </button>
                     <a
                       href={bookingResult.slot.google_meet_link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center gap-2 bg-[#6F71EE] text-white py-3 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
+                      className="flex items-center justify-center gap-2 px-6 py-4 border-2 border-gray-200 text-[#101E57] rounded-lg hover:bg-gray-50 hover:border-gray-300 transition font-medium min-h-[52px]"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
-                      Join Meeting
+                      Join Now
                     </a>
-                  )}
-                  {bookingResult.manage_token && (
-                    <a
-                      href={`/api/manage/${bookingResult.manage_token}/ical`}
-                      className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-[#101E57] rounded-lg hover:bg-gray-50 transition font-medium"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      .ics
-                    </a>
-                  )}
+                  </div>
+                  <p className="text-xs text-[#667085] mt-2 text-center">
+                    Save this link—you&apos;ll need it on {formatInTimeZone(parseISO(bookingResult.slot.start_time), timezone, 'EEEE')}
+                  </p>
                 </div>
               )}
 
-              {/* Next step - simplified */}
-              <div className="bg-[#F6F6F9] rounded-lg p-4 mb-5">
+              {/* Next step - what to expect */}
+              <div className="bg-[#417762]/5 border border-[#417762]/20 rounded-xl p-5 mb-5">
                 <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 ${isWaitlisted ? 'bg-amber-100 text-amber-600' : 'bg-[#417762]/10 text-[#417762]'} rounded-full flex items-center justify-center flex-shrink-0`}>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className={`w-10 h-10 ${isWaitlisted ? 'bg-amber-100 text-amber-600' : 'bg-[#417762]/10 text-[#417762]'} rounded-full flex items-center justify-center flex-shrink-0`}>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
@@ -620,10 +728,10 @@ export default function BookingPage({
                     <p className="font-medium text-[#101E57]">
                       {isWaitlisted ? 'Check your email' : 'Accept the calendar invite'}
                     </p>
-                    <p className="text-sm text-[#667085]">
+                    <p className="text-sm text-[#667085] mt-1">
                       {isWaitlisted
                         ? "We sent a confirmation. You'll hear from us if a spot opens."
-                        : "It should arrive within a few minutes. This reserves your spot."}
+                        : "Check your inbox—the calendar invite should arrive within a few minutes."}
                     </p>
                   </div>
                 </div>
@@ -631,35 +739,33 @@ export default function BookingPage({
 
               {/* Prep Materials - only show for confirmed bookings */}
               {event?.prep_materials && !isWaitlisted && (
-                <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4 mb-5">
-                  <h3 className="font-medium text-[#101E57] mb-2 flex items-center gap-2">
+                <div className="bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-xl p-5 mb-5">
+                  <h3 className="font-medium text-[#101E57] mb-3 flex items-center gap-2">
                     <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                     Before your session
                   </h3>
-                  <div className="text-[#667085] text-sm whitespace-pre-wrap">
+                  <div className="text-[#667085] text-sm whitespace-pre-wrap leading-relaxed">
                     {event.prep_materials}
                   </div>
                 </div>
               )}
 
-              {/* Manage booking link */}
-              <div className="text-center pt-4 border-t border-gray-100">
-                {bookingResult.manage_token ? (
+              {/* Waitlist manage link */}
+              {isWaitlisted && bookingResult.manage_token && (
+                <div className="text-center pt-4 border-t border-gray-100">
                   <a
                     href={`/manage/${bookingResult.manage_token}`}
                     className="inline-flex items-center gap-1 text-[#667085] hover:text-[#101E57] text-sm"
                   >
-                    {isWaitlisted ? "Leave waitlist" : "Reschedule or cancel"}
+                    Leave waitlist
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </a>
-                ) : (
-                  <p className="text-sm text-[#667085]">Check your email to manage this booking</p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -674,6 +780,7 @@ export default function BookingPage({
             />
           </div>
         </div>
+
       </div>
     );
   }

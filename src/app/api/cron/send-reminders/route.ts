@@ -5,8 +5,8 @@ import {
   processTemplate,
   createEmailVariables,
   defaultTemplates,
-  htmlifyEmailBody,
 } from '@/lib/email-templates';
+import { generateReminderEmailHtml } from '@/lib/email-html';
 import { getSMSConfig, sendSMS, processSMSTemplate, defaultSMSTemplates, logSMSSend } from '@/lib/sms';
 import { addHours, isAfter, isBefore } from 'date-fns';
 
@@ -119,24 +119,20 @@ export async function GET(request: NextRequest) {
           variables
         );
 
-        const bodyText = processTemplate(
-          slot.event.reminder_body || defaultTemplates.reminder_body,
-          variables
-        );
+        const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${booking.manage_token}`;
 
-        const htmlBody = `
-          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-            ${htmlifyEmailBody(bodyText)}
-
-            ${slot.google_meet_link ? `
-              <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
-                  Join Google Meet →
-                </a>
-              </div>
-            ` : ''}
-          </div>
-        `;
+        // Use the new modern reminder email template
+        const htmlBody = generateReminderEmailHtml({
+          firstName: booking.first_name,
+          eventName: slot.event.name,
+          hostName: variables.host_name,
+          date: variables.date,
+          time: variables.time,
+          timezoneAbbr: variables.timezone_abbr,
+          meetLink: slot.google_meet_link,
+          manageUrl,
+          reminderTiming,
+        });
 
         await sendEmail(
           admin.google_access_token,

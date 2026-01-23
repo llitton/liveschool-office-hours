@@ -440,6 +440,24 @@ CHECK constraints prevent invalid data at the database level:
 - **Prominent expand button:** "Show more days" is a styled button (not just text link) with count of remaining days
 - **Wider content:** Uses 650px max-width for comfortable reading on the main card
 
+### Booking Confirmation Page
+- **Large success indicator:** 80x80px checkmark icon in header reinforces successful action
+- **Email verification pill:** Display user's email in high-contrast pill (white on green/amber) so they can verify it's correct
+- **Reschedule early:** "Made a mistake?" link appears near top of content, not buried at bottom
+- **Calendar priority:** Add to Calendar section is prominent with equal-sized buttons for Google, Outlook, and Apple (.ics)
+- **Copy over Join:** Primary action is "Copy Meeting Link" (future event), with "Join Now" as secondary button
+- **Touch targets:** All buttons minimum 52px height with adequate spacing (12px+) between them
+- **Save this link reminder:** Helper text below meeting link reminds user to save it for the session day
+- **Contrast ratios:** White text on green (#417762) header meets WCAG AA standards
+
+### Email Templates
+- **Modern HTML templates:** Use `generateConfirmationEmailHtml()` and `generateReminderEmailHtml()` from `src/lib/email-html.ts`
+- **Mobile-first:** 44px minimum touch targets, responsive table-based layout
+- **Visual hierarchy:** Hero section with confirmation badge, prominent session details with icons
+- **Calendar buttons with icons:** Google, Outlook, Apple buttons instead of text links
+- **Inline styles:** All CSS is inline for maximum email client compatibility
+- **Prep checklist:** If prep_materials exist, displayed as checkable items
+
 ## Current State
 
 Working features:

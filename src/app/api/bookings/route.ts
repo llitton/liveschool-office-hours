@@ -5,12 +5,12 @@ import {
   processTemplate,
   createEmailVariables,
   defaultTemplates,
-  htmlifyEmailBody,
 } from '@/lib/email-templates';
 import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
 import { findOrCreateContact, logMeetingActivity } from '@/lib/hubspot';
 import { notifyNewBooking } from '@/lib/slack';
-import { matchPrepResources, formatResourcesForEmail } from '@/lib/prep-matcher';
+import { matchPrepResources } from '@/lib/prep-matcher';
+import { generateConfirmationEmailHtml } from '@/lib/email-html';
 import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
 import { formatPhoneE164 } from '@/lib/sms';
 import { checkTimeAvailability } from '@/lib/availability';
@@ -626,7 +626,6 @@ export async function POST(request: NextRequest) {
         slot.event_id,
         question_responses || {}
       );
-      const prepResourcesHtml = formatResourcesForEmail(matchedResources);
 
       // Track which resources were sent
       if (matchedResources.length > 0) {
@@ -716,11 +715,6 @@ export async function POST(request: NextRequest) {
           variables
         );
 
-        const bodyText = processTemplate(
-          slot.event.confirmation_body || defaultTemplates.confirmation_body,
-          variables
-        );
-
         // Generate calendar URLs
         const calendarEvent = {
           title: slot.event.name,
@@ -734,66 +728,29 @@ export async function POST(request: NextRequest) {
         const outlookUrl = generateOutlookUrl(calendarEvent);
         const icalUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/manage/${manage_token}/ical`;
 
-        htmlBody = `
-          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-            ${htmlifyEmailBody(bodyText)}
-
-            ${userTopic ? `
-              <div style="background: #EEF0FF; border-left: 4px solid #6F71EE; padding: 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #101E57; font-size: 14px; font-weight: 600;">What you want to discuss:</h3>
-                <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${userTopic}"</p>
-              </div>
-            ` : ''}
-
-            ${slot.event.description ? `
-              <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #101E57;">About this session:</h3>
-                <p style="color: #667085;">${slot.event.description}</p>
-              </div>
-            ` : ''}
-
-            ${slot.google_meet_link ? `
-              <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                <a href="${slot.google_meet_link}" style="color: white; text-decoration: none; font-weight: 600;">
-                  Join Google Meet →
-                </a>
-              </div>
-            ` : ''}
-
-            ${slot.event.prep_materials ? `
-              <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #101E57;">Preparation Materials</h3>
-                <p style="color: #667085; white-space: pre-wrap;">${slot.event.prep_materials}</p>
-              </div>
-            ` : ''}
-
-            ${prepResourcesHtml}
-
-            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #101E57;">Add to Calendar</h3>
-              <p style="margin-bottom: 12px;">
-                <a href="${googleCalUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Google Calendar</a>
-                <a href="${outlookUrl}" target="_blank" style="color: #6F71EE; text-decoration: none; margin-right: 16px;">Outlook</a>
-                <a href="${icalUrl}" style="color: #6F71EE; text-decoration: none;">Apple Calendar (.ics)</a>
-              </p>
-            </div>
-
-            <div style="background: #F6F6F9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-              <p style="color: #667085; margin: 0 0 12px 0; font-size: 14px;">
-                Something come up? No problem.
-              </p>
-              <a href="${manageUrl}" style="display: inline-block; background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                Reschedule or Cancel
-              </a>
-            </div>
-
-            <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
-              <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-                Sent from Connect with LiveSchool
-              </p>
-            </div>
-          </div>
-        `;
+        // Use the new modern email template
+        htmlBody = generateConfirmationEmailHtml({
+          firstName: first_name,
+          eventName: slot.event.name,
+          hostName: variables.host_name,
+          date: variables.date,
+          time: variables.time,
+          timezoneAbbr: variables.timezone_abbr,
+          timezone: variables.timezone,
+          meetLink: slot.google_meet_link,
+          manageUrl,
+          googleCalUrl,
+          outlookUrl,
+          icalUrl,
+          eventDescription: slot.event.description,
+          prepMaterials: slot.event.prep_materials,
+          userTopic,
+          prepResources: matchedResources.map(r => ({
+            title: r.title,
+            content: r.content,
+            link: r.link || undefined,
+          })),
+        });
       }
 
       await sendEmail(
