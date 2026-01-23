@@ -259,17 +259,17 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
     const usesDynamicAvailability = event.meeting_type !== 'webinar';
 
     if (!event.is_active) {
-      return { label: 'Disabled', color: 'bg-gray-100 text-gray-600 border-gray-300' };
+      return { label: 'Disabled', color: 'bg-gray-100 text-gray-600 border-gray-300', isDimmed: true };
     } else if (activeSlots.length === 0 && !usesDynamicAvailability) {
-      return { label: 'No slots', color: 'bg-amber-100 text-amber-800 border-amber-300' };
+      return { label: 'No slots', color: 'bg-amber-100 text-amber-800 border-amber-300', isDimmed: true };
     } else if (activeSlots.length === 0 && usesDynamicAvailability) {
-      return { label: 'Available', color: 'bg-green-100 text-green-800 border-green-300' };
+      return { label: 'Available', color: 'bg-green-100 text-green-800 border-green-300', isDimmed: false };
     } else if (capacityPercent >= 100) {
-      return { label: 'Fully booked', color: 'bg-red-100 text-red-800 border-red-300' };
+      return { label: 'Fully booked', color: 'bg-red-100 text-red-800 border-red-300', isDimmed: false };
     } else if (capacityPercent >= 80) {
-      return { label: 'Almost full', color: 'bg-amber-100 text-amber-800 border-amber-300' };
+      return { label: 'Almost full', color: 'bg-amber-100 text-amber-800 border-amber-300', isDimmed: false };
     }
-    return { label: 'Active', color: 'bg-green-100 text-green-800 border-green-300' };
+    return { label: 'Active', color: 'bg-green-100 text-green-800 border-green-300', isDimmed: false };
   };
 
   // Get hosts for avatar display, sorted by role priority (owner > host > backup)
@@ -332,7 +332,7 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
     return (
       <div className={`bg-white rounded-lg shadow-sm border transition-all group ${
         isSelected ? 'border-[#6F71EE] ring-2 ring-[#6F71EE]/20' : 'border-gray-200 hover:border-[#6F71EE]/50 hover:shadow-md'
-      }`}>
+      } ${status.isDimmed ? 'opacity-60' : ''}`}>
         <Link href={`/admin/events/${event.id}`} className="block p-5">
           <div className="flex justify-between items-start mb-3">
             <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -565,7 +565,7 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
                 key={event.id}
                 className={`flex items-center gap-4 p-4 hover:bg-[#F6F6F9]/50 transition group ${
                   isSelected ? 'bg-[#6F71EE]/5' : ''
-                }`}
+                } ${status.isDimmed ? 'opacity-60' : ''}`}
               >
                 {/* Checkbox */}
                 <div
