@@ -42,7 +42,8 @@ export default async function AdminPage({
           admin_id,
           role,
           admin:oh_admins(name, email, profile_image)
-        )
+        ),
+        primary_host:oh_admins!host_id(name, email, profile_image)
       `)
       .order('created_at', { ascending: false }),
     supabase

@@ -54,6 +54,12 @@ interface EventWithAnalytics {
   display_order?: number;
   slots: EventSlot[];
   hosts?: EventHost[];
+  // Primary host from event record (joined via host_id)
+  primary_host?: {
+    name: string | null;
+    email: string;
+    profile_image: string | null;
+  } | null;
   // Analytics
   total_bookings?: number;
   last_booked_at?: string | null;
@@ -268,20 +274,44 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
 
   // Get hosts for avatar display, sorted by role priority (owner > host > backup)
   const getEventHosts = (event: EventWithAnalytics) => {
+    const hosts: Array<{ name: string; image: string | null | undefined }> = [];
+
+    // Add primary host first (from event record's host_id)
+    if (event.primary_host) {
+      hosts.push({
+        name: event.primary_host.name || event.primary_host.email || event.host_name || 'Unknown',
+        image: event.primary_host.profile_image,
+      });
+    }
+
+    // Add co-hosts from oh_event_hosts, sorted by role
     if (event.hosts && event.hosts.length > 0) {
-      // Sort by role: owner first, then host, then backup
       const rolePriority: Record<string, number> = { owner: 0, host: 1, backup: 2 };
       const sortedHosts = [...event.hosts].sort((a, b) => {
         const priorityA = rolePriority[a.role || 'backup'] ?? 2;
         const priorityB = rolePriority[b.role || 'backup'] ?? 2;
         return priorityA - priorityB;
       });
-      return sortedHosts.map((h) => ({
-        name: h.admin?.name || h.admin?.email || 'Unknown',
-        image: h.admin?.profile_image,
-      }));
+
+      for (const h of sortedHosts) {
+        // Skip if this host is already the primary host (avoid duplicates)
+        const hostEmail = h.admin?.email;
+        if (event.primary_host && hostEmail === event.primary_host.email) {
+          continue;
+        }
+        hosts.push({
+          name: h.admin?.name || h.admin?.email || 'Unknown',
+          image: h.admin?.profile_image,
+        });
+      }
     }
-    return [{ name: event.host_name || 'Unknown', image: null }];
+
+    // Fallback to host_name if no hosts found
+    if (hosts.length === 0) {
+      return [{ name: event.host_name || 'Unknown', image: null }];
+    }
+
+    return hosts;
   };
 
   // Render event card content (shared between grid and sortable)
