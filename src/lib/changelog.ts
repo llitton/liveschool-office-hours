@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-23-invite-email-ux',
+    date: '2026-01-23',
+    title: 'Improved Invitation Emails',
+    description: 'Team invitation emails now have better visual hierarchy and clearer calls-to-action.',
+    category: 'improvement',
+    details: [
+      'Prominent "Get Started →" button in brand purple',
+      'Emoji icons make features scannable at a glance',
+      'Bold action verbs highlight what recipients can do',
+      'Sender\'s profile photo appears in signature',
+    ],
+  },
+  {
     id: '2026-01-23-resend-invites',
     date: '2026-01-23',
     title: 'Resend Team Invitations',
