@@ -143,6 +143,8 @@ export function createMockAdmin(overrides: Partial<OHAdmin> = {}): OHAdmin {
     profile_image: null,
     onboarding_progress: null,
     quick_links_token: 'test-quick-links-token-123',
+    invitation_sent_at: null,
+    invitation_last_sent_at: null,
     ...overrides,
   };
 }

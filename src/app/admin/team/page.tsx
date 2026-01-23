@@ -16,6 +16,8 @@ interface Admin {
   default_buffer_before: number;
   default_buffer_after: number;
   profile_image: string | null;
+  invitation_sent_at: string | null;
+  invitation_last_sent_at: string | null;
 }
 
 // Timezone display helper
@@ -38,6 +40,7 @@ export default function TeamPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -121,6 +124,56 @@ export default function TeamPage() {
       setError('Failed to remove team member');
       console.error(err);
     }
+  };
+
+  const handleResendInvite = async (adminId: string, email: string) => {
+    setResending(adminId);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await fetch(`/api/admin/team/${adminId}/resend-invite`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to resend invitation');
+      }
+
+      const { sent_at } = await response.json();
+
+      // Update the admin in the list with new invitation timestamp
+      setAdmins(admins.map((a) =>
+        a.id === adminId
+          ? { ...a, invitation_last_sent_at: sent_at }
+          : a
+      ));
+
+      setSuccess(`Invitation resent to ${email}`);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend invitation');
+    } finally {
+      setResending(null);
+    }
+  };
+
+  // Format relative time for invitation sent
+  const formatInviteSentTime = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   };
 
   if (loading) {
@@ -265,11 +318,11 @@ export default function TeamPage() {
                                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                               </svg>
-                              Connected
+                              Active
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
-                              Google not connected
+                              Pending
                             </span>
                           )}
                         </div>
@@ -277,9 +330,32 @@ export default function TeamPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-xs text-[#667085]">
-                        Added {new Date(admin.created_at).toLocaleDateString()}
-                      </span>
+                      {/* Show invitation status for pending users */}
+                      {!admin.google_connected && admin.invitation_last_sent_at && (
+                        <span className="text-xs text-[#667085]">
+                          Invite sent {formatInviteSentTime(admin.invitation_last_sent_at)}
+                        </span>
+                      )}
+                      {!admin.google_connected && !admin.invitation_last_sent_at && (
+                        <span className="text-xs text-amber-600">
+                          Invite not sent
+                        </span>
+                      )}
+                      {admin.google_connected && (
+                        <span className="text-xs text-[#667085]">
+                          Added {new Date(admin.created_at).toLocaleDateString()}
+                        </span>
+                      )}
+                      {/* Resend invite button for pending users */}
+                      {!admin.google_connected && (
+                        <button
+                          onClick={() => handleResendInvite(admin.id, admin.email)}
+                          disabled={resending === admin.id}
+                          className="text-[#6F71EE] hover:text-[#5a5cd0] text-sm font-medium disabled:opacity-50"
+                        >
+                          {resending === admin.id ? 'Sending...' : 'Resend Invite'}
+                        </button>
+                      )}
                       {index !== 0 && (
                         <button
                           onClick={() => handleRemoveAdmin(admin.id, admin.email)}
@@ -324,15 +400,15 @@ export default function TeamPage() {
           )}
         </div>
 
-        {/* Role explanation */}
+        {/* Status explanation */}
         <div className="mt-4 flex items-center justify-center gap-6 text-xs text-[#667085]">
           <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] font-medium rounded-full">Owner</span>
-            <span>Full access, cannot be removed</span>
+            <span className="px-2 py-0.5 bg-green-100 text-green-700 font-medium rounded-full">Active</span>
+            <span>Google connected, ready to use</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] font-medium rounded-full">Admin</span>
-            <span>Full access</span>
+            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 font-medium rounded-full">Pending</span>
+            <span>Waiting to connect Google</span>
           </div>
         </div>
     </PageContainer>

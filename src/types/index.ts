@@ -188,6 +188,9 @@ export interface OHAdmin {
   onboarding_progress: OnboardingState | null;
   // Quick links personal token
   quick_links_token: string;
+  // Invitation tracking
+  invitation_sent_at: string | null;
+  invitation_last_sent_at: string | null;
 }
 
 // Session Templates for quick event creation

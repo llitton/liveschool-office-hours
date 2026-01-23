@@ -13,7 +13,7 @@ export async function GET() {
 
   const supabase = getServiceSupabase();
 
-  // Get admin details including settings
+  // Get admin details including settings and invitation tracking
   const { data: admins, error } = await supabase
     .from('oh_admins')
     .select(`
@@ -26,7 +26,9 @@ export async function GET() {
       max_meetings_per_week,
       default_buffer_before,
       default_buffer_after,
-      profile_image
+      profile_image,
+      invitation_sent_at,
+      invitation_last_sent_at
     `)
     .order('created_at', { ascending: true });
 
@@ -79,6 +81,8 @@ export async function GET() {
     timezone: adminExtras[admin.id]?.timezone || null,
     weekly_available_hours: adminExtras[admin.id]?.weeklyHours || 0,
     profile_image: admin.profile_image,
+    invitation_sent_at: admin.invitation_sent_at,
+    invitation_last_sent_at: admin.invitation_last_sent_at,
   }));
 
   return NextResponse.json(enrichedAdmins);
@@ -127,6 +131,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Send invite email if inviter has Google connected
+  let emailSent = false;
   if (inviter.google_access_token && inviter.google_refresh_token) {
     try {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://connect.liveschool.io';
@@ -181,13 +186,26 @@ export async function POST(request: NextRequest) {
           replyTo: inviter.email,
         }
       );
+      emailSent = true;
     } catch (emailError) {
       // Log but don't fail the request if email sending fails
       console.error('Failed to send invite email:', emailError);
     }
   }
 
-  return NextResponse.json(admin);
+  // Update invitation tracking timestamps if email was sent
+  if (emailSent) {
+    const now = new Date().toISOString();
+    await supabase
+      .from('oh_admins')
+      .update({
+        invitation_sent_at: now,
+        invitation_last_sent_at: now,
+      })
+      .eq('id', admin.id);
+  }
+
+  return NextResponse.json({ ...admin, email_sent: emailSent });
 }
 
 // DELETE remove admin
