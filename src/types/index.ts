@@ -227,6 +227,18 @@ export interface OHSessionTemplate {
   round_robin_strategy: string | null;
   round_robin_period: string | null;
   created_by: string | null;
+  // Extended template fields (migration 033)
+  subtitle: string | null;
+  banner_image: string | null;
+  no_show_subject: string | null;
+  no_show_body: string | null;
+  no_show_emails_enabled: boolean;
+  no_show_email_delay_hours: number;
+  sms_reminder_24h_template: string | null;
+  sms_reminder_1h_template: string | null;
+  max_daily_bookings: number | null;
+  max_weekly_bookings: number | null;
+  ignore_busy_blocks: boolean;
 }
 
 export interface SlotWithBookings extends OHSlot {

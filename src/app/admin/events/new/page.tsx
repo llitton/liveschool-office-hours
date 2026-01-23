@@ -62,6 +62,7 @@ export default function NewEventPage() {
   const [templates, setTemplates] = useState<OHSessionTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [templateExtraData, setTemplateExtraData] = useState<Record<string, unknown>>({});
 
   // Slug validation
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
@@ -105,16 +106,88 @@ export default function NewEventPage() {
     }
   };
 
-  const applyTemplate = (template: OHSessionTemplate) => {
+  // Helper to generate unique slug
+  const generateUniqueSlug = async (baseSlug: string): Promise<string> => {
+    let slug = baseSlug;
+    let suffix = 1;
+    const maxAttempts = 20;
+
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const response = await fetch(`/api/events/check-slug?slug=${encodeURIComponent(slug)}`);
+        const data = await response.json();
+        if (data.available) return slug;
+        slug = `${baseSlug}-${++suffix}`;
+      } catch {
+        return `${baseSlug}-${Date.now()}`; // Fallback to timestamp
+      }
+    }
+    return `${baseSlug}-${Date.now()}`; // Fallback after max attempts
+  };
+
+  const applyTemplate = async (template: OHSessionTemplate) => {
     setSelectedTemplate(template.id);
     setMeetingType(template.meeting_type as MeetingType);
+
+    // Generate unique slug from template name
+    const baseSlug = template.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const uniqueSlug = await generateUniqueSlug(baseSlug);
+
+    // Apply form data fields
     setFormData((prev) => ({
       ...prev,
+      name: template.name,
+      subtitle: template.subtitle || '',
+      description: template.description || '',
+      slug: uniqueSlug,
       duration_minutes: template.duration_minutes,
+      buffer_before: template.buffer_before || 15,
+      buffer_after: template.buffer_after || 15,
     }));
+
+    // Apply state variable fields
     setMaxAttendeesInput(String(template.max_attendees));
     setMinNoticeHours(template.min_notice_hours);
     setBookingWindowDays(template.booking_window_days);
+    setMaxDailyBookings(template.max_daily_bookings ? String(template.max_daily_bookings) : '');
+    setMaxWeeklyBookings(template.max_weekly_bookings ? String(template.max_weekly_bookings) : '');
+    setRequireApproval(template.require_approval || false);
+    setStartTimeIncrement(template.start_time_increment || 30);
+    setDisplayTimezone(template.display_timezone || 'America/New_York');
+    setLockTimezone(template.lock_timezone || false);
+    if (template.round_robin_strategy) {
+      setRoundRobinStrategy(template.round_robin_strategy as RoundRobinStrategy);
+    }
+    if (template.round_robin_period) {
+      setRoundRobinPeriod(template.round_robin_period as RoundRobinPeriod);
+    }
+
+    // Store extra template data (fields not shown in form but sent to API)
+    setTemplateExtraData({
+      banner_image: template.banner_image,
+      custom_questions: template.custom_questions,
+      prep_materials: template.prep_materials,
+      allow_guests: template.allow_guests || false,
+      guest_limit: template.guest_limit || 0,
+      confirmation_subject: template.confirmation_subject,
+      confirmation_body: template.confirmation_body,
+      reminder_subject: template.reminder_subject,
+      reminder_body: template.reminder_body,
+      cancellation_subject: template.cancellation_subject,
+      cancellation_body: template.cancellation_body,
+      no_show_subject: template.no_show_subject,
+      no_show_body: template.no_show_body,
+      no_show_emails_enabled: template.no_show_emails_enabled || false,
+      no_show_email_delay_hours: template.no_show_email_delay_hours || 24,
+      sms_reminders_enabled: template.sms_reminders_enabled || false,
+      sms_phone_required: template.sms_phone_required || false,
+      phone_required: template.phone_required || false,
+      sms_reminder_24h_template: template.sms_reminder_24h_template,
+      sms_reminder_1h_template: template.sms_reminder_1h_template,
+      waitlist_enabled: template.waitlist_enabled || false,
+      waitlist_limit: template.waitlist_limit,
+      ignore_busy_blocks: template.ignore_busy_blocks || false,
+    });
   };
 
   // Fetch team members when round-robin or collective is selected
@@ -235,6 +308,7 @@ export default function NewEventPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          ...templateExtraData, // Include all template-provided fields
           max_attendees: parseInt(maxAttendeesInput) || 2,
           meeting_type: meetingType,
           min_notice_hours: minNoticeHours,

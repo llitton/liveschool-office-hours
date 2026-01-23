@@ -93,6 +93,18 @@ export async function POST(
     // Round-robin
     round_robin_strategy: event.round_robin_strategy,
     round_robin_period: event.round_robin_period,
+    // Extended fields (migration 033)
+    subtitle: event.subtitle,
+    banner_image: event.banner_image,
+    no_show_subject: event.no_show_subject,
+    no_show_body: event.no_show_body,
+    no_show_emails_enabled: event.no_show_emails_enabled || false,
+    no_show_email_delay_hours: event.no_show_email_delay_hours || 24,
+    sms_reminder_24h_template: event.sms_reminder_24h_template,
+    sms_reminder_1h_template: event.sms_reminder_1h_template,
+    max_daily_bookings: event.max_daily_bookings,
+    max_weekly_bookings: event.max_weekly_bookings,
+    ignore_busy_blocks: event.ignore_busy_blocks || false,
   };
 
   const { data: template, error: templateError } = await supabase
