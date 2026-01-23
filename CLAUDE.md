@@ -471,6 +471,11 @@ CHECK constraints prevent invalid data at the database level:
 - Disable submit button until validation passes
 - Provide clickable alternatives when a value is taken (e.g., slug suggestions)
 
+### Multi-line Input Handling
+- **Preserve user input while typing:** Don't filter or clean up text in `onChange` handlers
+- **Clean up on blur:** Filter empty lines or normalize data when user leaves the field (`onBlur`)
+- Example: Dropdown options textarea keeps empty lines while editing, cleans up when focus leaves
+
 ### Dashboard & Card Design
 - **Copy Link is primary action:** Users visit the dashboard most often to grab a booking link - make Copy Link the most prominent button
 - **Whole card is clickable:** Don't have competing click targets (chevron AND button) - make the entire card a link

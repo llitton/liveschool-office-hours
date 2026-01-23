@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-23-dropdown-options-fix',
+    date: '2026-01-23',
+    title: 'Dropdown Options Input Fixed',
+    description: 'Pressing Enter now works correctly when adding multiple options to dropdown questions.',
+    category: 'fix',
+    details: [
+      'Enter key now creates new lines as expected',
+      'Empty lines are cleaned up when you click away',
+      'Affects dropdown questions in event settings',
+    ],
+  },
+  {
     id: '2026-01-23-invite-email-ux',
     date: '2026-01-23',
     title: 'Improved Invitation Emails',
