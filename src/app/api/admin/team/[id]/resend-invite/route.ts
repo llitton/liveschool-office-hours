@@ -56,6 +56,10 @@ export async function POST(
     const inviterName = inviter.name || inviter.email;
     const inviteeName = admin.name || admin.email.split('@')[0];
 
+    const profileImageHtml = inviter.profile_image
+      ? `<img src="${inviter.profile_image}" alt="${inviterName}" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; vertical-align: middle;" />`
+      : '';
+
     await sendEmail(
       inviter.google_access_token,
       inviter.google_refresh_token,
@@ -64,7 +68,7 @@ export async function POST(
         subject: `Reminder: ${inviterName} invited you to Connect with LiveSchool`,
         htmlBody: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #1a1a1a; margin-bottom: 20px;">You've been invited to Connect with LiveSchool!</h2>
+            <h2 style="color: #1a1a1a; margin-bottom: 20px;">Reminder: You've been invited to Connect with LiveSchool!</h2>
 
             <p style="color: #444; font-size: 16px; line-height: 1.6;">
               Hi ${inviteeName},
@@ -74,27 +78,31 @@ export async function POST(
               This is a reminder that ${inviterName} has invited you to join <strong>Connect with LiveSchool</strong> — our internal scheduling tool for demos, support calls, onboardings, and office hours.
             </p>
 
-            <div style="margin: 30px 0;">
+            <div style="margin: 30px 0; text-align: center;">
               <a href="${appUrl}/admin"
-                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
-                Get Started
+                 style="display: inline-block; background-color: #6F71EE; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; width: 100%; max-width: 280px; box-sizing: border-box; text-align: center;">
+                Get Started &rarr;
               </a>
+              <p style="color: #888; font-size: 13px; margin-top: 10px;">Takes less than 60 seconds</p>
             </div>
 
             <p style="color: #444; font-size: 16px; line-height: 1.6;">
               Once you sign in with your Google account, you'll be able to:
             </p>
 
-            <ul style="color: #444; font-size: 16px; line-height: 1.8;">
-              <li>Set your availability for calls</li>
-              <li>Get assigned to round-robin demo requests</li>
-              <li>Manage your bookings and calendar</li>
-              <li>Connect with customers via Google Meet</li>
+            <ul style="color: #444; font-size: 16px; line-height: 2; list-style: none; padding-left: 0;">
+              <li>&#128197; <strong>Set</strong> your availability for calls</li>
+              <li>&#128101; <strong>Get assigned</strong> to round-robin demo requests</li>
+              <li>&#128203; <strong>Manage</strong> your bookings and calendar</li>
+              <li>&#127909; <strong>Connect</strong> with customers via Google Meet</li>
             </ul>
 
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              — ${inviterName}
-            </p>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+              <div style="display: flex; align-items: center;">
+                ${profileImageHtml}
+                <span style="color: #666; font-size: 14px;">— ${inviterName}</span>
+              </div>
+            </div>
           </div>
         `,
         replyTo: inviter.email,
