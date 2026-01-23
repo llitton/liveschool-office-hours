@@ -7,7 +7,7 @@ import {
   defaultTemplates,
 } from '@/lib/email-templates';
 import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
-import { findOrCreateContact, logMeetingActivity } from '@/lib/hubspot';
+import { findOrCreateContact, logMeetingActivity, getContactWithCompany } from '@/lib/hubspot';
 import { notifyNewBooking } from '@/lib/slack';
 import { matchPrepResources } from '@/lib/prep-matcher';
 import { generateConfirmationEmailHtml } from '@/lib/email-html';
@@ -840,21 +840,62 @@ export async function POST(request: NextRequest) {
     (err) => console.error('HubSpot sync failed:', err)
   );
 
-  // Send Slack notification (non-blocking)
-  notifyNewBooking(
-    {
-      id: booking.id,
-      attendee_name: `${first_name} ${last_name}`,
-      attendee_email: email,
-      response_text: question_responses?.question || question_responses?.response,
-    },
-    { name: slot.event.name, slug: slot.event.slug },
-    {
-      start_time: slot.start_time,
-      end_time: slot.end_time,
-      google_meet_link: slot.google_meet_link,
+  // Send Slack notification with enrichment data (non-blocking)
+  (async () => {
+    try {
+      // Fetch HubSpot enrichment data
+      let enrichment: {
+        organization?: string | null;
+        isFirstTime?: boolean;
+        previousBookings?: number;
+        hubspotContactId?: string | null;
+      } = {};
+
+      // Get HubSpot contact info (company name, meetings count)
+      const hubspotContact = await getContactWithCompany(email).catch(() => null);
+      if (hubspotContact) {
+        enrichment.organization = hubspotContact.company?.name || null;
+        enrichment.hubspotContactId = hubspotContact.id;
+        // Use HubSpot meetings count for first-time/returning (subtract 1 since this booking was just synced)
+        const previousMeetings = Math.max(0, hubspotContact.meetingsCount - 1);
+        enrichment.isFirstTime = previousMeetings === 0;
+        enrichment.previousBookings = previousMeetings;
+      } else {
+        // Fall back to checking our database for previous bookings
+        const { count } = await supabase
+          .from('oh_bookings')
+          .select('id', { count: 'exact', head: true })
+          .eq('attendee_email', email)
+          .neq('id', booking.id)
+          .is('cancelled_at', null);
+
+        enrichment.isFirstTime = (count || 0) === 0;
+        enrichment.previousBookings = count || 0;
+      }
+
+      await notifyNewBooking(
+        {
+          id: booking.id,
+          attendee_name: `${first_name} ${last_name}`,
+          attendee_email: email,
+          question_responses: question_responses,
+        },
+        {
+          name: slot.event.name,
+          slug: slot.event.slug,
+          custom_questions: slot.event.custom_questions as Array<{ id: string; label: string }> | null,
+        },
+        {
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          google_meet_link: slot.google_meet_link,
+        },
+        enrichment
+      );
+    } catch (err) {
+      console.error('Slack notification failed:', err);
     }
-  ).catch((err) => console.error('Slack notification failed:', err));
+  })();
 
   // Track booking_created analytics event (non-blocking)
   if (analytics_session_id) {

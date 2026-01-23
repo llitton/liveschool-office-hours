@@ -118,20 +118,49 @@ export async function sendSlackMessage(message: SlackMessage): Promise<boolean> 
 }
 
 /**
+ * Format relative time (e.g., "in 2 days", "tomorrow", "in 3 hours")
+ */
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = date.getTime() - now.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    if (diffHours <= 1) return 'in about an hour';
+    return `in ${diffHours} hours`;
+  } else if (diffDays === 1) {
+    return 'tomorrow';
+  } else if (diffDays < 7) {
+    return `in ${diffDays} days`;
+  } else if (diffDays < 14) {
+    return 'next week';
+  } else {
+    return `in ${Math.floor(diffDays / 7)} weeks`;
+  }
+}
+
+/**
  * Send booking notification to Slack
  */
 export async function notifyNewBooking(booking: {
   id: string;
   attendee_name: string;
   attendee_email: string;
-  response_text?: string;
+  question_responses?: Record<string, string> | null;
 }, event: {
   name: string;
   slug: string;
+  custom_questions?: Array<{ id: string; label: string }> | null;
 }, slot: {
   start_time: string;
   end_time: string;
   google_meet_link?: string;
+}, enrichment?: {
+  organization?: string | null;
+  isFirstTime?: boolean;
+  previousBookings?: number;
+  hubspotContactId?: string | null;
 }): Promise<boolean> {
   const config = await getSlackConfig();
   if (!config || !config.notify_on_booking) {
@@ -148,6 +177,22 @@ export async function notifyNewBooking(booking: {
     hour: 'numeric',
     minute: '2-digit',
   });
+  const relativeTime = formatRelativeTime(startDate);
+
+  // Build attendee info with organization
+  let attendeeText = `*${booking.attendee_name}*\n${booking.attendee_email}`;
+
+  // Build organization and status text
+  let orgStatusText = '';
+  if (enrichment?.organization) {
+    orgStatusText = `🏫 ${enrichment.organization}\n`;
+  }
+  if (enrichment?.isFirstTime) {
+    orgStatusText += '✨ First session';
+  } else if (enrichment?.previousBookings && enrichment.previousBookings > 0) {
+    const suffix = enrichment.previousBookings === 1 ? 'session' : 'sessions';
+    orgStatusText += `🔄 ${enrichment.previousBookings} previous ${suffix}`;
+  }
 
   const message: SlackMessage = {
     blocks: [
@@ -155,7 +200,7 @@ export async function notifyNewBooking(booking: {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: 'New Connect Booking',
+          text: `📅 New Booking: ${event.name}`,
           emoji: true,
         },
       },
@@ -164,41 +209,70 @@ export async function notifyNewBooking(booking: {
         fields: [
           {
             type: 'mrkdwn',
-            text: `*Event:*\n${event.name}`,
+            text: `👤 ${attendeeText}`,
           },
           {
             type: 'mrkdwn',
-            text: `*When:*\n${formattedDate} at ${formattedTime}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Attendee:*\n${booking.attendee_name}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Email:*\n${booking.attendee_email}`,
+            text: orgStatusText || '_No organization on file_',
           },
         ],
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `🕐 *${formattedDate} at ${formattedTime}* (${relativeTime})`,
+        },
       },
     ],
   };
 
-  if (booking.response_text) {
-    message.blocks!.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Topic/Question:*\n>${booking.response_text.replace(/\n/g, '\n>')}`,
-      },
-    });
+  // Add all question responses with their labels
+  if (booking.question_responses && Object.keys(booking.question_responses).length > 0) {
+    // Create a map of question IDs to labels
+    const questionLabels: Record<string, string> = {};
+    if (event.custom_questions) {
+      for (const q of event.custom_questions) {
+        questionLabels[q.id] = q.label;
+      }
+    }
+
+    // Add each question/response as a section
+    for (const [questionId, response] of Object.entries(booking.question_responses)) {
+      if (response && response.trim()) {
+        const label = questionLabels[questionId] || 'Response';
+        message.blocks!.push({
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `💬 *${label}*\n>${response.replace(/\n/g, '\n>')}`,
+          },
+        });
+      }
+    }
   }
 
+  // Add divider before action links
+  message.blocks!.push({
+    type: 'divider',
+  } as SlackBlock);
+
+  // Build action links
+  const actionLinks: string[] = [];
   if (slot.google_meet_link) {
+    actionLinks.push(`<${slot.google_meet_link}|Join Google Meet>`);
+  }
+  if (enrichment?.hubspotContactId) {
+    const hubspotUrl = `https://app.hubspot.com/contacts/${process.env.HUBSPOT_PORTAL_ID || ''}/contact/${enrichment.hubspotContactId}`;
+    actionLinks.push(`<${hubspotUrl}|View in HubSpot>`);
+  }
+
+  if (actionLinks.length > 0) {
     message.blocks!.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `<${slot.google_meet_link}|Join Google Meet>`,
+        text: actionLinks.join('  •  '),
       },
     });
   }
