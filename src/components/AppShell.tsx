@@ -89,6 +89,62 @@ const subNavConfig: Record<string, SubNavItem[]> = {
 };
 
 // =============================================================================
+// WHAT'S NEW BUTTON COMPONENT
+// =============================================================================
+function WhatsNewButton() {
+  const [hasUnseen, setHasUnseen] = useState(false);
+  const [unseenCount, setUnseenCount] = useState(0);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // Don't fetch if we're on the changelog page (it will mark as seen)
+    if (pathname === '/admin/changelog') {
+      setHasUnseen(false);
+      setUnseenCount(0);
+      return;
+    }
+
+    fetch('/api/changelog')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data) {
+          setHasUnseen(data.hasUnseen);
+          setUnseenCount(data.unseenCount);
+        }
+      })
+      .catch(() => {});
+  }, [pathname]);
+
+  const isActive = pathname === '/admin/changelog';
+
+  return (
+    <Link
+      href="/admin/changelog"
+      className={`hidden md:flex relative p-2 rounded-lg transition ${
+        isActive
+          ? 'text-[#101E57] bg-[#F6F6F9]'
+          : 'text-[#667085] hover:text-[#101E57] hover:bg-[#F6F6F9]'
+      }`}
+      title="What's New"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"
+        />
+      </svg>
+      {hasUnseen && (
+        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#6F71EE] px-1 text-[10px] font-medium text-white">
+          {unseenCount > 9 ? '9+' : unseenCount}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+// =============================================================================
 // USER MENU COMPONENT
 // =============================================================================
 interface UserData {
@@ -240,8 +296,9 @@ function Header() {
             })}
           </nav>
 
-          {/* Right: Help + User menu */}
+          {/* Right: What's New + Help + User menu */}
           <div className="flex items-center gap-2">
+            <WhatsNewButton />
             <Link
               href="/admin/help"
               className={`hidden md:flex p-2 rounded-lg transition ${
