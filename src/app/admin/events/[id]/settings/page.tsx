@@ -603,6 +603,13 @@ export default function EventSettingsPage({
                             value={(question.options || []).join('\n')}
                             onChange={(e) =>
                               updateQuestion(index, {
+                                // Keep all lines while editing (including empty), filter only preserves non-empty on blur/save
+                                options: e.target.value.split('\n'),
+                              })
+                            }
+                            onBlur={(e) =>
+                              updateQuestion(index, {
+                                // Clean up empty lines when user leaves the field
                                 options: e.target.value.split('\n').filter((o) => o.trim()),
                               })
                             }
