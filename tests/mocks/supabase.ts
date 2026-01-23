@@ -59,6 +59,7 @@ export function createMockEvent(overrides: Partial<OHEvent> = {}): OHEvent {
     single_use: false,
     one_off_expires_at: null,
     one_off_booked_at: null,
+    slack_notifications_enabled: false,
     ...overrides,
   };
 }

@@ -36,6 +36,7 @@ const NAV_SECTIONS: NavSection[] = [
   { id: 'booking-rules', label: 'Booking Rules', hideFor: ['webinar'] },
   { id: 'timezone', label: 'Timezone', hideFor: ['round_robin'] },
   { id: 'hubspot-settings', label: 'HubSpot' },
+  { id: 'slack-notifications', label: 'Slack' },
   { id: 'sms-reminders', label: 'SMS Reminders' },
   { id: 'phone-collection', label: 'Phone' },
   { id: 'waitlist', label: 'Waitlist', hideFor: ['one_on_one', 'round_robin'] },
@@ -106,6 +107,9 @@ export default function EventSettingsPage({
   const [hubspotMeetingType, setHubspotMeetingType] = useState<string>('');
   const [hubspotMeetingTypes, setHubspotMeetingTypes] = useState<Array<{ value: string; label: string }>>([]);
   const [hubspotConnected, setHubspotConnected] = useState(false);
+
+  // Slack notifications
+  const [slackNotificationsEnabled, setSlackNotificationsEnabled] = useState(false);
 
   // Navigation state
   const [activeSection, setActiveSection] = useState('event-info');
@@ -237,6 +241,9 @@ export default function EventSettingsPage({
       // Set HubSpot meeting type
       setHubspotMeetingType(eventData.hubspot_meeting_type || '');
 
+      // Set Slack notifications
+      setSlackNotificationsEnabled(eventData.slack_notifications_enabled ?? false);
+
       // Set banner state
       const currentBanner = eventData.banner_image || '';
       setBannerImage(currentBanner);
@@ -310,6 +317,8 @@ export default function EventSettingsPage({
           waitlist_limit: waitlistLimit ? parseInt(waitlistLimit) : null,
           // HubSpot integration
           hubspot_meeting_type: hubspotMeetingType || null,
+          // Slack notifications
+          slack_notifications_enabled: slackNotificationsEnabled,
         }),
       });
 
@@ -1309,6 +1318,60 @@ export default function EventSettingsPage({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Slack Notifications */}
+        <div
+          id="slack-notifications"
+          ref={(el) => { sectionRefs.current['slack-notifications'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Slack Notifications</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Get notified in Slack when new bookings are made for this event.
+          </p>
+
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={slackNotificationsEnabled}
+                onChange={(e) => setSlackNotificationsEnabled(e.target.checked)}
+                className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              />
+              <div>
+                <span className="font-medium text-[#101E57]">Enable Slack Notifications</span>
+                <p className="text-sm text-[#667085] mt-0.5">
+                  When someone books this event, a notification will be sent to your configured Slack channel
+                </p>
+              </div>
+            </label>
+
+            {slackNotificationsEnabled && (
+              <div className="ml-7 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#6F71EE] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-[#101E57]">What&apos;s included in notifications</p>
+                    <ul className="text-sm text-[#667085] mt-1 space-y-1">
+                      <li>• Attendee name and email</li>
+                      <li>• First-time or returning status</li>
+                      <li>• Date/time in the event&apos;s timezone</li>
+                      <li>• Responses to custom questions</li>
+                    </ul>
+                    <p className="text-xs text-[#667085] mt-2">
+                      Configure your Slack webhook in{' '}
+                      <Link href="/admin/integrations" className="text-[#6F71EE] hover:underline">
+                        Settings → Integrations
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* SMS Reminders */}

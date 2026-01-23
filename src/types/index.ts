@@ -98,6 +98,8 @@ export interface OHEvent {
   single_use: boolean;
   one_off_expires_at: string | null;
   one_off_booked_at: string | null;
+  // Slack notifications
+  slack_notifications_enabled: boolean;
 }
 
 export interface OHSlot {

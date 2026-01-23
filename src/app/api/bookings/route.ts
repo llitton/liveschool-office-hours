@@ -840,42 +840,44 @@ export async function POST(request: NextRequest) {
     (err) => console.error('HubSpot sync failed:', err)
   );
 
-  // Send Slack notification (runs before response to ensure it completes)
-  try {
-    // Quick database check for first-time status
-    const { count: previousBookingCount } = await supabase
-      .from('oh_bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('attendee_email', email)
-      .neq('id', booking.id)
-      .is('cancelled_at', null);
+  // Send Slack notification (only if enabled for this event)
+  if (slot.event.slack_notifications_enabled) {
+    try {
+      // Quick database check for first-time status
+      const { count: previousBookingCount } = await supabase
+        .from('oh_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('attendee_email', email)
+        .neq('id', booking.id)
+        .is('cancelled_at', null);
 
-    await notifyNewBooking(
-      {
-        id: booking.id,
-        attendee_name: `${first_name} ${last_name}`,
-        attendee_email: email,
-        question_responses: question_responses,
-      },
-      {
-        name: slot.event.name,
-        slug: slot.event.slug,
-        custom_questions: slot.event.custom_questions as Array<{ id: string; question: string }> | null,
-        timezone: slot.event.timezone,
-      },
-      {
-        start_time: slot.start_time,
-        end_time: slot.end_time,
-        google_meet_link: slot.google_meet_link,
-      },
-      {
-        isFirstTime: (previousBookingCount || 0) === 0,
-        previousBookings: previousBookingCount || 0,
-      }
-    );
-  } catch (err) {
-    // Don't fail the booking if Slack fails
-    console.error('[Slack] Notification failed:', err);
+      await notifyNewBooking(
+        {
+          id: booking.id,
+          attendee_name: `${first_name} ${last_name}`,
+          attendee_email: email,
+          question_responses: question_responses,
+        },
+        {
+          name: slot.event.name,
+          slug: slot.event.slug,
+          custom_questions: slot.event.custom_questions as Array<{ id: string; question: string }> | null,
+          timezone: slot.event.timezone,
+        },
+        {
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          google_meet_link: slot.google_meet_link,
+        },
+        {
+          isFirstTime: (previousBookingCount || 0) === 0,
+          previousBookings: previousBookingCount || 0,
+        }
+      );
+    } catch (err) {
+      // Don't fail the booking if Slack fails
+      console.error('[Slack] Notification failed:', err);
+    }
   }
 
   // Track booking_created analytics event (non-blocking)
