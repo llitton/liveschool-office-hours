@@ -2,11 +2,11 @@ import { getSession } from '@/lib/auth';
 import { getServiceSupabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import EventActions from './EventActions';
 import DashboardStats from './DashboardStats';
 import TodaysSessions from '@/components/TodaysSessions';
 import OnboardingWrapper from './OnboardingWrapper';
 import { PageContainer } from '@/components/AppShell';
+import EventsGrid from './EventsGrid';
 
 export default async function AdminPage({
   searchParams,
@@ -26,7 +26,7 @@ export default async function AdminPage({
   // Fetch events and admin data
   const supabase = getServiceSupabase();
 
-  const [eventsResult, adminResult] = await Promise.all([
+  const [eventsResult, adminResult, analyticsResult] = await Promise.all([
     supabase
       .from('oh_events')
       .select(`
@@ -37,6 +37,11 @@ export default async function AdminPage({
           end_time,
           is_cancelled,
           bookings:oh_bookings(count)
+        ),
+        hosts:oh_event_hosts(
+          admin_id,
+          role,
+          admin:oh_admins(name, email, profile_image)
         )
       `)
       .order('created_at', { ascending: false }),
@@ -44,11 +49,45 @@ export default async function AdminPage({
       .from('oh_admins')
       .select('id, google_access_token, onboarding_progress')
       .eq('email', session.email)
-      .single()
+      .single(),
+    // Aggregate booking analytics per event
+    supabase
+      .from('oh_bookings')
+      .select('slot:oh_slots!inner(event_id), created_at')
+      .is('cancelled_at', null)
   ]);
 
   const events = eventsResult.data;
   const admin = adminResult.data;
+  const bookings = analyticsResult.data;
+
+  // Compute analytics per event
+  const eventAnalytics = new Map<string, { total: number; lastBooked: string | null }>();
+  if (bookings) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bookings.forEach((booking: any) => {
+      // Supabase returns join as object when using !inner
+      const eventId = booking.slot?.event_id;
+      if (!eventId) return;
+
+      const current = eventAnalytics.get(eventId) || { total: 0, lastBooked: null };
+      current.total++;
+      if (!current.lastBooked || booking.created_at > current.lastBooked) {
+        current.lastBooked = booking.created_at;
+      }
+      eventAnalytics.set(eventId, current);
+    });
+  }
+
+  // Enrich events with analytics
+  const eventsWithAnalytics = events?.map((event) => {
+    const analytics = eventAnalytics.get(event.id);
+    return {
+      ...event,
+      total_bookings: analytics?.total ?? 0,
+      last_booked_at: analytics?.lastBooked ?? null,
+    };
+  });
 
   // Determine onboarding status
   const hasGoogleConnected = !!admin?.google_access_token;
@@ -77,7 +116,7 @@ export default async function AdminPage({
           </Link>
         </div>
 
-        {!events || events.length === 0 ? (
+        {!eventsWithAnalytics || eventsWithAnalytics.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,115 +138,7 @@ export default async function AdminPage({
             </Link>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {events.map((event) => {
-              const activeSlots = event.slots?.filter(
-                (s: { is_cancelled: boolean; start_time: string }) =>
-                  !s.is_cancelled && new Date(s.start_time) > new Date()
-              ) || [];
-              const totalBookings = activeSlots.reduce(
-                (sum: number, s: { bookings: { count: number }[] }) =>
-                  sum + (s.bookings?.[0]?.count || 0),
-                0
-              );
-              const totalCapacity = activeSlots.length * event.max_attendees;
-              const capacityPercent = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
-
-              // Determine status
-              // Non-webinar events (one_on_one, round_robin) use dynamic availability
-              const usesDynamicAvailability = event.meeting_type !== 'webinar';
-              let status: { label: string; color: string; bg: string };
-              if (activeSlots.length === 0 && !usesDynamicAvailability) {
-                status = { label: 'No slots', color: 'text-amber-700', bg: 'bg-amber-100' };
-              } else if (activeSlots.length === 0 && usesDynamicAvailability) {
-                status = { label: 'Available', color: 'text-[#417762]', bg: 'bg-[#417762]/10' };
-              } else if (capacityPercent >= 100) {
-                status = { label: 'Fully booked', color: 'text-red-700', bg: 'bg-red-100' };
-              } else if (capacityPercent >= 80) {
-                status = { label: 'Almost full', color: 'text-amber-700', bg: 'bg-amber-100' };
-              } else {
-                status = { label: 'Active', color: 'text-[#417762]', bg: 'bg-[#417762]/10' };
-              }
-
-              return (
-                <Link
-                  key={event.id}
-                  href={`/admin/events/${event.id}`}
-                  className="block bg-white rounded-lg shadow-sm border border-gray-200 hover:border-[#6F71EE]/50 hover:shadow-md transition-all group"
-                >
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-semibold text-[#101E57] group-hover:text-[#6F71EE] transition truncate">
-                            {event.name}
-                          </h3>
-                          <span className={`flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                            status.label === 'Available' || status.label === 'Active'
-                              ? 'bg-green-100 text-green-800 border-green-300'
-                              : status.label === 'No slots'
-                              ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : status.label === 'Almost full'
-                              ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : status.label === 'Fully booked'
-                              ? 'bg-red-100 text-red-800 border-red-300'
-                              : `${status.bg} ${status.color}`
-                          }`}>
-                            {status.label}
-                          </span>
-                        </div>
-                        <p className="text-[#667085] text-sm">
-                          {event.duration_minutes} min · {event.meeting_type === 'round_robin' ? 'Round Robin' : event.host_name}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Capacity bar - only show for webinars or events with slots */}
-                    {(activeSlots.length > 0 || !usesDynamicAvailability) ? (
-                      <div className="mb-3">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-[#667085]">
-                            {totalBookings} booked across {activeSlots.length} slot{activeSlots.length !== 1 ? 's' : ''}
-                          </span>
-                          <span className="text-[#101E57] font-medium">
-                            {totalCapacity > 0 ? `${capacityPercent}% full` : 'No capacity'}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-[#F6F6F9] rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              capacityPercent >= 100 ? 'bg-red-500' :
-                              capacityPercent >= 80 ? 'bg-amber-500' :
-                              capacityPercent > 0 ? 'bg-[#6F71EE]' : 'bg-gray-200'
-                            }`}
-                            style={{ width: `${Math.min(capacityPercent, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-3">
-                        <p className="text-sm text-[#667085]">
-                          Uses your availability · Slots created when booked
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Booking link preview */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-[#667085] font-mono bg-[#F6F6F9] px-2 py-1 rounded truncate">
-                        liveschoolhelp.com/book/{event.slug}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Quick actions bar */}
-                  <div className="px-5 py-3 bg-[#F6F6F9] border-t border-gray-100 flex items-center justify-end gap-2">
-                    <EventActions eventId={event.id} eventSlug={event.slug} eventName={event.name} />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <EventsGrid events={eventsWithAnalytics} />
         )}
       </PageContainer>
     </OnboardingWrapper>

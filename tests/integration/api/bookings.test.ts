@@ -132,7 +132,6 @@ function createMockSupabaseClient() {
           email: (params.p_email as string).toLowerCase(),
           manage_token: params.p_manage_token,
           question_responses: params.p_question_responses,
-          status: params.p_status,
           attendee_timezone: params.p_attendee_timezone,
           assigned_host_id: params.p_assigned_host_id,
           phone: params.p_phone,

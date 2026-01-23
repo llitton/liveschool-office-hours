@@ -405,6 +405,16 @@ CHECK constraints prevent invalid data at the database level:
 - **Show booking URL inline:** Display the full URL preview (liveschoolhelp.com/book/slug) directly on cards
 - **Sticky footers for long forms:** Keep primary actions (Create, Save) visible at all times
 
+### Events Page (Admin Dashboard)
+- **Search & Filter:** Debounced search input (300ms) filters events by name or host; meeting type tabs categorize events
+- **Grid/List Toggle:** User preference saved to localStorage; grid shows full cards, list is compact rows
+- **Host Avatars:** `AvatarStack` component shows overlapping host profile images with "+N" overflow
+- **Analytics Snippets:** Each card shows "Last booked: X days ago" and "N total bookings" aggregated from `oh_bookings`
+- **Bulk Selection:** Checkboxes on each card; "Select all"/"Deselect all" link; floating action bar with Disable/Enable/Duplicate/Delete
+- **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit`; persists to `display_order` column via `/api/events/reorder`
+- **Disabled Status Badge:** Gray badge for `is_active=false` events, distinct from active/full states
+- **Reorder restriction:** Drag-and-drop only enabled when no filters are active (all events visible)
+
 ### Event Settings Page
 - **Sidebar navigation:** Left sidebar with section links that highlights active section on scroll (General, Questions, Team Settings, Booking Rules, HubSpot, SMS, etc.)
 - **Sticky action bar:** Save/Cancel buttons fixed at bottom of viewport, always visible

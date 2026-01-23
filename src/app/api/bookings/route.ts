@@ -481,6 +481,7 @@ export async function POST(request: NextRequest) {
   const manage_token = generateManageToken();
 
   // Determine booking status based on require_approval setting
+  // Note: status is tracked via cancelled_at, attended_at, no_show_at fields
   const bookingStatus = event.require_approval ? 'pending_approval' : 'confirmed';
 
   // === ATOMIC BOOKING CREATION ===
@@ -498,7 +499,6 @@ export async function POST(request: NextRequest) {
       p_email: email.toLowerCase(),
       p_manage_token: manage_token,
       p_question_responses: question_responses || {},
-      p_status: bookingStatus,
       p_attendee_timezone: attendee_timezone || null,
       p_assigned_host_id: assignedHostId,
       p_phone: formattedPhone,
