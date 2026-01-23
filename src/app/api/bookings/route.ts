@@ -843,6 +843,8 @@ export async function POST(request: NextRequest) {
   // Send Slack notification with enrichment data (non-blocking)
   (async () => {
     try {
+      console.log('[Slack] Starting notification for booking:', booking.id);
+
       // Fetch HubSpot enrichment data
       let enrichment: {
         organization?: string | null;
@@ -852,7 +854,13 @@ export async function POST(request: NextRequest) {
       } = {};
 
       // Get HubSpot contact info (company name, meetings count)
-      const hubspotContact = await getContactWithCompany(email).catch(() => null);
+      console.log('[Slack] Fetching HubSpot contact for:', email);
+      const hubspotContact = await getContactWithCompany(email).catch((err) => {
+        console.log('[Slack] HubSpot fetch failed:', err);
+        return null;
+      });
+      console.log('[Slack] HubSpot contact result:', hubspotContact ? 'found' : 'not found');
+
       if (hubspotContact) {
         enrichment.organization = hubspotContact.company?.name || null;
         enrichment.hubspotContactId = hubspotContact.id;
@@ -862,6 +870,7 @@ export async function POST(request: NextRequest) {
         enrichment.previousBookings = previousMeetings;
       } else {
         // Fall back to checking our database for previous bookings
+        console.log('[Slack] Falling back to database for previous bookings');
         const { count } = await supabase
           .from('oh_bookings')
           .select('id', { count: 'exact', head: true })
@@ -873,7 +882,10 @@ export async function POST(request: NextRequest) {
         enrichment.previousBookings = count || 0;
       }
 
-      await notifyNewBooking(
+      console.log('[Slack] Enrichment data:', JSON.stringify(enrichment));
+      console.log('[Slack] Calling notifyNewBooking...');
+
+      const result = await notifyNewBooking(
         {
           id: booking.id,
           attendee_name: `${first_name} ${last_name}`,
@@ -892,8 +904,9 @@ export async function POST(request: NextRequest) {
         },
         enrichment
       );
+      console.log('[Slack] notifyNewBooking returned:', result);
     } catch (err) {
-      console.error('Slack notification failed:', err);
+      console.error('[Slack] Notification failed with error:', err);
     }
   })();
 

@@ -97,11 +97,12 @@ export async function saveSlackConfig(config: Partial<SlackConfig>): Promise<boo
 export async function sendSlackMessage(message: SlackMessage): Promise<boolean> {
   const config = await getSlackConfig();
   if (!config || !config.webhook_url) {
-    console.log('Slack not configured, skipping notification');
+    console.log('[Slack] Not configured, skipping notification');
     return false;
   }
 
   try {
+    console.log('[Slack] Sending message to webhook...');
     const response = await fetch(config.webhook_url, {
       method: 'POST',
       headers: {
@@ -110,9 +111,16 @@ export async function sendSlackMessage(message: SlackMessage): Promise<boolean> 
       body: JSON.stringify(message),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Slack] Webhook error:', response.status, errorText);
+    } else {
+      console.log('[Slack] Message sent successfully');
+    }
+
     return response.ok;
   } catch (error) {
-    console.error('Failed to send Slack message:', error);
+    console.error('[Slack] Failed to send message:', error);
     return false;
   }
 }
@@ -228,18 +236,21 @@ export async function notifyNewBooking(booking: {
   };
 
   // Add all question responses with their labels
-  if (booking.question_responses && Object.keys(booking.question_responses).length > 0) {
+  if (booking.question_responses && typeof booking.question_responses === 'object') {
     // Create a map of question IDs to labels
     const questionLabels: Record<string, string> = {};
-    if (event.custom_questions) {
+    if (event.custom_questions && Array.isArray(event.custom_questions)) {
       for (const q of event.custom_questions) {
-        questionLabels[q.id] = q.label;
+        if (q && q.id && q.label) {
+          questionLabels[q.id] = q.label;
+        }
       }
     }
 
     // Add each question/response as a section
     for (const [questionId, response] of Object.entries(booking.question_responses)) {
-      if (response && response.trim()) {
+      // Ensure response is a non-empty string
+      if (response && typeof response === 'string' && response.trim()) {
         const label = questionLabels[questionId] || 'Response';
         message.blocks!.push({
           type: 'section',
