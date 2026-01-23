@@ -477,128 +477,79 @@ export async function POST(request: NextRequest) {
   }
   // === END ROUND-ROBIN ===
 
-  // Check if slot is full
-  const bookingCount = slot.bookings?.[0]?.count || 0;
-  const { count: confirmedCount, error: confirmedError } = await supabase
-    .from('oh_bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('slot_id', slot_id)
-    .is('cancelled_at', null)
-    .eq('is_waitlisted', false);
-
-  if (confirmedError) {
-    console.error('Failed to check slot capacity:', confirmedError);
-    return NextResponse.json(
-      { error: 'Unable to verify slot availability. Please try again.' },
-      { status: 500 }
-    );
-  }
-
-  const isSlotFull = (confirmedCount || 0) >= slot.event.max_attendees;
-  let isWaitlisted = false;
-  let waitlistPosition: number | null = null;
-
-  if (isSlotFull) {
-    // Check if waitlist is enabled for this event
-    if (!slot.event.waitlist_enabled) {
-      return NextResponse.json(
-        { error: 'This time slot is full' },
-        { status: 400 }
-      );
-    }
-
-    // Check waitlist limit if set
-    if (slot.event.waitlist_limit) {
-      const { count: waitlistCount, error: waitlistLimitError } = await supabase
-        .from('oh_bookings')
-        .select('id', { count: 'exact', head: true })
-        .eq('slot_id', slot_id)
-        .is('cancelled_at', null)
-        .eq('is_waitlisted', true);
-
-      if (waitlistLimitError) {
-        console.error('Failed to check waitlist limit:', waitlistLimitError);
-        return NextResponse.json(
-          { error: 'Unable to verify waitlist availability. Please try again.' },
-          { status: 500 }
-        );
-      }
-
-      if ((waitlistCount || 0) >= slot.event.waitlist_limit) {
-        return NextResponse.json(
-          { error: 'This time slot and its waitlist are both full' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Calculate waitlist position
-    const { count: currentWaitlistCount, error: waitlistPosError } = await supabase
-      .from('oh_bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('slot_id', slot_id)
-      .is('cancelled_at', null)
-      .eq('is_waitlisted', true);
-
-    if (waitlistPosError) {
-      console.error('Failed to calculate waitlist position:', waitlistPosError);
-      return NextResponse.json(
-        { error: 'Unable to add to waitlist. Please try again.' },
-        { status: 500 }
-      );
-    }
-
-    isWaitlisted = true;
-    waitlistPosition = (currentWaitlistCount || 0) + 1;
-  }
-
-  // Check if user already booked this slot
-  const { data: existingBooking } = await supabase
-    .from('oh_bookings')
-    .select('id')
-    .eq('slot_id', slot_id)
-    .eq('email', email.toLowerCase())
-    .is('cancelled_at', null)
-    .single();
-
-  if (existingBooking) {
-    return NextResponse.json(
-      { error: 'You have already booked this time slot' },
-      { status: 400 }
-    );
-  }
-
   // Generate manage token for attendee self-service
   const manage_token = generateManageToken();
 
   // Determine booking status based on require_approval setting
   const bookingStatus = event.require_approval ? 'pending_approval' : 'confirmed';
 
-  // Create the booking
-  const { data: booking, error: bookingError } = await supabase
+  // === ATOMIC BOOKING CREATION ===
+  // Use the stored procedure to create the booking atomically
+  // This prevents race conditions by:
+  // 1. Locking the slot row (SELECT FOR UPDATE)
+  // 2. Checking capacity and duplicates within the lock
+  // 3. Creating the booking in a single transaction
+  const { data: atomicResult, error: atomicError } = await supabase.rpc(
+    'create_booking_atomic',
+    {
+      p_slot_id: slot_id,
+      p_first_name: first_name,
+      p_last_name: last_name,
+      p_email: email.toLowerCase(),
+      p_manage_token: manage_token,
+      p_question_responses: question_responses || {},
+      p_status: bookingStatus,
+      p_attendee_timezone: attendee_timezone || null,
+      p_assigned_host_id: assignedHostId,
+      p_phone: formattedPhone,
+      p_sms_consent: sms_consent || false,
+      p_guest_emails: validatedGuestEmails.length > 0 ? validatedGuestEmails : [],
+    }
+  );
+
+  if (atomicError) {
+    console.error('Atomic booking creation failed:', atomicError);
+    return NextResponse.json(
+      { error: 'Unable to create booking. Please try again.' },
+      { status: 500 }
+    );
+  }
+
+  // Check if the atomic operation returned an error
+  if (!atomicResult?.success) {
+    const errorCode = atomicResult?.error_code;
+    const errorMessage = atomicResult?.error || 'Unable to create booking';
+
+    // Map error codes to appropriate HTTP status codes
+    const statusCode =
+      errorCode === 'SLOT_NOT_FOUND' ? 404 :
+      errorCode === 'SLOT_CANCELLED' ? 400 :
+      errorCode === 'DUPLICATE_BOOKING' ? 400 :
+      errorCode === 'SLOT_FULL' ? 400 :
+      errorCode === 'WAITLIST_FULL' ? 400 :
+      500;
+
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
+  }
+
+  // Fetch the full booking record
+  const { data: booking, error: bookingFetchError } = await supabase
     .from('oh_bookings')
-    .insert({
-      slot_id,
-      first_name,
-      last_name,
-      email: email.toLowerCase(),
-      manage_token,
-      question_responses: question_responses || {},
-      status: bookingStatus,
-      attendee_timezone: attendee_timezone || null,
-      assigned_host_id: assignedHostId,
-      phone: formattedPhone,
-      sms_consent: sms_consent || false,
-      is_waitlisted: isWaitlisted,
-      waitlist_position: waitlistPosition,
-      guest_emails: validatedGuestEmails.length > 0 ? validatedGuestEmails : [],
-    })
-    .select()
+    .select('*')
+    .eq('id', atomicResult.booking_id)
     .single();
 
-  if (bookingError) {
-    return NextResponse.json({ error: bookingError.message }, { status: 500 });
+  if (bookingFetchError || !booking) {
+    console.error('Failed to fetch created booking:', bookingFetchError);
+    return NextResponse.json(
+      { error: 'Booking created but unable to retrieve details' },
+      { status: 500 }
+    );
   }
+
+  const isWaitlisted = atomicResult.is_waitlisted || false;
+  const waitlistPosition = atomicResult.waitlist_position || null;
+  // === END ATOMIC BOOKING CREATION ===
 
   // Mark single-use one-off meetings as booked (only for confirmed, non-waitlisted bookings)
   if (slot.event.is_one_off && slot.event.single_use && !isWaitlisted) {
