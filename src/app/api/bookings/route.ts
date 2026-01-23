@@ -841,49 +841,59 @@ export async function POST(request: NextRequest) {
   );
 
   // Send Slack notification with enrichment data (non-blocking)
+  // Use Promise.all to fetch enrichment in parallel, with a timeout to ensure we don't block
   (async () => {
     try {
       console.log('[Slack] Starting notification for booking:', booking.id);
 
-      // Fetch HubSpot enrichment data
-      let enrichment: {
-        organization?: string | null;
-        isFirstTime?: boolean;
-        previousBookings?: number;
-        hubspotContactId?: string | null;
-      } = {};
+      // Start enrichment fetch in background with timeout
+      const enrichmentPromise = (async () => {
+        const enrichment: {
+          organization?: string | null;
+          isFirstTime?: boolean;
+          previousBookings?: number;
+          hubspotContactId?: string | null;
+        } = {};
 
-      // Get HubSpot contact info (company name, meetings count)
-      console.log('[Slack] Fetching HubSpot contact for:', email);
-      const hubspotContact = await getContactWithCompany(email).catch((err) => {
-        console.log('[Slack] HubSpot fetch failed:', err);
-        return null;
-      });
-      console.log('[Slack] HubSpot contact result:', hubspotContact ? 'found' : 'not found');
+        try {
+          // Try HubSpot first (with 3 second timeout)
+          const hubspotContact = await Promise.race([
+            getContactWithCompany(email),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+          ]);
 
-      if (hubspotContact) {
-        enrichment.organization = hubspotContact.company?.name || null;
-        enrichment.hubspotContactId = hubspotContact.id;
-        // Use HubSpot meetings count for first-time/returning (subtract 1 since this booking was just synced)
-        const previousMeetings = Math.max(0, hubspotContact.meetingsCount - 1);
-        enrichment.isFirstTime = previousMeetings === 0;
-        enrichment.previousBookings = previousMeetings;
-      } else {
-        // Fall back to checking our database for previous bookings
-        console.log('[Slack] Falling back to database for previous bookings');
-        const { count } = await supabase
-          .from('oh_bookings')
-          .select('id', { count: 'exact', head: true })
-          .eq('attendee_email', email)
-          .neq('id', booking.id)
-          .is('cancelled_at', null);
+          if (hubspotContact) {
+            enrichment.organization = hubspotContact.company?.name || null;
+            enrichment.hubspotContactId = hubspotContact.id;
+            const previousMeetings = Math.max(0, hubspotContact.meetingsCount - 1);
+            enrichment.isFirstTime = previousMeetings === 0;
+            enrichment.previousBookings = previousMeetings;
+          } else {
+            // Fall back to database
+            const { count } = await supabase
+              .from('oh_bookings')
+              .select('id', { count: 'exact', head: true })
+              .eq('attendee_email', email)
+              .neq('id', booking.id)
+              .is('cancelled_at', null);
 
-        enrichment.isFirstTime = (count || 0) === 0;
-        enrichment.previousBookings = count || 0;
-      }
+            enrichment.isFirstTime = (count || 0) === 0;
+            enrichment.previousBookings = count || 0;
+          }
+        } catch (err) {
+          console.log('[Slack] Enrichment fetch failed, continuing without:', err);
+        }
+
+        return enrichment;
+      })();
+
+      // Wait for enrichment (max 4 seconds total)
+      const enrichment = await Promise.race([
+        enrichmentPromise,
+        new Promise<Record<string, unknown>>((resolve) => setTimeout(() => resolve({}), 4000))
+      ]);
 
       console.log('[Slack] Enrichment data:', JSON.stringify(enrichment));
-      console.log('[Slack] Calling notifyNewBooking...');
 
       const result = await notifyNewBooking(
         {
@@ -902,7 +912,12 @@ export async function POST(request: NextRequest) {
           end_time: slot.end_time,
           google_meet_link: slot.google_meet_link,
         },
-        enrichment
+        enrichment as {
+          organization?: string | null;
+          isFirstTime?: boolean;
+          previousBookings?: number;
+          hubspotContactId?: string | null;
+        }
       );
       console.log('[Slack] notifyNewBooking returned:', result);
     } catch (err) {
