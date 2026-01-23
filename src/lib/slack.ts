@@ -160,6 +160,7 @@ export async function notifyNewBooking(booking: {
   name: string;
   slug: string;
   custom_questions?: Array<{ id: string; question: string }> | null;
+  timezone?: string | null;
 }, slot: {
   start_time: string;
   end_time: string;
@@ -175,33 +176,39 @@ export async function notifyNewBooking(booking: {
     return false;
   }
 
+  // Use event timezone or default to Central
+  const timezone = event.timezone || 'America/Chicago';
+
   const startDate = new Date(slot.start_time);
   const formattedDate = startDate.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
+    timeZone: timezone,
   });
   const formattedTime = startDate.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: timezone,
   });
+  // Get short timezone name (e.g., "CT" for Central)
+  const tzAbbrev = startDate.toLocaleTimeString('en-US', {
+    timeZoneName: 'short',
+    timeZone: timezone,
+  }).split(' ').pop() || '';
+
   const relativeTime = formatRelativeTime(startDate);
 
-  // Build attendee info with organization
-  let attendeeText = `*${booking.attendee_name}*\n${booking.attendee_email}`;
-
-  // Build organization and status text
-  let orgStatusText = '';
-  if (enrichment?.organization) {
-    orgStatusText = `🏫 ${enrichment.organization}\n`;
-  }
+  // Build first-time/returning status
+  let statusText = '';
   if (enrichment?.isFirstTime) {
-    orgStatusText += '✨ First session';
+    statusText = '✨ First session';
   } else if (enrichment?.previousBookings && enrichment.previousBookings > 0) {
     const suffix = enrichment.previousBookings === 1 ? 'session' : 'sessions';
-    orgStatusText += `🔄 ${enrichment.previousBookings} previous ${suffix}`;
+    statusText = `🔄 ${enrichment.previousBookings} previous ${suffix}`;
   }
 
+  // Build message with single-column layout to avoid email wrapping
   const message: SlackMessage = {
     blocks: [
       {
@@ -214,22 +221,16 @@ export async function notifyNewBooking(booking: {
       },
       {
         type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `👤 ${attendeeText}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: orgStatusText || '_No organization on file_',
-          },
-        ],
+        text: {
+          type: 'mrkdwn',
+          text: `👤 *${booking.attendee_name}*${statusText ? `  ${statusText}` : ''}\n${booking.attendee_email}`,
+        },
       },
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `🕐 *${formattedDate} at ${formattedTime}* (${relativeTime})`,
+          text: `🕐 *${formattedDate} at ${formattedTime} ${tzAbbrev}* (${relativeTime})`,
         },
       },
     ],

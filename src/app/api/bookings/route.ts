@@ -871,6 +871,7 @@ export async function POST(request: NextRequest) {
         name: slot.event.name,
         slug: slot.event.slug,
         custom_questions: slot.event.custom_questions as Array<{ id: string; question: string }> | null,
+        timezone: slot.event.timezone,
       },
       {
         start_time: slot.start_time,
