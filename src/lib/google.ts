@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { calendarLogger, emailLogger } from './logger';
 
 /**
  * Retry configuration for Google API calls
@@ -74,15 +75,29 @@ async function withRetry<T>(
           config.maxDelayMs
         );
 
-        console.warn(
-          `${operationName} failed (attempt ${attempt + 1}/${config.maxRetries + 1}), ` +
-          `retrying in ${Math.round(delay)}ms...`,
-          error instanceof Error ? error.message : error
+        calendarLogger.warn(
+          `${operationName} failed, retrying`,
+          {
+            operation: operationName,
+            metadata: {
+              attempt: attempt + 1,
+              maxRetries: config.maxRetries + 1,
+              retryDelayMs: Math.round(delay),
+            },
+          },
+          error
         );
 
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         // Non-retryable error or max retries exceeded
+        if (attempt > 0) {
+          calendarLogger.error(
+            `${operationName} failed after ${attempt + 1} attempts`,
+            { operation: operationName },
+            error
+          );
+        }
         throw error;
       }
     }

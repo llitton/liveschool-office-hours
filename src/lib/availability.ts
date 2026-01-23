@@ -15,7 +15,7 @@ import {
   setMinutes,
   getDay,
 } from 'date-fns';
-import { fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 interface TimeSlot {
   start: Date;
@@ -211,9 +211,12 @@ export async function checkTimeAvailability(
 
     // Check if time falls within an availability pattern
     if (dayPatterns.length > 0) {
-      const timeStr = format(startTime, 'HH:mm:ss');
-      const endTimeStr = format(endTime, 'HH:mm:ss');
       const isWithinPattern = dayPatterns.some((pattern) => {
+        // Convert times to the pattern's timezone for accurate comparison
+        // This handles DST transitions correctly
+        const patternTz = pattern.timezone || 'America/New_York';
+        const timeStr = formatInTimeZone(startTime, patternTz, 'HH:mm:ss');
+        const endTimeStr = formatInTimeZone(endTime, patternTz, 'HH:mm:ss');
         return timeStr >= pattern.start_time && endTimeStr <= pattern.end_time;
       });
 
@@ -555,7 +558,7 @@ export async function getCollectiveAvailableSlots(
 
         // Skip if in the past
         if (isBefore(slotStart, new Date())) {
-          slotStart = addMinutes(slotStart, 30);
+          slotStart = addMinutes(slotStart, startTimeIncrement);
           continue;
         }
 
@@ -594,7 +597,7 @@ export async function getCollectiveAvailableSlots(
           availableSlots.push({ start: slotStart, end: slotEnd });
         }
 
-        slotStart = addMinutes(slotStart, 30);
+        slotStart = addMinutes(slotStart, startTimeIncrement);
       }
     }
 
