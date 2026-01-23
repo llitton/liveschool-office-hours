@@ -57,7 +57,7 @@ export async function PATCH(
 
       if (admin?.google_access_token && admin?.google_refresh_token) {
         try {
-          const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${booking.manage_token}`;
+          const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/manage/${booking.manage_token}`;
 
           const htmlBody = `
             <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">

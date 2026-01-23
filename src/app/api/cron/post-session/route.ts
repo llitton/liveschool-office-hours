@@ -200,7 +200,7 @@ export async function GET() {
 
       try {
         // Generate re-booking link
-        const rebookUrl = `${process.env.APP_URL || 'http://localhost:3000'}/book/${event.slug}`;
+        const rebookUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/book/${event.slug}`;
 
         // Use custom template or default
         const subject = event.no_show_subject || `We missed you at ${event.name}!`;
@@ -322,7 +322,7 @@ export async function GET() {
       if (booking.no_show_at) continue;
 
       try {
-        const feedbackUrl = `${process.env.APP_URL || 'http://localhost:3000'}/feedback/${booking.manage_token}`;
+        const feedbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/feedback/${booking.manage_token}`;
 
         const htmlBody = `
           <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">

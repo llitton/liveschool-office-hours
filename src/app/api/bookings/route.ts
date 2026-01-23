@@ -649,7 +649,7 @@ export async function POST(request: NextRequest) {
         assignedHost ? { name: assignedHost.name, email: assignedHost.email } : null
       );
 
-      const manageUrl = `${process.env.APP_URL || 'http://localhost:3000'}/manage/${manage_token}`;
+      const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/manage/${manage_token}`;
 
       // Extract the user's question/topic if provided
       const userTopic = question_responses?.question || question_responses?.response || question_responses?.topic || null;
@@ -726,7 +726,7 @@ export async function POST(request: NextRequest) {
 
         const googleCalUrl = generateGoogleCalendarUrl(calendarEvent);
         const outlookUrl = generateOutlookUrl(calendarEvent);
-        const icalUrl = `${process.env.APP_URL || 'http://localhost:3000'}/api/manage/${manage_token}/ical`;
+        const icalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/api/manage/${manage_token}/ical`;
 
         // Use the new modern email template
         htmlBody = generateConfirmationEmailHtml({
