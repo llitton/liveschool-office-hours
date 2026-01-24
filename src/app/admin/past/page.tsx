@@ -22,6 +22,8 @@ interface Session {
   attendeeCount: number;
   attendedCount: number;
   noShowCount: number;
+  feedbackCount: number;
+  averageRating: number | null;
 }
 
 export default function PastPage() {
@@ -122,6 +124,12 @@ export default function PastPage() {
             const totalAttended = daySessions.reduce((sum, s) => sum + s.attendedCount, 0);
             const totalBooked = daySessions.reduce((sum, s) => sum + s.attendeeCount, 0);
 
+            // Calculate daily feedback stats
+            const totalFeedback = daySessions.reduce((sum, s) => sum + s.feedbackCount, 0);
+            const avgRating = totalFeedback > 0
+              ? daySessions.reduce((sum, s) => sum + (s.feedbackCount > 0 && s.averageRating ? s.averageRating * s.feedbackCount : 0), 0) / totalFeedback
+              : null;
+
             return (
               <Card key={dateKey}>
                 <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#E0E0E0] flex items-center justify-between">
@@ -133,16 +141,28 @@ export default function PastPage() {
                       {formatDistanceToNow(date, { addSuffix: true })} · {daySessions.length} session{daySessions.length !== 1 ? 's' : ''}
                     </p>
                   </div>
-                  {totalBooked > 0 && (
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-[#101E57]">
-                        {totalAttended} / {totalBooked} attended
+                  <div className="flex items-center gap-6">
+                    {totalFeedback > 0 && avgRating !== null && (
+                      <div className="text-right" title={`${totalFeedback} rating${totalFeedback !== 1 ? 's' : ''}`}>
+                        <div className="text-sm font-medium text-[#F4B03D]">
+                          {'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
+                        </div>
+                        <div className="text-xs text-[#667085]">
+                          {totalFeedback} feedback
+                        </div>
                       </div>
-                      <div className="text-xs text-[#667085]">
-                        {Math.round((totalAttended / totalBooked) * 100)}% attendance
+                    )}
+                    {totalBooked > 0 && (
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-[#101E57]">
+                          {totalAttended} / {totalBooked} attended
+                        </div>
+                        <div className="text-xs text-[#667085]">
+                          {Math.round((totalAttended / totalBooked) * 100)}% attendance
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <div className="divide-y divide-[#E0E0E0]">
@@ -195,6 +215,17 @@ export default function PastPage() {
                                       {session.noShowCount}
                                     </div>
                                     <div className="text-xs text-[#667085]">no-show</div>
+                                  </div>
+                                )}
+                                {session.feedbackCount > 0 && session.averageRating !== null && (
+                                  <div className="text-center" title={`${session.feedbackCount} rating${session.feedbackCount !== 1 ? 's' : ''}`}>
+                                    <div className="text-sm font-medium text-[#F4B03D] flex items-center gap-0.5">
+                                      {'★'.repeat(Math.round(session.averageRating))}
+                                      {'☆'.repeat(5 - Math.round(session.averageRating))}
+                                    </div>
+                                    <div className="text-xs text-[#667085]">
+                                      {session.feedbackCount} feedback
+                                    </div>
                                   </div>
                                 )}
                               </div>

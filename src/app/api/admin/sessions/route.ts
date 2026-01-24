@@ -18,6 +18,9 @@ interface SessionData {
   attendeeCount: number;
   attendedCount: number;
   noShowCount: number;
+  // Feedback summary
+  feedbackCount: number;
+  averageRating: number | null;
 }
 
 // GET sessions by period: upcoming, past
@@ -50,7 +53,8 @@ export async function GET(request: NextRequest) {
         id,
         cancelled_at,
         attended_at,
-        no_show_at
+        no_show_at,
+        feedback_rating
       )
     `)
     .eq('is_cancelled', false);
@@ -85,12 +89,20 @@ export async function GET(request: NextRequest) {
       cancelled_at: string | null;
       attended_at: string | null;
       no_show_at: string | null;
+      feedback_rating: number | null;
     }>) || [];
 
     // Filter out cancelled bookings
     const activeBookings = bookings.filter(b => !b.cancelled_at);
     const attendedCount = activeBookings.filter(b => b.attended_at).length;
     const noShowCount = activeBookings.filter(b => b.no_show_at).length;
+
+    // Calculate feedback stats
+    const bookingsWithFeedback = activeBookings.filter(b => b.feedback_rating !== null);
+    const feedbackCount = bookingsWithFeedback.length;
+    const averageRating = feedbackCount > 0
+      ? bookingsWithFeedback.reduce((sum, b) => sum + (b.feedback_rating || 0), 0) / feedbackCount
+      : null;
 
     return {
       id: slot.id,
@@ -101,6 +113,8 @@ export async function GET(request: NextRequest) {
       attendeeCount: activeBookings.length,
       attendedCount,
       noShowCount,
+      feedbackCount,
+      averageRating,
     };
   });
 

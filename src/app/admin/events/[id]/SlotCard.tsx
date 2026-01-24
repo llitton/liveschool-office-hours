@@ -804,6 +804,18 @@ export default function SlotCard({
                     {bookings.filter(b => !b.cancelled_at && !b.attended_at && !b.no_show_at).length} unmarked
                   </span>
                 )}
+                {/* Feedback summary */}
+                {(() => {
+                  const feedbackBookings = bookings.filter(b => b.feedback_rating);
+                  if (feedbackBookings.length === 0) return null;
+                  const avgRating = feedbackBookings.reduce((sum, b) => sum + (b.feedback_rating || 0), 0) / feedbackBookings.length;
+                  return (
+                    <span className="text-[#F4B03D] flex items-center gap-1" title={`${feedbackBookings.length} rating${feedbackBookings.length !== 1 ? 's' : ''}`}>
+                      {'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
+                      <span className="text-[#667085]">({feedbackBookings.length})</span>
+                    </span>
+                  );
+                })()}
               </div>
               {slot.recording_link && (
                 <span className="text-xs text-[#667085] flex items-center gap-1">
