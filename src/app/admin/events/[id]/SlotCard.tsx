@@ -66,6 +66,7 @@ export default function SlotCard({
   const [savingNote, setSavingNote] = useState(false);
   const [showAttendees, setShowAttendees] = useState(false);
   const [expandedHubSpot, setExpandedHubSpot] = useState<string | null>(null);
+  const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
 
   // Tags and tasks state
   const [allTags, setAllTags] = useState<SessionTag[]>([]);
@@ -952,13 +953,60 @@ export default function SlotCard({
 
                       {/* Feedback rating if submitted */}
                       {booking.feedback_rating && (
-                        <span className="text-[#F4B03D] text-sm">
+                        <button
+                          onClick={() => setExpandedFeedback(expandedFeedback === booking.id ? null : booking.id)}
+                          className="text-[#F4B03D] text-sm hover:opacity-80 transition"
+                          title="Click to view feedback"
+                        >
                           {'★'.repeat(booking.feedback_rating)}
                           {'☆'.repeat(5 - booking.feedback_rating)}
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>
+
+                  {/* Expandable Feedback details */}
+                  {expandedFeedback === booking.id && booking.feedback_rating && (
+                    <div className="mt-2 ml-8 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-[#101E57]">Feedback</span>
+                        <button
+                          onClick={() => setExpandedFeedback(null)}
+                          className="text-[#667085] hover:text-[#101E57]"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="text-[#F4B03D] mb-2">
+                        {'★'.repeat(booking.feedback_rating)}
+                        {'☆'.repeat(5 - booking.feedback_rating)}
+                        <span className="text-[#667085] ml-2">
+                          {booking.feedback_rating === 5 && 'Excellent'}
+                          {booking.feedback_rating === 4 && 'Great'}
+                          {booking.feedback_rating === 3 && 'Good'}
+                          {booking.feedback_rating === 2 && 'Fair'}
+                          {booking.feedback_rating === 1 && 'Poor'}
+                        </span>
+                      </div>
+                      {booking.feedback_comment && (
+                        <div className="mb-2">
+                          <p className="text-xs text-[#667085] mb-1">Comment:</p>
+                          <p className="text-[#101E57]">{booking.feedback_comment}</p>
+                        </div>
+                      )}
+                      {booking.feedback_topic_suggestion && (
+                        <div>
+                          <p className="text-xs text-[#667085] mb-1">Topics for next time:</p>
+                          <p className="text-[#101E57]">{booking.feedback_topic_suggestion}</p>
+                        </div>
+                      )}
+                      {!booking.feedback_comment && !booking.feedback_topic_suggestion && (
+                        <p className="text-[#667085] italic">No additional comments</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Expandable HubSpot card (inside the row) */}
                   {isHubSpotExpanded && (
