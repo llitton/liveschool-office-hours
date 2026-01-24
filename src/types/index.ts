@@ -142,6 +142,7 @@ export interface OHBooking {
   feedback_sent_at: string | null;
   feedback_rating: number | null;
   feedback_comment: string | null;
+  feedback_topic_suggestion: string | null;
   feedback_submitted_at: string | null;
   // Recording
   recording_sent_at: string | null;
