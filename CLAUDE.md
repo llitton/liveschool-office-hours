@@ -395,6 +395,30 @@ Team members are managed at **People → Team** (`/admin/people`):
 - Mobile-responsive centered button layout
 - Resend emails include "Reminder:" in subject and heading
 
+### Attendee Feedback
+After sessions, attendees can provide feedback via email. Feedback data is stored on the `oh_bookings` table:
+
+**Database columns** (migration 040):
+- `feedback_rating` - 1-5 star rating (integer)
+- `feedback_comment` - Optional text comment about the session
+- `feedback_topic_suggestion` - Topics suggested for future sessions
+- `feedback_submitted_at` - When feedback was submitted
+- `feedback_sent_at` - When feedback request email was sent
+
+**Where feedback is displayed:**
+- **Past Sessions page** (`/admin/past`) - Star ratings and counts per session, daily averages in header
+- **Event details** (`/admin/events/[id]`) - Feedback summary in SlotCard quick status line
+- **Attendee list** - Individual ratings with expandable comments and topic suggestions
+
+**API endpoints:**
+- `GET /api/admin/sessions?period=past` - Returns `feedbackCount` and `averageRating` per session
+- `POST /api/feedback/[token]` - Submit feedback via manage token
+
+**Files:**
+- Past Sessions: `src/app/admin/past/page.tsx`
+- Sessions API: `src/app/api/admin/sessions/route.ts`
+- Event details: `src/app/admin/events/[id]/SlotCard.tsx`
+
 ## Error Handling & Reliability
 
 ### User-Friendly Error Messages

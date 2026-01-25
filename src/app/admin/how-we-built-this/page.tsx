@@ -88,6 +88,8 @@ const featureCategories = [
     icon: '📊',
     features: [
       { name: 'Booking conversion analytics', desc: 'Track funnel from view to booking' },
+      { name: 'Attendee feedback', desc: 'Star ratings, comments, and topic suggestions from attendees' },
+      { name: 'Feedback visibility', desc: 'See ratings in Past Sessions, event details, and daily summaries' },
       { name: 'CSV export', desc: 'Download analytics and booking data' },
       { name: 'Automated test suite', desc: '248+ tests covering auth, SMS, Slack, timezone, and booking logic' },
     ],

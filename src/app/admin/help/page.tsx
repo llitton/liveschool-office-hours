@@ -506,6 +506,46 @@ const helpSections: HelpSection[] = [
           'Attendees can download certificates for PD credit after being marked as attended',
         ],
       },
+      {
+        id: 'feedback',
+        title: 'Collecting & Viewing Feedback',
+        description: 'See what attendees thought about their sessions with star ratings and comments.',
+        body: 'After sessions, attendees receive a feedback request email. Their responses help you understand what\'s working and what topics to cover next.',
+        lists: [
+          {
+            label: 'How feedback works',
+            items: [
+              'Feedback emails are sent automatically after sessions end',
+              'Attendees rate their experience (1-5 stars)',
+              'They can add comments and suggest future topics',
+              'Feedback is linked to each booking record',
+            ],
+          },
+          {
+            label: 'Where to see feedback',
+            items: [
+              'Past Sessions page — star ratings and counts per session with daily averages',
+              'Event details — feedback summary in the quick status line for past slots',
+              'Expanded attendee list — individual ratings with comments and topic suggestions',
+              'Insights page — aggregated feedback trends across all sessions',
+            ],
+          },
+          {
+            label: 'Feedback data collected',
+            items: [
+              'Star rating (1-5 stars)',
+              'Optional comment about the session',
+              'Topic suggestions for future sessions',
+              'Timestamp of when feedback was submitted',
+            ],
+          },
+        ],
+        tips: [
+          'Use topic suggestions to plan future sessions around attendee interests',
+          'Track average ratings over time to measure improvement',
+          'Follow up personally on sessions with lower ratings to understand issues',
+        ],
+      },
     ],
   },
   {

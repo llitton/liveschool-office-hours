@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-feedback-visibility',
+    date: '2026-01-25',
+    title: 'Feedback Stars Visible Everywhere',
+    description: 'See attendee feedback ratings at a glance in the Past Sessions page, event details, and session summaries.',
+    category: 'feature',
+    details: [
+      'Past Sessions page now shows star ratings and feedback counts per session',
+      'Daily summaries include aggregated feedback with average ratings',
+      'Event details show feedback in the quick status line (no need to expand attendees)',
+      'Individual attendee feedback with comments viewable in the expanded attendee list',
+    ],
+  },
+  {
     id: '2026-01-23-new-question-types',
     date: '2026-01-23',
     title: 'New Question Types',
