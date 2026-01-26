@@ -642,7 +642,7 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Grid/List Toggle:** User preference saved to localStorage; grid shows full cards, list is compact rows
 - **Host Avatars:** `AvatarStack` component shows overlapping host profile images with "+N" overflow
 - **Bulk Selection:** Checkboxes on each card; "Select all"/"Deselect all" link; floating action bar with Disable/Enable/Duplicate/Delete
-- **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit`; persists to `display_order` column via `/api/events/reorder`
+- **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit` with `rectSortingStrategy` (works with grid layouts); persists to `display_order` column via `/api/events/reorder`
 - **Status badge colors:** Active/Available = emerald-100, Fully booked = red-200, Almost full = amber-200, Disabled = gray-200 (all with darker borders)
 - **Reorder restriction:** Drag-and-drop only enabled when no filters are active (all events visible)
 - **Dimmed inactive cards:** Events with `is_active=false` or webinars with no slots render at 60% opacity to visually deprioritize them
@@ -661,7 +661,16 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Buffer timeline visualization:** Visual graphic showing meeting duration with buffer blocks, time markers, and legend
 - **Priority weight sliders:** 1-10 weight slider with percentage distribution preview bar (not stars)
 
-### Team Member Display
+### Team/People Page
+- **Compact table layout:** Use table rows instead of cards - shows more members at a glance with less scrolling
+- **Collapsible add form:** "Add Team Member" button toggles a compact inline form; hidden by default to prioritize viewing existing members
+- **Search filtering:** Instant search by name or email; show "No results" message when filter returns empty
+- **Status badges with dots:** Active (green dot + border) and Pending (amber dot + border) badges are easily scannable
+- **Invitation timestamps:** Show "Invited Xd ago" below pending status to track outreach timing
+- **Responsive columns:** Hide less critical columns (Timezone, Limits) on smaller screens with `hidden sm:table-cell`
+- **Team count footer:** Show total count and filtered count when searching
+
+### Team Member Display (General)
 - **Warning badges for connection issues:** Use amber/warning colors when calendar isn't connected
 - **Action links near problems:** Add "Connect Calendar" links directly next to users with issues
 - **Status indicators on avatars:** Small badge overlays (green check, amber warning) make status scannable

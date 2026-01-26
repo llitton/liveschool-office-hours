@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PageContainer, PageHeader } from '@/components/AppShell';
 
 interface Admin {
@@ -44,6 +44,8 @@ export default function PeoplePage() {
   const [success, setSuccess] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchAdmins();
@@ -173,6 +175,16 @@ export default function PeoplePage() {
     return date.toLocaleDateString();
   };
 
+  // Filter admins based on search query
+  const filteredAdmins = useMemo(() => {
+    if (!searchQuery.trim()) return admins;
+    const query = searchQuery.toLowerCase();
+    return admins.filter(admin =>
+      admin.email.toLowerCase().includes(query) ||
+      (admin.name && admin.name.toLowerCase().includes(query))
+    );
+  }, [admins, searchQuery]);
+
   if (loading) {
     return (
       <PageContainer narrow>
@@ -197,85 +209,105 @@ export default function PeoplePage() {
       />
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 text-sm">{error}</div>
+          <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{error}</div>
         )}
 
         {success && (
-          <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6 text-sm">{success}</div>
+          <div className="bg-green-50 text-green-700 p-3 rounded-lg mb-4 text-sm">{success}</div>
         )}
 
-        {/* Add Team Member */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#E0E0E0] p-6 mb-8">
-          <h2 className="text-lg font-semibold text-[#101E57] mb-4">Add team member</h2>
-          <form onSubmit={handleAddAdmin} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1.5">
-                  Email address
-                </label>
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="colleague@liveschoolinc.com"
-                  className="w-full px-4 py-2.5 border border-[#E0E0E0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE]"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#101E57] mb-1.5">
-                  Name <span className="text-[#98A2B3] font-normal">(optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="First name"
-                  className="w-full px-4 py-2.5 border border-[#E0E0E0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE]"
-                />
-              </div>
-            </div>
-
-            <div className="bg-[#FAFAFA] rounded-lg p-4">
-              <p className="text-sm font-medium text-[#101E57] mb-2">What they&apos;ll be able to do</p>
-              <ul className="text-sm text-[#667085] space-y-1">
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Sign in with their Google account
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Host and manage sessions
-                </li>
-                <li className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  View bookings and insights
-                </li>
-              </ul>
-            </div>
-
-            <button
-              type="submit"
-              disabled={adding || !newEmail.trim()}
-              className="bg-[#101E57] text-white px-6 py-2.5 rounded-lg hover:bg-[#1a2d6e] transition disabled:opacity-50 font-medium"
+        {/* Header with Add button and Search */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="relative flex-1 max-w-sm">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#667085]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {adding ? 'Adding...' : 'Add team member'}
-            </button>
-          </form>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-[#E0E0E0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE]"
+            />
+          </div>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-2 bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium text-sm"
+          >
+            {showAddForm ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Team Member
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Team Members List */}
-        <div className="bg-white rounded-xl shadow-sm border border-[#E0E0E0] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#E0E0E0]">
-            <h2 className="text-lg font-semibold text-[#101E57]">Team members</h2>
-          </div>
+        {/* Collapsible Add Team Member Form */}
+        {showAddForm && (
+          <div className="bg-white rounded-xl shadow-sm border border-[#E0E0E0] p-5 mb-4">
+            <form onSubmit={handleAddAdmin} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Email address
+                  </label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="colleague@liveschoolinc.com"
+                    className="w-full px-3 py-2 border border-[#E0E0E0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE]"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#101E57] mb-1">
+                    Name <span className="text-[#98A2B3] font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="First name"
+                    className="w-full px-3 py-2 border border-[#E0E0E0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE]"
+                  />
+                </div>
+              </div>
 
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-[#667085]">
+                  They&apos;ll receive an invitation email to connect their Google account.
+                </p>
+                <button
+                  type="submit"
+                  disabled={adding || !newEmail.trim()}
+                  className="bg-[#101E57] text-white px-5 py-2 rounded-lg hover:bg-[#1a2d6e] transition disabled:opacity-50 font-medium text-sm"
+                >
+                  {adding ? 'Adding...' : 'Send Invitation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Team Members Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-[#E0E0E0] overflow-hidden">
           {admins.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-14 h-14 bg-[#F6F6F9] rounded-full flex items-center justify-center mx-auto mb-4">
@@ -284,113 +316,138 @@ export default function PeoplePage() {
                 </svg>
               </div>
               <h3 className="font-semibold text-[#101E57] mb-2">No team members yet</h3>
-              <p className="text-sm text-[#667085] max-w-xs mx-auto">
-                You&apos;re the only one here right now. Add team members above to let others host sessions.
+              <p className="text-sm text-[#667085] max-w-xs mx-auto mb-4">
+                You&apos;re the only one here. Add team members to let others host sessions.
               </p>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="inline-flex items-center gap-2 bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Your First Team Member
+              </button>
+            </div>
+          ) : filteredAdmins.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-[#667085]">No team members match &quot;{searchQuery}&quot;</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#E0E0E0]">
-              {admins.map((admin, index) => (
-                <div key={admin.id} className="px-6 py-4 hover:bg-[#FAFAFA] transition">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      {admin.profile_image ? (
-                        <img
-                          src={admin.profile_image}
-                          alt={admin.name || admin.email}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-semibold">
-                          {(admin.name || admin.email)[0].toUpperCase()}
+            <table className="w-full">
+              <thead className="bg-[#FAFAFA] border-b border-[#E0E0E0]">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[#667085] uppercase tracking-wider">Member</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[#667085] uppercase tracking-wider">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[#667085] uppercase tracking-wider hidden sm:table-cell">Timezone</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-[#667085] uppercase tracking-wider hidden md:table-cell">Limits</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-[#667085] uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E0E0E0]">
+                {filteredAdmins.map((admin, index) => (
+                  <tr key={admin.id} className="hover:bg-[#FAFAFA] transition">
+                    {/* Member */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {admin.profile_image ? (
+                          <img
+                            src={admin.profile_image}
+                            alt={admin.name || admin.email}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-[#6F71EE]/10 rounded-full flex items-center justify-center text-[#6F71EE] font-semibold text-sm flex-shrink-0">
+                            {(admin.name || admin.email)[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-[#101E57] text-sm truncate">
+                              {admin.name || admin.email.split('@')[0]}
+                            </p>
+                            {index === 0 && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-[#101E57] text-white flex-shrink-0">
+                                Owner
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#667085] truncate">{admin.email}</p>
                         </div>
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-[#101E57]">
-                            {admin.name || admin.email.split('@')[0]}
-                          </p>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            index === 0 ? 'bg-[#101E57] text-white' : 'bg-[#F6F6F9] text-[#667085]'
-                          }`}>
-                            {index === 0 ? 'Owner' : 'Team member'}
+                      </div>
+                    </td>
+                    {/* Status */}
+                    <td className="px-4 py-3">
+                      {admin.google_connected ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-200">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                          Active
+                        </span>
+                      ) : (
+                        <div>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                            Pending
                           </span>
-                          {admin.google_connected ? (
-                            <span className="flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded-full">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                              </svg>
-                              Active
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
-                              Pending
-                            </span>
+                          {admin.invitation_last_sent_at && (
+                            <p className="text-[10px] text-[#667085] mt-0.5">
+                              Invited {formatInviteSentTime(admin.invitation_last_sent_at)}
+                            </p>
                           )}
                         </div>
-                        <p className="text-sm text-[#667085]">{admin.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {/* Show invitation status for pending users */}
-                      {!admin.google_connected && admin.invitation_last_sent_at && (
-                        <span className="text-xs text-[#667085]">
-                          Invite sent {formatInviteSentTime(admin.invitation_last_sent_at)}
-                        </span>
                       )}
-                      {/* Resend invite button for pending users */}
-                      {!admin.google_connected && (
-                        <button
-                          onClick={() => handleResendInvite(admin.id, admin.email)}
-                          disabled={resending === admin.id}
-                          className="text-sm text-[#6F71EE] hover:text-[#5a5cd0] font-medium disabled:opacity-50"
-                        >
-                          {resending === admin.id ? 'Sending...' : 'Resend Invite'}
-                        </button>
-                      )}
-                      {index !== 0 && (
-                        <button
-                          onClick={() => handleRemoveAdmin(admin.id, admin.email)}
-                          className="text-sm text-red-600 hover:text-red-700 font-medium"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="ml-[52px] grid grid-cols-4 gap-3">
-                    <div className="bg-[#FAFAFA] rounded-lg px-3 py-2">
-                      <p className="text-xs text-[#667085] mb-0.5">Timezone</p>
-                      <p className={`text-sm font-medium ${admin.timezone ? 'text-[#101E57]' : 'text-amber-600'}`}>
+                    </td>
+                    {/* Timezone */}
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <span className={`text-sm ${admin.timezone ? 'text-[#101E57]' : 'text-amber-600'}`}>
                         {getTimezoneLabel(admin.timezone)}
-                      </p>
-                    </div>
-                    <div className="bg-[#FAFAFA] rounded-lg px-3 py-2">
-                      <p className="text-xs text-[#667085] mb-0.5">Availability</p>
-                      <p className={`text-sm font-medium ${admin.weekly_available_hours > 0 ? 'text-[#101E57]' : 'text-amber-600'}`}>
-                        {admin.weekly_available_hours > 0 ? `${admin.weekly_available_hours}h/week` : 'Not set'}
-                      </p>
-                    </div>
-                    <div className="bg-[#FAFAFA] rounded-lg px-3 py-2">
-                      <p className="text-xs text-[#667085] mb-0.5">Meeting limits</p>
-                      <p className="text-sm font-medium text-[#101E57]">
+                      </span>
+                    </td>
+                    {/* Limits */}
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <span className="text-sm text-[#667085]">
                         {admin.max_meetings_per_day}/day
-                      </p>
-                    </div>
-                    <div className="bg-[#FAFAFA] rounded-lg px-3 py-2">
-                      <p className="text-xs text-[#667085] mb-0.5">Buffer time</p>
-                      <p className="text-sm font-medium text-[#101E57]">
-                        {admin.default_buffer_before + admin.default_buffer_after}m total
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                        {admin.default_buffer_before + admin.default_buffer_after > 0 && (
+                          <span className="text-[#98A2B3]"> · {admin.default_buffer_before + admin.default_buffer_after}m buffer</span>
+                        )}
+                      </span>
+                    </td>
+                    {/* Actions */}
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {!admin.google_connected && (
+                          <button
+                            onClick={() => handleResendInvite(admin.id, admin.email)}
+                            disabled={resending === admin.id}
+                            className="text-xs text-[#6F71EE] hover:text-[#5a5cd0] font-medium disabled:opacity-50"
+                          >
+                            {resending === admin.id ? 'Sending...' : 'Resend'}
+                          </button>
+                        )}
+                        {index !== 0 && (
+                          <button
+                            onClick={() => handleRemoveAdmin(admin.id, admin.email)}
+                            className="text-xs text-red-600 hover:text-red-700 font-medium"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
+
+        {/* Team count */}
+        {admins.length > 0 && (
+          <p className="text-xs text-[#667085] mt-3 text-center">
+            {admins.length} team member{admins.length !== 1 ? 's' : ''}
+            {searchQuery && filteredAdmins.length !== admins.length && ` (${filteredAdmins.length} shown)`}
+          </p>
+        )}
     </PageContainer>
   );
 }

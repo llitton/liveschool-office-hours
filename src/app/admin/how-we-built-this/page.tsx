@@ -78,6 +78,7 @@ const featureCategories = [
       { name: 'What\'s New changelog', desc: 'Badge notification for new features with per-user tracking' },
       { name: 'Dashboard UX', desc: 'Collapsible attendee lists, prominent Join Meet button, dimmed inactive cards' },
       { name: 'Compact event cards', desc: 'Two-column grid, condensed info, reduced padding for less scrolling' },
+      { name: 'Team page table', desc: 'Compact table view with search, collapsible add form' },
       { name: 'Dismissible alerts', desc: 'Dashboard alerts can be dismissed for 24 hours with X button' },
       { name: 'Status badge colors', desc: 'High-contrast emerald/amber/red badges for quick status scanning' },
       { name: 'Empty state CTAs', desc: 'Copy Link button on events with no bookings to reduce friction' },

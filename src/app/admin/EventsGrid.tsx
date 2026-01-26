@@ -14,7 +14,7 @@ import {
 import {
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { MeetingType, MEETING_TYPE_LABELS } from '@/types';
 import EventFilters from './EventFilters';
@@ -565,7 +565,7 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
           >
             <SortableContext
               items={filteredEvents.map((e) => e.id)}
-              strategy={verticalListSortingStrategy}
+              strategy={rectSortingStrategy}
             >
               <div className="grid gap-4 pl-8 lg:grid-cols-2">
                 {filteredEvents.map((event) => (

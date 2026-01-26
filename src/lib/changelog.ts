@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-team-page-redesign',
+    date: '2026-01-25',
+    title: 'Team Page Redesign',
+    description: 'Manage your team faster with the new compact table view.',
+    category: 'improvement',
+    details: [
+      'Compact table layout shows more members at a glance',
+      'Collapsible "Add Team Member" form — click the button to expand',
+      'Search by name or email to quickly find team members',
+      'Status badges with clear Active/Pending indicators',
+    ],
+  },
+  {
     id: '2026-01-25-compact-event-cards',
     date: '2026-01-25',
     title: 'Compact Event Cards',
