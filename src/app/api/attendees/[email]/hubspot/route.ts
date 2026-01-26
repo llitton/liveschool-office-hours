@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { getContactWithCompany, isHubSpotConnected, HubSpotEnrichedContact } from '@/lib/hubspot';
+import { getContactWithCompany, isHubSpotConnected, getHubSpotConfig, HubSpotEnrichedContact } from '@/lib/hubspot';
 
 interface CachedContactData {
   hubspot: HubSpotEnrichedContact | null;
@@ -31,14 +31,17 @@ export async function GET(
   const { email } = await params;
   const decodedEmail = decodeURIComponent(email).toLowerCase();
 
-  // Check if HubSpot is connected
-  const hubspotConnected = await isHubSpotConnected();
-  if (!hubspotConnected) {
+  // Check if HubSpot is connected and get config
+  const hubspotConfig = await getHubSpotConfig();
+  const hubspotConnected = hubspotConfig ? await isHubSpotConnected() : false;
+  if (!hubspotConnected || !hubspotConfig) {
     return NextResponse.json({
       connected: false,
       message: 'HubSpot not connected',
     });
   }
+
+  const portalId = hubspotConfig.portal_id;
 
   // Check cache first
   const cacheKey = `hubspot:${decodedEmail}`;
@@ -47,6 +50,7 @@ export async function GET(
     return NextResponse.json({
       connected: true,
       fromCache: true,
+      portalId,
       ...cached.data,
     });
   }
@@ -109,6 +113,7 @@ export async function GET(
   return NextResponse.json({
     connected: true,
     fromCache: false,
+    portalId,
     ...result,
   });
 }

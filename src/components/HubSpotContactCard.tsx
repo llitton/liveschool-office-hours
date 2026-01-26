@@ -14,6 +14,7 @@ interface SessionHistory {
 interface HubSpotContactData {
   connected: boolean;
   fromCache?: boolean;
+  portalId?: string;
   hubspot: HubSpotEnrichedContact | null;
   sessionHistory: SessionHistory;
 }
@@ -199,10 +200,10 @@ export default function HubSpotContactCard({
           )}
 
           {/* Quick link to HubSpot */}
-          {data.hubspot?.id && (
+          {data.hubspot?.id && data.portalId && (
             <div className="pt-2 border-t border-gray-100">
               <a
-                href={`https://app.hubspot.com/contacts/${process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID}/contact/${data.hubspot.id}`}
+                href={`https://app.hubspot.com/contacts/${data.portalId}/record/0-1/${data.hubspot.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-[#6F71EE] hover:underline flex items-center gap-1"
