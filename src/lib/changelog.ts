@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-dashboard-ux-improvements',
+    date: '2026-01-25',
+    title: 'Dashboard UX Improvements',
+    description: 'Better visual hierarchy and actionable elements on the admin dashboard.',
+    category: 'improvement',
+    details: [
+      'Dismissible alert banners — click X to hide for 24 hours',
+      'Bolder status badges with high-contrast colors for quick scanning',
+      'Larger, more prominent search bar with purple accent',
+      'New "Copy Link" CTA on events with no bookings yet',
+    ],
+  },
+  {
     id: '2026-01-25-feedback-details',
     date: '2026-01-25',
     title: 'View Feedback Details',

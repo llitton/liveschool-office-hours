@@ -62,9 +62,25 @@ export default function DashboardStats() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchStats();
+    // Load dismissed alerts from localStorage
+    const stored = localStorage.getItem('dismissedDashboardAlerts');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // Clear dismissals older than 24 hours
+        const now = Date.now();
+        const validDismissals = Object.entries(parsed)
+          .filter(([, timestamp]) => now - (timestamp as number) < 24 * 60 * 60 * 1000)
+          .map(([key]) => key);
+        setDismissedAlerts(new Set(validDismissals));
+      } catch {
+        // Invalid stored data, ignore
+      }
+    }
   }, []);
 
   const fetchStats = async () => {
@@ -88,6 +104,18 @@ export default function DashboardStats() {
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
+  const dismissAlert = (alertType: string) => {
+    const newDismissed = new Set(dismissedAlerts);
+    newDismissed.add(alertType);
+    setDismissedAlerts(newDismissed);
+
+    // Store with timestamp for auto-expiry
+    const stored = localStorage.getItem('dismissedDashboardAlerts');
+    const existing = stored ? JSON.parse(stored) : {};
+    existing[alertType] = Date.now();
+    localStorage.setItem('dismissedDashboardAlerts', JSON.stringify(existing));
+  };
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -101,9 +129,10 @@ export default function DashboardStats() {
   const isSetupComplete = stats.setupComplete >= stats.setupTotal;
   const incompleteSetupItems = stats.setupItems.filter(item => !item.completed);
 
-  // Consolidate action items - show max 1 alert
-  const topActionItem = stats.actionItems?.[0];
-  const additionalActionsCount = (stats.actionItems?.length || 0) - 1;
+  // Filter out dismissed alerts and consolidate - show max 1 alert
+  const visibleActionItems = stats.actionItems?.filter(item => !dismissedAlerts.has(item.type)) || [];
+  const topActionItem = visibleActionItems[0];
+  const additionalActionsCount = visibleActionItems.length - 1;
 
   return (
     <div className="mb-6">
@@ -132,18 +161,18 @@ export default function DashboardStats() {
       {/* Setup complete - show status + primary action */}
       {isSetupComplete && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          {/* Single consolidated alert (if any) */}
+          {/* Single consolidated alert (if any) - dismissible */}
           {topActionItem && (
             <div className={`flex items-center justify-between p-3 rounded-lg mb-4 ${
               topActionItem.priority === 'high' ? 'bg-red-50' :
               topActionItem.priority === 'medium' ? 'bg-amber-50' : 'bg-blue-50'
             }`}>
-              <div className="flex items-center gap-3">
-                <span className={`w-2 h-2 rounded-full ${
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <span className={`flex-shrink-0 w-2 h-2 rounded-full ${
                   topActionItem.priority === 'high' ? 'bg-red-500' :
                   topActionItem.priority === 'medium' ? 'bg-amber-500' : 'bg-blue-500'
                 }`} />
-                <span className={`text-sm font-medium ${
+                <span className={`text-sm font-medium truncate ${
                   topActionItem.priority === 'high' ? 'text-red-800' :
                   topActionItem.priority === 'medium' ? 'text-amber-800' : 'text-blue-800'
                 }`}>
@@ -153,16 +182,31 @@ export default function DashboardStats() {
                   )}
                 </span>
               </div>
-              <Link
-                href={topActionItem.link}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition ${
-                  topActionItem.priority === 'high' ? 'bg-red-600 text-white hover:bg-red-700' :
-                  topActionItem.priority === 'medium' ? 'bg-amber-600 text-white hover:bg-amber-700' :
-                  'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {topActionItem.cta}
-              </Link>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link
+                  href={topActionItem.link}
+                  className={`px-3 py-1 text-sm font-medium rounded-lg transition ${
+                    topActionItem.priority === 'high' ? 'bg-red-600 text-white hover:bg-red-700' :
+                    topActionItem.priority === 'medium' ? 'bg-amber-600 text-white hover:bg-amber-700' :
+                    'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {topActionItem.cta}
+                </Link>
+                <button
+                  onClick={() => dismissAlert(topActionItem.type)}
+                  className={`p-1 rounded-md transition ${
+                    topActionItem.priority === 'high' ? 'text-red-400 hover:text-red-600 hover:bg-red-100' :
+                    topActionItem.priority === 'medium' ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-100' :
+                    'text-blue-400 hover:text-blue-600 hover:bg-blue-100'
+                  }`}
+                  title="Dismiss for 24 hours"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
 

@@ -629,18 +629,21 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 ### Dashboard & Card Design
 - **Copy Link is primary action:** Users visit the dashboard most often to grab a booking link - make Copy Link the most prominent button
 - **Whole card is clickable:** Don't have competing click targets (chevron AND button) - make the entire card a link
-- **Status badges need contrast:** Use borders and bolder colors (green-100/300, amber-100/300, red-100/300) for accessibility
+- **Status badges need contrast:** Use borders and bolder colors (emerald-100/400, amber-200/500, red-200/500) for accessibility
 - **Show booking URL inline:** Display the full URL preview (liveschoolhelp.com/book/slug) directly on cards
 - **Sticky footers for long forms:** Keep primary actions (Create, Save) visible at all times
+- **Dismissible alerts:** Alert banners have an X button to dismiss; stored in localStorage with 24-hour expiry; auto-clears old dismissals
+- **Empty state CTAs:** When an event has no bookings, show a prominent "Copy Link" button with "Copied!" feedback
 
 ### Events Page (Admin Dashboard)
 - **Search & Filter:** Debounced search input (300ms) filters events by name or host; meeting type tabs categorize events
+- **Prominent search bar:** Larger padding (py-3), 2px border, purple search icon, rounded-xl corners with shadow, hover state
 - **Grid/List Toggle:** User preference saved to localStorage; grid shows full cards, list is compact rows
 - **Host Avatars:** `AvatarStack` component shows overlapping host profile images with "+N" overflow
 - **Analytics Snippets:** Each card shows "Last booked: X days ago" and "N total bookings" aggregated from `oh_bookings`
 - **Bulk Selection:** Checkboxes on each card; "Select all"/"Deselect all" link; floating action bar with Disable/Enable/Duplicate/Delete
 - **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit`; persists to `display_order` column via `/api/events/reorder`
-- **Disabled Status Badge:** Gray badge for `is_active=false` events, distinct from active/full states
+- **Status badge colors:** Active/Available = emerald-100, Fully booked = red-200, Almost full = amber-200, Disabled = gray-200 (all with darker borders)
 - **Reorder restriction:** Drag-and-drop only enabled when no filters are active (all events visible)
 - **Dimmed inactive cards:** Events with `is_active=false` or webinars with no slots render at 60% opacity to visually deprioritize them
 
