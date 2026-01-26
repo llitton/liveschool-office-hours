@@ -526,6 +526,31 @@ After sessions, attendees can provide feedback via email. Feedback data is store
 - Sessions API: `src/app/api/admin/sessions/route.ts`
 - Event details: `src/app/admin/events/[id]/SlotCard.tsx`
 
+### Attendee Roles (HubSpot Integration)
+Attendees can be categorized by their role (Teacher, Administrator, Site Leader) using HubSpot's `user_type` field.
+
+**Where roles are displayed:**
+- **Attendee header** - Shows breakdown summary (e.g., "2 site leaders, 1 administrator, 3 teachers")
+- **Context card** - Color-coded badge at top of HubSpot context card
+
+**Role badge colors:**
+- **Purple** - Administrator
+- **Amber** - Site Leader
+- **Blue** - Teacher
+- **Gray** - Other/Unknown
+
+**API endpoints:**
+- `POST /api/attendees/batch-types` - Batch fetch user types for multiple emails
+- `GET /api/attendees/[email]/hubspot` - Get full HubSpot context including role
+
+**HubSpot field:** The role is read from `user_type` or `user_type__liveschool_` property, falling back to `jobtitle`.
+
+**Files:**
+- Batch API: `src/app/api/attendees/batch-types/route.ts`
+- HubSpot library: `src/lib/hubspot.ts` (`getContactWithCompany`)
+- Context card: `src/components/HubSpotContactCard.tsx`
+- SlotCard integration: `src/app/admin/events/[id]/SlotCard.tsx`
+
 ## Error Handling & Reliability
 
 ### User-Friendly Error Messages

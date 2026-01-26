@@ -62,6 +62,8 @@ const featureCategories = [
     features: [
       { name: 'HubSpot integration', desc: 'Contacts and meetings sync automatically' },
       { name: 'HubSpot meeting types', desc: 'Map events to HubSpot activity types for tracking' },
+      { name: 'Attendee role badges', desc: 'Show Teacher/Admin/Site Leader from HubSpot user_type' },
+      { name: 'Attendee role breakdown', desc: 'See who is attending at a glance (e.g., "2 site leaders, 1 admin")' },
       { name: 'Slack notifications', desc: 'Per-event booking alerts with attendee context' },
       { name: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
     ],

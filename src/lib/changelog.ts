@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-26-attendee-roles',
+    date: '2026-01-26',
+    title: 'Attendee Role Breakdown',
+    description: 'See at a glance who is attending each session with role-based summaries.',
+    category: 'feature',
+    details: [
+      'Attendee header shows breakdown by role (e.g., "2 site leaders, 1 administrator")',
+      'User type badge (Teacher/Administrator/Site Leader) shown in attendee context card',
+      'Color-coded badges: purple for Admin, amber for Site Leader, blue for Teacher',
+      'Roles fetched from HubSpot user_type field',
+    ],
+  },
+  {
     id: '2026-01-26-event-details-ux',
     date: '2026-01-26',
     title: 'Event Details Page UX Improvements',

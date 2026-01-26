@@ -473,10 +473,21 @@ const helpSections: HelpSection[] = [
           {
             label: 'Attendee management',
             items: [
+              'Role breakdown shows who is attending (e.g., "2 site leaders, 1 administrator")',
               'Search bar appears when a slot has 6+ attendees — filter by name or email',
               'Status badges: "New" (blue) for first-time, "Returning" (purple), "Frequent" (green)',
               'High no-show rate warning (red) helps identify attendance risks',
               'Mobile-responsive cards stack on smaller screens',
+            ],
+          },
+          {
+            label: 'HubSpot context',
+            items: [
+              'Click "Context" to see attendee details from HubSpot',
+              'Role badge shows user type: Teacher (blue), Administrator (purple), Site Leader (amber)',
+              'Company name and ARR displayed when available',
+              'Session history shows attendance record',
+              '"View in HubSpot" link opens the contact record directly',
             ],
           },
           {
