@@ -474,19 +474,50 @@ return NextResponse.json(result);
 - Add timeouts to prevent slow APIs from blocking the response
 
 ### Structured Logging
-Use `src/lib/logger.ts` for consistent logging:
+Use `src/lib/logger.ts` for consistent logging instead of `console.log`:
 ```typescript
 import { calendarLogger, bookingLogger } from '@/lib/logger';
 
+// Info level - operational events
+bookingLogger.info('Round-robin assigned host', {
+  operation: 'createBooking',
+  eventId: '...',
+  metadata: { hostEmail: 'host@example.com', reason: 'least_bookings' },
+});
+
+// Error level - failures with error object
 calendarLogger.error('Failed to create event', {
   operation: 'createCalendarEvent',
   eventId: '...',
   adminId: '...'
 }, error);
+
+// Debug level - skipped in production
+cronLogger.debug('No attendees for host, skipping', {
+  operation: 'session-prep',
+  metadata: { hostEmail: 'host@example.com' },
+});
 ```
-- JSON output in production (for log aggregation)
-- Human-readable format in development
-- Pre-configured loggers: `calendarLogger`, `emailLogger`, `hubspotLogger`, `smsLogger`, `bookingLogger`
+
+**Available loggers:**
+- `calendarLogger` - Google Calendar operations
+- `emailLogger` - Email sending
+- `hubspotLogger` - HubSpot sync
+- `smsLogger` - SMS sending (Twilio, Aircall)
+- `bookingLogger` - Booking creation/management
+- `slotLogger` - Slot operations
+- `slackLogger` - Slack notifications
+- `cronLogger` - Cron jobs
+
+**Output format:**
+- Production: JSON for log aggregation (Datadog, LogDNA, etc.)
+- Development: Human-readable with context
+
+**Log levels:**
+- `debug` - Skipped in production, useful for development
+- `info` - Normal operational events
+- `warn` - Potential issues
+- `error` - Failures with stack traces
 
 ### Database Constraints (Migration 034)
 CHECK constraints prevent invalid data at the database level:
@@ -662,6 +693,27 @@ laura@example.com
 - Question labels come from `event.custom_questions[].question` field
 - Timezone comes from `event.timezone` (defaults to America/Chicago)
 
+### System Status Dashboard
+Admin page at `/admin/system-status` for monitoring system health and integration status.
+
+**What it checks:**
+- Database connectivity (Supabase)
+- Environment variables (NEXT_PUBLIC_APP_URL, etc.)
+- Google Calendar connections (per admin)
+- HubSpot integration status
+- Slack integration status
+- SMS provider status
+- Active events and upcoming slots count
+- Recent booking activity (last 24h)
+
+**Features:**
+- Auto-refreshes every 60 seconds
+- Expandable details for each check
+- Overall status indicator (ok/warning/error)
+- Quick links to manage integrations
+
+**API:** `GET /api/admin/system-status` - Returns JSON with all checks
+
 ### What's New Changelog
 The app includes a changelog system to communicate new features to users.
 
@@ -706,5 +758,6 @@ Working features:
 - Event templates (create, edit, apply)
 - Per-event Slack notifications
 - What's New changelog with badge
+- System status dashboard
 
 See `SCHEDULING_PLATFORM_ROADMAP.md` for detailed feature roadmap.

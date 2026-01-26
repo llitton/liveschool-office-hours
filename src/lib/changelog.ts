@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-system-status',
+    date: '2026-01-25',
+    title: 'System Status Dashboard',
+    description: 'New admin page to monitor system health and integration status at a glance.',
+    category: 'feature',
+    details: [
+      'View database connectivity status',
+      'Check Google Calendar connections for all team members',
+      'Monitor HubSpot, Slack, and SMS integration status',
+      'See active events and upcoming slots count',
+      'Auto-refreshes every 60 seconds',
+    ],
+  },
+  {
     id: '2026-01-25-url-standardization',
     date: '2026-01-25',
     title: 'Improved Email Link Reliability',
