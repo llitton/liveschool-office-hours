@@ -403,6 +403,9 @@ https://app.hubspot.com/contacts/{portalId}/record/0-1/{contactId}
 
 **Important:** Never use `process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID` for the portal ID - it's stored in the database, not environment variables.
 
+**Troubleshooting "No company or deal associated":**
+If company/deal data isn't showing even though it exists in HubSpot, the issue is likely **missing OAuth scopes**. The HubSpot connection may have been authorized before the required scopes (`crm.objects.companies.read`, `crm.objects.deals.read`) were added. Solution: Have the user disconnect and reconnect HubSpot in Settings → Integrations to re-authorize with current scopes.
+
 ### Booking Flow
 1. Public page loads event config
 2. Client calculates available slots (availability patterns - busy blocks - buffers)
