@@ -12,6 +12,7 @@ interface ContactProperties {
   email: string;
   firstname?: string;
   lastname?: string;
+  associatedcompanyid?: string;
   [key: string]: string | undefined;
 }
 
@@ -187,7 +188,7 @@ export async function findContactByEmail(email: string): Promise<HubSpotContact 
             ],
           },
         ],
-        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone'],
+        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone', 'associatedcompanyid'],
       }),
     });
 
@@ -481,49 +482,59 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       lastContactedAt: null,
     };
 
-    // Get associated companies
+    // Get associated companies - try associatedcompanyid property first, then v3 associations API
     try {
-      const companiesResponse = await hubspotFetch(
-        `/crm/v4/objects/contacts/${contact.id}/associations/companies`
-      );
-      if (companiesResponse.ok) {
-        const companiesData = await companiesResponse.json();
-        if (companiesData.results && companiesData.results.length > 0) {
-          // Handle both v4 API formats: toObjectId (standard) or id (alternative)
-          const firstResult = companiesData.results[0];
-          const companyId = firstResult.toObjectId || firstResult.id;
-          if (companyId) {
-            // Get company details
-            const companyResponse = await hubspotFetch(
-              `/crm/v3/objects/companies/${companyId}?properties=name,domain`
-            );
-            if (companyResponse.ok) {
-              const companyData = await companyResponse.json();
-              result.company = {
-                id: companyId,
-                name: companyData.properties.name || 'Unknown Company',
-              };
-            }
+      let companyId: string | null = null;
+
+      // First check if contact has associatedcompanyid property (primary company)
+      if (contact.properties.associatedcompanyid) {
+        companyId = contact.properties.associatedcompanyid;
+      }
+
+      // If no primary company, try v3 associations API
+      if (!companyId) {
+        const companiesResponse = await hubspotFetch(
+          `/crm/v3/objects/contacts/${contact.id}/associations/companies`
+        );
+        if (companiesResponse.ok) {
+          const companiesData = await companiesResponse.json();
+          if (companiesData.results && companiesData.results.length > 0) {
+            // v3 API returns { results: [{ id: "123", type: "contact_to_company" }] }
+            companyId = companiesData.results[0].id;
           }
+        } else {
+          const errorText = await companiesResponse.text();
+          console.error('Company association request failed:', companiesResponse.status, errorText);
         }
-      } else {
-        console.error('Company association request failed:', companiesResponse.status);
+      }
+
+      // If we found a company ID, get its details
+      if (companyId) {
+        const companyResponse = await hubspotFetch(
+          `/crm/v3/objects/companies/${companyId}?properties=name,domain`
+        );
+        if (companyResponse.ok) {
+          const companyData = await companyResponse.json();
+          result.company = {
+            id: companyId,
+            name: companyData.properties.name || 'Unknown Company',
+          };
+        }
       }
     } catch (err) {
       console.error('Failed to fetch company association:', err);
     }
 
-    // Get associated deals
+    // Get associated deals using v3 associations API
     try {
       const dealsResponse = await hubspotFetch(
-        `/crm/v4/objects/contacts/${contact.id}/associations/deals`
+        `/crm/v3/objects/contacts/${contact.id}/associations/deals`
       );
       if (dealsResponse.ok) {
         const dealsData = await dealsResponse.json();
         if (dealsData.results && dealsData.results.length > 0) {
-          // Handle both v4 API formats: toObjectId (standard) or id (alternative)
-          const firstResult = dealsData.results[0];
-          const dealId = firstResult.toObjectId || firstResult.id;
+          // v3 API returns { results: [{ id: "123", type: "contact_to_deal" }] }
+          const dealId = dealsData.results[0].id;
           if (dealId) {
             // Get deal details
             const dealResponse = await hubspotFetch(
@@ -541,7 +552,8 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
           }
         }
       } else {
-        console.error('Deal association request failed:', dealsResponse.status);
+        const errorText = await dealsResponse.text();
+        console.error('Deal association request failed:', dealsResponse.status, errorText);
       }
     } catch (err) {
       console.error('Failed to fetch deal association:', err);
