@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-compact-event-cards',
+    date: '2026-01-25',
+    title: 'Compact Event Cards',
+    description: 'See more events at a glance with our new compact card layout.',
+    category: 'improvement',
+    details: [
+      'Two-column grid on larger screens',
+      'Reduced card height with tighter spacing',
+      'Condensed analytics into a single line',
+      'Event reordering now persists correctly',
+    ],
+  },
+  {
     id: '2026-01-25-dashboard-ux-improvements',
     date: '2026-01-25',
     title: 'Dashboard UX Improvements',
