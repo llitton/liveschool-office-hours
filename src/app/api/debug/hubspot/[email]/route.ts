@@ -94,6 +94,35 @@ export async function GET(
       );
       results.dealsV4Status = dealsV4Response.status;
       results.dealsV4Response = await dealsV4Response.json();
+
+      // Get company details using the associatedcompanyid
+      const associatedCompanyId = contactSearchData?.results?.[0]?.properties?.associatedcompanyid;
+      if (associatedCompanyId) {
+        results.associatedCompanyId = associatedCompanyId;
+        const companyDetailsResponse = await fetch(
+          `${HUBSPOT_API_BASE}/crm/v3/objects/companies/${associatedCompanyId}?properties=name,domain`,
+          {
+            headers: { Authorization: `Bearer ${config.access_token}` },
+          }
+        );
+        results.companyDetailsStatus = companyDetailsResponse.status;
+        results.companyDetailsResponse = await companyDetailsResponse.json();
+      }
+
+      // Get deal details using the first deal ID
+      const dealsV3Data = results.dealsV3Response as { results?: { id: string }[] } | undefined;
+      const firstDealId = dealsV3Data?.results?.[0]?.id;
+      if (firstDealId) {
+        results.firstDealId = firstDealId;
+        const dealDetailsResponse = await fetch(
+          `${HUBSPOT_API_BASE}/crm/v3/objects/deals/${firstDealId}?properties=dealname,dealstage,amount`,
+          {
+            headers: { Authorization: `Bearer ${config.access_token}` },
+          }
+        );
+        results.dealDetailsStatus = dealDetailsResponse.status;
+        results.dealDetailsResponse = await dealDetailsResponse.json();
+      }
     }
   } catch (err) {
     results.error = err instanceof Error ? err.message : 'Unknown error';
