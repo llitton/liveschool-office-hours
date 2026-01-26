@@ -146,12 +146,15 @@ export default function HubSpotContactCard({
 
               {data.hubspot.deal && (
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStageStyle(data.hubspot.deal.stage).bg} ${getStageStyle(data.hubspot.deal.stage).text}`}>
-                    {getStageStyle(data.hubspot.deal.stage).label}
-                  </span>
+                  {/* Only show stage badge if we have a known stage name */}
+                  {getStageStyle(data.hubspot.deal.stage).label !== 'Unknown' && (
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStageStyle(data.hubspot.deal.stage).bg} ${getStageStyle(data.hubspot.deal.stage).text}`}>
+                      {getStageStyle(data.hubspot.deal.stage).label}
+                    </span>
+                  )}
                   {data.hubspot.deal.amount && (
                     <span className="text-xs text-[#667085]">
-                      ${data.hubspot.deal.amount.toLocaleString()}
+                      ARR ${data.hubspot.deal.amount.toLocaleString()}
                     </span>
                   )}
                 </div>

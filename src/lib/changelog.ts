@@ -21,6 +21,7 @@ export const changelog: ChangelogEntry[] = [
       'Company and deal info now displays correctly (requires HubSpot reconnection if previously connected)',
       '"View in HubSpot" link now opens the correct contact record',
       'Portal ID is now automatically retrieved and saved',
+      '"Previous topics" now only shows topics from past sessions (not the current session)',
     ],
   },
   {

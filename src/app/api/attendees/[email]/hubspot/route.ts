@@ -77,9 +77,25 @@ export async function GET(
     .order('created_at', { ascending: false })
     .limit(10);
 
-  // Extract previous questions/topics
-  const previousTopics: string[] = [];
+  // Separate bookings into past and upcoming based on slot start time
+  const now = new Date();
+  const pastBookings: typeof bookings = [];
+  const upcomingBookings: typeof bookings = [];
+
   for (const booking of bookings || []) {
+    // slot is returned as a single object from the join (Supabase types it as array but it's actually singular)
+    const slot = booking.slot as unknown as { start_time: string; event: { name: string } } | null;
+    const slotStartTime = slot?.start_time;
+    if (slotStartTime && new Date(slotStartTime) < now) {
+      pastBookings.push(booking);
+    } else {
+      upcomingBookings.push(booking);
+    }
+  }
+
+  // Extract topics only from PAST sessions (not the current/upcoming one)
+  const previousTopics: string[] = [];
+  for (const booking of pastBookings) {
     if (booking.question_responses) {
       const responses = Object.values(booking.question_responses);
       for (const response of responses) {
@@ -90,9 +106,9 @@ export async function GET(
     }
   }
 
-  // Count attended sessions
-  const attendedCount = bookings?.filter((b) => b.attended_at).length || 0;
-  const totalSessions = bookings?.length || 0;
+  // Count attended sessions (only from past bookings)
+  const attendedCount = pastBookings.filter((b) => b.attended_at).length || 0;
+  const totalSessions = pastBookings.length || 0;
 
   const result = {
     hubspot: hubspotData,

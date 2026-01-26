@@ -13,6 +13,8 @@ interface ContactProperties {
   firstname?: string;
   lastname?: string;
   associatedcompanyid?: string;
+  jobtitle?: string;
+  user_type__liveschool_?: string;
   [key: string]: string | undefined;
 }
 
@@ -188,7 +190,7 @@ export async function findContactByEmail(email: string): Promise<HubSpotContact 
             ],
           },
         ],
-        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone', 'associatedcompanyid'],
+        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone', 'associatedcompanyid', 'jobtitle', 'user_type__liveschool_'],
       }),
     });
 
@@ -446,15 +448,20 @@ export interface HubSpotEnrichedContact {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  role: string | null; // Job title or user type
   company: {
     id: string;
     name: string;
+    customerSince: string | null; // Year they became a customer (earliest closed-won deal)
+    closedWonDeals: number; // Number of closed-won deals (approximates years as a partner)
+    totalArr: number | null; // Sum of all closed-won deal amounts
   } | null;
   deal: {
     id: string;
     name: string;
     stage: string;
     amount: number | null;
+    isCompanyDeal?: boolean; // true if deal is from company, not directly on contact
   } | null;
   meetingsCount: number;
   lastContactedAt: string | null;
@@ -471,11 +478,15 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       return null;
     }
 
+    // Get role from job title or custom user_type field
+    const role = contact.properties.user_type__liveschool_ || contact.properties.jobtitle || null;
+
     const result: HubSpotEnrichedContact = {
       id: contact.id,
       email: contact.properties.email,
       firstName: contact.properties.firstname || null,
       lastName: contact.properties.lastname || null,
+      role,
       company: null,
       deal: null,
       meetingsCount: 0,
@@ -508,16 +519,68 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
         }
       }
 
-      // If we found a company ID, get its details
+      // If we found a company ID, get its details and deals
       if (companyId) {
         const companyResponse = await hubspotFetch(
           `/crm/v3/objects/companies/${companyId}?properties=name,domain`
         );
         if (companyResponse.ok) {
           const companyData = await companyResponse.json();
+
+          // Get company deals to calculate partnership info
+          let customerSince: string | null = null;
+          let closedWonDeals = 0;
+          let totalArr: number | null = null;
+
+          try {
+            const companyDealsResponse = await hubspotFetch(
+              `/crm/v3/objects/companies/${companyId}/associations/deals`
+            );
+            if (companyDealsResponse.ok) {
+              const companyDealsData = await companyDealsResponse.json();
+              if (companyDealsData.results && companyDealsData.results.length > 0) {
+                // Fetch details for all deals to find closed-won ones
+                const dealIds = companyDealsData.results.slice(0, 20).map((d: { id: string }) => d.id);
+
+                for (const dealId of dealIds) {
+                  const dealResponse = await hubspotFetch(
+                    `/crm/v3/objects/deals/${dealId}?properties=dealname,dealstage,amount,closedate`
+                  );
+                  if (dealResponse.ok) {
+                    const dealData = await dealResponse.json();
+                    const stage = dealData.properties.dealstage?.toLowerCase() || '';
+
+                    // Check if it's a closed-won deal (stage usually contains "closedwon" or similar)
+                    if (stage.includes('closedwon') || stage === 'closedwon' || stage.includes('closed won')) {
+                      closedWonDeals++;
+
+                      // Track total ARR
+                      if (dealData.properties.amount) {
+                        totalArr = (totalArr || 0) + parseFloat(dealData.properties.amount);
+                      }
+
+                      // Track earliest close date
+                      if (dealData.properties.closedate) {
+                        const closeYear = new Date(dealData.properties.closedate).getFullYear().toString();
+                        if (!customerSince || closeYear < customerSince) {
+                          customerSince = closeYear;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (dealErr) {
+            console.error('Failed to fetch company deals:', dealErr);
+          }
+
           result.company = {
             id: companyId,
             name: companyData.properties.name || 'Unknown Company',
+            customerSince,
+            closedWonDeals,
+            totalArr,
           };
         }
       }
@@ -525,7 +588,7 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       console.error('Failed to fetch company association:', err);
     }
 
-    // Get associated deals using v3 associations API
+    // Get associated deals using v3 associations API (contact's direct deals)
     try {
       const dealsResponse = await hubspotFetch(
         `/crm/v3/objects/contacts/${contact.id}/associations/deals`
@@ -547,6 +610,7 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
                 name: dealData.properties.dealname || 'Unknown Deal',
                 stage: dealData.properties.dealstage || 'unknown',
                 amount: dealData.properties.amount ? parseFloat(dealData.properties.amount) : null,
+                isCompanyDeal: false,
               };
             }
           }
@@ -557,6 +621,17 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       }
     } catch (err) {
       console.error('Failed to fetch deal association:', err);
+    }
+
+    // If no direct deal on contact but company has totalArr, show that as company-level deal
+    if (!result.deal && result.company?.totalArr) {
+      result.deal = {
+        id: 'company-arr',
+        name: 'Company ARR',
+        stage: 'closedwon',
+        amount: result.company.totalArr,
+        isCompanyDeal: true,
+      };
     }
 
     // Get meetings count
