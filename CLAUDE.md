@@ -675,8 +675,9 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Grid/List Toggle:** User preference saved to localStorage; grid shows full cards, list is compact rows
 - **Host Avatars:** `AvatarStack` component shows overlapping host profile images with "+N" overflow
 - **Bulk Selection:** Checkboxes on each card; "Select all"/"Deselect all" link; floating action bar with Disable/Enable/Duplicate/Delete
-- **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit` with single-column layout for reliable dragging; persists to `display_order` column via `/api/events/reorder`
+- **Drag-and-Drop Reordering:** Toggle "Reorder" mode to enable; uses `@dnd-kit` with single-column layout; drag handles are always visible on left side of cards; persists to `display_order` column via `/api/events/reorder`
 - **Status badge colors:** Active/Available = emerald-100, Fully booked = red-200, Almost full = amber-200, Disabled = gray-200 (all with darker borders)
+- **"Allow Any Time" status:** Events with `ignore_busy_blocks=true` always show "Active" or "Available" (never "Fully booked") since they generate slots dynamically
 - **Reorder restriction:** Drag-and-drop only enabled when no filters are active (all events visible)
 - **Dimmed inactive cards:** Events with `is_active=false` or webinars with no slots render at 60% opacity to visually deprioritize them
 
