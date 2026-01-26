@@ -130,9 +130,26 @@ export default function HubSpotContactCard({
 
       {data && data.connected && (
         <div className="space-y-3">
-          {/* Company & Deal Info */}
+          {/* Role Badge & Company Info */}
           {data.hubspot && (
             <div className="space-y-2">
+              {/* User Role Badge */}
+              {data.hubspot.role && (
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                    data.hubspot.role.toLowerCase() === 'administrator'
+                      ? 'bg-purple-100 text-purple-700'
+                      : data.hubspot.role.toLowerCase() === 'site leader' || data.hubspot.role.toLowerCase() === 'site_leader'
+                      ? 'bg-amber-100 text-amber-700'
+                      : data.hubspot.role.toLowerCase() === 'teacher'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {data.hubspot.role.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              )}
+
               {data.hubspot.company && (
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-[#667085]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

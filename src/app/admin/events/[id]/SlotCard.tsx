@@ -1050,10 +1050,10 @@ export default function SlotCard({
                         </div>
                       )}
 
-                      {/* HubSpot Context button */}
+                      {/* HubSpot Context button - always collapsed, just shows toggle */}
                       <HubSpotContactCard
                         email={booking.email}
-                        expanded={isHubSpotExpanded}
+                        expanded={false}
                         onToggle={() =>
                           setExpandedHubSpot(isHubSpotExpanded ? null : booking.email)
                         }

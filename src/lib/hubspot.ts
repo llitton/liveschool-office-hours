@@ -15,6 +15,7 @@ interface ContactProperties {
   associatedcompanyid?: string;
   jobtitle?: string;
   user_type__liveschool_?: string;
+  user_type?: string;
   [key: string]: string | undefined;
 }
 
@@ -190,7 +191,7 @@ export async function findContactByEmail(email: string): Promise<HubSpotContact 
             ],
           },
         ],
-        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone', 'associatedcompanyid', 'jobtitle', 'user_type__liveschool_'],
+        properties: ['email', 'firstname', 'lastname', 'hs_object_id', 'phone', 'mobilephone', 'associatedcompanyid', 'jobtitle', 'user_type__liveschool_', 'user_type'],
       }),
     });
 
@@ -478,8 +479,8 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       return null;
     }
 
-    // Get role from job title or custom user_type field
-    const role = contact.properties.user_type__liveschool_ || contact.properties.jobtitle || null;
+    // Get role from user_type field (try both custom property names) or job title
+    const role = contact.properties.user_type || contact.properties.user_type__liveschool_ || contact.properties.jobtitle || null;
 
     const result: HubSpotEnrichedContact = {
       id: contact.id,
