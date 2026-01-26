@@ -374,8 +374,8 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
       <div className={`bg-white rounded-lg shadow-sm border transition-all group ${
         isSelected ? 'border-[#6F71EE] ring-2 ring-[#6F71EE]/20' : 'border-gray-200 hover:border-[#6F71EE]/50 hover:shadow-md'
       } ${status.isDimmed ? 'opacity-60' : ''}`}>
-        <Link href={`/admin/events/${event.id}`} className="block p-5">
-          <div className="flex justify-between items-start mb-3">
+        <Link href={`/admin/events/${event.id}`} className="block p-4">
+          <div className="flex justify-between items-start mb-2">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               {/* Checkbox */}
               <div
@@ -418,16 +418,16 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
 
           {/* Capacity bar - only show for webinars or events with slots */}
           {(activeSlots.length > 0 || !usesDynamicAvailability) ? (
-            <div className="mb-3">
-              <div className="flex justify-between text-sm mb-1">
+            <div className="mb-2">
+              <div className="flex justify-between text-xs mb-1">
                 <span className="text-[#667085]">
-                  {totalBookingsInSlots} booked across {activeSlots.length} slot{activeSlots.length !== 1 ? 's' : ''}
+                  {totalBookingsInSlots}/{activeSlots.length * event.max_attendees} booked
                 </span>
                 <span className="text-[#101E57] font-medium">
-                  {totalCapacity > 0 ? `${capacityPercent}% full` : 'No capacity'}
+                  {capacityPercent}%
                 </span>
               </div>
-              <div className="h-2 bg-[#F6F6F9] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#F6F6F9] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
                     capacityPercent >= 100 ? 'bg-red-500' :
@@ -439,51 +439,31 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
               </div>
             </div>
           ) : (
-            <div className="mb-3">
-              <p className="text-sm text-[#667085]">
-                Uses your availability · Slots created when booked
-              </p>
-            </div>
+            <p className="text-xs text-[#667085] mb-2">
+              Dynamic availability
+            </p>
           )}
 
-          {/* Analytics snippets */}
-          <div className="flex items-center gap-4 text-sm text-[#667085] mb-3">
-            <span className="flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Last booked: {formatLastBooked(event.last_booked_at)}
-            </span>
-            <span className="flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {event.total_bookings ?? 0} total bookings
-            </span>
-          </div>
+          {/* Analytics - combined into one line */}
+          <p className="text-sm text-[#667085] mb-2">
+            {formatLastBooked(event.last_booked_at)} · {event.total_bookings ?? 0} booking{(event.total_bookings ?? 0) !== 1 ? 's' : ''}
+          </p>
 
           {/* Prominent CTA for events with no bookings */}
           {(event.total_bookings ?? 0) === 0 && (
-            <div className="mb-3 p-3 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg">
-              <div className="flex items-center justify-between gap-3">
+            <div className="p-2 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg">
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-sm text-[#667085]">
-                  No bookings yet — share your link to get started
+                  No bookings yet
                 </p>
                 <CopyLinkButton slug={event.slug} />
               </div>
             </div>
           )}
-
-          {/* Booking link preview */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-[#667085] font-mono bg-[#F6F6F9] px-2 py-1 rounded truncate">
-              liveschoolhelp.com/book/{event.slug}
-            </span>
-          </div>
         </Link>
 
         {/* Quick actions bar */}
-        <div className="px-5 py-3 bg-[#F6F6F9] border-t border-gray-100 flex items-center justify-end gap-2">
+        <div className="px-4 py-2 bg-[#F6F6F9] border-t border-gray-100 flex items-center justify-end gap-2">
           <EventActions eventId={event.id} eventSlug={event.slug} eventName={event.name} />
         </div>
       </div>
@@ -587,7 +567,7 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
               items={filteredEvents.map((e) => e.id)}
               strategy={verticalListSortingStrategy}
             >
-              <div className="grid gap-4 pl-8">
+              <div className="grid gap-4 pl-8 lg:grid-cols-2">
                 {filteredEvents.map((event) => (
                   <SortableEventCard key={event.id} id={event.id}>
                     {renderEventCard(event, selectedIds.has(event.id))}
@@ -597,7 +577,7 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
             </SortableContext>
           </DndContext>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-4 lg:grid-cols-2">
             {filteredEvents.map((event) => (
               <div key={event.id}>
                 {renderEventCard(event, selectedIds.has(event.id))}
