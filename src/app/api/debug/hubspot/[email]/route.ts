@@ -48,9 +48,10 @@ export async function GET(
     });
 
     results.contactSearchStatus = searchResponse.status;
-    results.contactSearchResponse = await searchResponse.json();
+    const contactSearchData = await searchResponse.json();
+    results.contactSearchResponse = contactSearchData;
 
-    const contactId = results.contactSearchResponse?.results?.[0]?.id;
+    const contactId = contactSearchData?.results?.[0]?.id;
     results.contactId = contactId;
 
     if (contactId) {
