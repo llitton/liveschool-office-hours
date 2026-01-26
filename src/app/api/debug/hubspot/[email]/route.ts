@@ -22,20 +22,31 @@ export async function GET(
     return NextResponse.json({ error: 'HubSpot not configured' });
   }
 
+  // Check token type
+  const tokenPrefix = config.access_token?.substring(0, 10) || '';
+  const isPrivateAppToken = config.access_token?.startsWith('pat-');
+
   const results: Record<string, unknown> = {
     email: decodedEmail,
     portalId: config.portal_id,
+    tokenPrefix: tokenPrefix + '...',
+    isPrivateAppToken,
+    hasRefreshToken: !!config.refresh_token,
   };
 
-  // Check what scopes the token has
-  try {
-    const tokenInfoResponse = await fetch(
-      `https://api.hubapi.com/oauth/v1/access-tokens/${config.access_token}`
-    );
-    results.tokenInfoStatus = tokenInfoResponse.status;
-    results.tokenInfo = await tokenInfoResponse.json();
-  } catch (err) {
-    results.tokenInfoError = err instanceof Error ? err.message : 'Unknown error';
+  // Check what scopes the token has (only works for OAuth tokens, not private app tokens)
+  if (!isPrivateAppToken) {
+    try {
+      const tokenInfoResponse = await fetch(
+        `https://api.hubapi.com/oauth/v1/access-tokens/${config.access_token}`
+      );
+      results.tokenInfoStatus = tokenInfoResponse.status;
+      results.tokenInfo = await tokenInfoResponse.json();
+    } catch (err) {
+      results.tokenInfoError = err instanceof Error ? err.message : 'Unknown error';
+    }
+  } else {
+    results.tokenNote = 'Private App token detected - scopes must be configured in HubSpot Private App settings';
   }
 
   // Search for contact
