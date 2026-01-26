@@ -215,18 +215,23 @@ describe('Slack Integration', () => {
       id: 'booking-123',
       attendee_name: 'John Doe',
       attendee_email: 'john@example.com',
-      response_text: 'Question about office hours',
+      question_responses: {
+        'q1': 'Question about office hours',
+      },
     };
 
     const mockEvent = {
       name: 'Office Hours',
       slug: 'office-hours',
+      custom_questions: [
+        { id: 'q1', question: 'What topics would you like to discuss?' },
+      ],
+      timezone: 'America/Chicago',
     };
 
     const mockSlot = {
       start_time: '2024-01-15T14:00:00Z',
       end_time: '2024-01-15T14:30:00Z',
-      google_meet_link: 'https://meet.google.com/abc-defg-hij',
     };
 
     it('returns false when notify_on_booking is disabled', async () => {
@@ -280,7 +285,7 @@ describe('Slack Integration', () => {
       expect(JSON.stringify(body.blocks)).toContain('Office Hours');
     });
 
-    it('includes response text when provided', async () => {
+    it('includes question responses when provided', async () => {
       mockSlackConfig = {
         webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
         notify_on_booking: true,
@@ -295,10 +300,15 @@ describe('Slack Integration', () => {
       const fetchCall = mockFetch.mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
 
+      // Should include the response text
       expect(JSON.stringify(body.blocks)).toContain('Question about office hours');
+      // Should include the question label
+      expect(JSON.stringify(body.blocks)).toContain('What topics would you like to discuss?');
     });
 
-    it('includes Google Meet link when provided', async () => {
+    it('does not include Google Meet link (host gets it via calendar)', async () => {
+      // Google Meet links are intentionally omitted from Slack notifications
+      // because the host already receives them in the calendar invitation
       mockSlackConfig = {
         webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
         notify_on_booking: true,
@@ -308,12 +318,18 @@ describe('Slack Integration', () => {
       vi.resetModules();
       const { notifyNewBooking } = await import('@/lib/slack');
 
-      await notifyNewBooking(mockBooking, mockEvent, mockSlot);
+      const slotWithMeetLink = {
+        ...mockSlot,
+        google_meet_link: 'https://meet.google.com/abc-defg-hij',
+      };
+
+      await notifyNewBooking(mockBooking, mockEvent, slotWithMeetLink);
 
       const fetchCall = mockFetch.mock.calls[0];
       const body = JSON.parse(fetchCall[1].body);
 
-      expect(JSON.stringify(body.blocks)).toContain('meet.google.com');
+      // Meet link should NOT be in the blocks (intentionally omitted)
+      expect(JSON.stringify(body.blocks)).not.toContain('meet.google.com');
     });
   });
 

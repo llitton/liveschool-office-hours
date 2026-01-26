@@ -137,7 +137,8 @@ describe('Booking Constraints', () => {
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('requires 24 hours notice');
-      expect(result.error).toContain('12 hours away');
+      // Check that hours are roughly correct (could be 11-12 due to timing)
+      expect(result.error).toMatch(/1[12] hours away/);
     });
 
     it('accepts booking beyond min_notice_hours', () => {

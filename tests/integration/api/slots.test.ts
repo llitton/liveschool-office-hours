@@ -90,6 +90,21 @@ function createMockSupabaseClient() {
         };
       }
 
+      if (table === 'oh_event_hosts') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [], // No additional hosts by default
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
