@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-26-hubspot-link-fix',
+    date: '2026-01-26',
+    title: 'HubSpot Contact Link Fix',
+    description: 'Fixed "View in HubSpot" link in attendee context cards.',
+    category: 'fix',
+    details: [
+      'Links now correctly open the contact record in HubSpot',
+      'Previously showed "page not found" due to incorrect URL format',
+    ],
+  },
+  {
     id: '2026-01-26-dashboard-improvements',
     date: '2026-01-26',
     title: 'Dashboard Improvements',

@@ -383,6 +383,24 @@ Events can be mapped to HubSpot meeting types (hs_activity_type) for tracking:
 - When bookings sync to HubSpot, the meeting is tagged with the selected type
 - Appears as "Call and meeting type" field in HubSpot reports
 
+### HubSpot Contact Card
+The attendee context card shows HubSpot data and a "View in HubSpot" link.
+
+**URL format:** HubSpot contact URLs use the format:
+```
+https://app.hubspot.com/contacts/{portalId}/record/0-1/{contactId}
+```
+- `portalId` comes from `oh_hubspot_config.portal_id` (retrieved via API, not env var)
+- `0-1` is HubSpot's object type ID for contacts
+- `contactId` is the HubSpot contact ID returned from their API
+
+**Files:**
+- Component: `src/components/HubSpotContactCard.tsx`
+- API: `src/app/api/attendees/[email]/hubspot/route.ts`
+- HubSpot lib: `src/lib/hubspot.ts`
+
+**Important:** Never use `process.env.NEXT_PUBLIC_HUBSPOT_PORTAL_ID` for the portal ID - it's stored in the database, not environment variables.
+
 ### Booking Flow
 1. Public page loads event config
 2. Client calculates available slots (availability patterns - busy blocks - buffers)
