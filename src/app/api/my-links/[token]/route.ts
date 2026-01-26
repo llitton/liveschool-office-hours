@@ -92,7 +92,7 @@ export async function GET(
   );
 
   // Build the base URL for booking links
-  const baseUrl = process.env.APP_URL || 'https://liveschoolhelp.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   return NextResponse.json({
     admin: {

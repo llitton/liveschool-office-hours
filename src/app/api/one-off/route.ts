@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: slotsError.message }, { status: 500 });
   }
 
-  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://connect.liveschool.io'}/book/${slug}`;
+  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/book/${slug}`;
 
   return NextResponse.json({
     id: event.id,

@@ -19,7 +19,7 @@ export default function EventActions({ eventId, eventSlug, eventName }: EventAct
   const copyBookingLink = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     navigator.clipboard.writeText(`${baseUrl}/book/${eventSlug}`);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);

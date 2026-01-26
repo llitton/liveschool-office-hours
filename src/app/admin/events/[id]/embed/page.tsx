@@ -23,10 +23,10 @@ export default function EventEmbedPage({
   const [buttonText, setButtonText] = useState('Book a Session');
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
 
-  // Get the base URL for embeds
+  // Get the base URL for embeds - use NEXT_PUBLIC_APP_URL for SSR, window.location.origin for client
   const baseUrl = typeof window !== 'undefined'
     ? window.location.origin
-    : 'https://connect.liveschool.com';
+    : process.env.NEXT_PUBLIC_APP_URL || '';
 
   useEffect(() => {
     fetchEvent();

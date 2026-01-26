@@ -52,7 +52,7 @@ export async function POST(
 
   // Send the invitation email
   try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://connect.liveschool.io';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     const inviterName = inviter.name || inviter.email;
     const inviteeName = admin.name || admin.email.split('@')[0];
 

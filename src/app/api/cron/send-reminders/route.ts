@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
           variables
         );
 
-        const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/manage/${booking.manage_token}`;
+        const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${booking.manage_token}`;
 
         // Use the new modern reminder email template
         const htmlBody = generateReminderEmailHtml({

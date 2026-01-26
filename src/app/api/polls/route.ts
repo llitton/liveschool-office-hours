@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: optionsError.message }, { status: 500 });
   }
 
-  const pollUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://connect.liveschool.io'}/vote/${slug}`;
+  const pollUrl = `${process.env.NEXT_PUBLIC_APP_URL}/vote/${slug}`;
 
   return NextResponse.json({
     ...poll,

@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
   let emailSent = false;
   if (inviter.google_access_token && inviter.google_refresh_token) {
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://connect.liveschool.io';
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
       const inviterName = inviter.name || inviter.email;
       const inviteeName = name || email.split('@')[0];
 

@@ -386,7 +386,7 @@ async function promoteFromWaitlist(
       const { formatInTimeZone } = await import('date-fns-tz');
       const timezone = nextInLine.attendee_timezone || 'America/New_York';
       const sessionTime = formatInTimeZone(parseISO(slot.start_time), timezone, "EEEE, MMMM d 'at' h:mm a zzz");
-      const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com'}/manage/${nextInLine.manage_token}`;
+      const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${nextInLine.manage_token}`;
 
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">

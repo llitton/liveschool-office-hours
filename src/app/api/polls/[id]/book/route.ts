@@ -199,7 +199,14 @@ export async function POST(
 
   // Send confirmation emails to all attendees
   if (admin.google_access_token && admin.google_refresh_token) {
-    const timezone = 'America/New_York'; // TODO: Use host's timezone
+    // Get host's timezone from their availability patterns
+    const { data: tzPattern } = await supabase
+      .from('oh_availability_patterns')
+      .select('timezone')
+      .eq('admin_id', admin.id)
+      .limit(1)
+      .single();
+    const timezone = tzPattern?.timezone || 'America/New_York';
 
     for (const attendee of attendees) {
       try {
