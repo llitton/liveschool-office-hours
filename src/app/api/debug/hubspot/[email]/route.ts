@@ -27,6 +27,17 @@ export async function GET(
     portalId: config.portal_id,
   };
 
+  // Check what scopes the token has
+  try {
+    const tokenInfoResponse = await fetch(
+      `https://api.hubapi.com/oauth/v1/access-tokens/${config.access_token}`
+    );
+    results.tokenInfoStatus = tokenInfoResponse.status;
+    results.tokenInfo = await tokenInfoResponse.json();
+  } catch (err) {
+    results.tokenInfoError = err instanceof Error ? err.message : 'Unknown error';
+  }
+
   // Search for contact
   try {
     const searchResponse = await fetch(`${HUBSPOT_API_BASE}/crm/v3/objects/contacts/search`, {
