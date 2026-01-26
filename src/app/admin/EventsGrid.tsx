@@ -590,8 +590,96 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
             ))}
           </div>
         )
+      ) : canReorder && reorderMode ? (
+        // List View with drag-and-drop
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={filteredEvents.map((e) => e.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-100 ml-8">
+              {filteredEvents.map((event) => {
+                const status = getEventStatus(event);
+                const hosts = getEventHosts(event);
+                const isSelected = selectedIds.has(event.id);
+
+                return (
+                  <SortableEventCard key={event.id} id={event.id}>
+                    <div
+                      className={`flex items-center gap-4 p-4 hover:bg-[#F6F6F9]/50 transition group ${
+                        isSelected ? 'bg-[#6F71EE]/5' : ''
+                      } ${status.isDimmed ? 'opacity-60' : ''}`}
+                    >
+                      {/* Checkbox */}
+                      <div
+                        onClick={(e) => toggleSelection(event.id, e)}
+                        className="flex-shrink-0 cursor-pointer"
+                      >
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${
+                          isSelected
+                            ? 'bg-[#6F71EE] border-[#6F71EE]'
+                            : 'border-gray-300 hover:border-[#6F71EE]'
+                        }`}>
+                          {isSelected && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/admin/events/${event.id}`}
+                        className="flex items-center gap-4 flex-1 min-w-0"
+                      >
+                        {/* Host Avatar(s) */}
+                        <div className="flex-shrink-0">
+                          <AvatarStack avatars={hosts} size="sm" maxVisible={2} />
+                        </div>
+
+                        {/* Event Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-[#101E57] group-hover:text-[#6F71EE] transition truncate">
+                              {event.name}
+                            </h3>
+                            <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full border ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                          <p className="text-[#667085] text-sm">
+                            {event.duration_minutes} min · {MEETING_TYPE_LABELS[event.meeting_type]}
+                          </p>
+                        </div>
+
+                        {/* Analytics */}
+                        <div className="hidden sm:flex items-center gap-6 text-sm text-[#667085]">
+                          <span className="whitespace-nowrap">
+                            Last: {formatLastBooked(event.last_booked_at)}
+                          </span>
+                          <span className="whitespace-nowrap">
+                            {event.total_bookings ?? 0} bookings
+                          </span>
+                        </div>
+                      </Link>
+
+                      {/* Actions */}
+                      <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <EventActions eventId={event.id} eventSlug={event.slug} eventName={event.name} />
+                      </div>
+                    </div>
+                  </SortableEventCard>
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
-        // List View
+        // List View (normal mode)
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-100">
           {filteredEvents.map((event) => {
             const status = getEventStatus(event);
