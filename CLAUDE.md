@@ -711,6 +711,20 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Compact vs expanded:** Sessions with attendees get expanded card view; empty/past sessions get compact single-line rows
 - **AttendeeListModal:** Scrollable modal following QRCodeModal pattern with fixed overlay and close button
 
+### Event Details Page (`/admin/events/[id]`)
+- **Sticky header:** Event title, breadcrumb, and quick actions remain visible while scrolling with `sticky top-0 z-30`
+- **Larger breadcrumb:** Use `size="base"` prop on Breadcrumb component for better wayfinding
+- **Visual section distinction:** "Add Time Slots" configuration uses dashed border and gradient background (`bg-gradient-to-br from-[#F6F6F9] to-white border-dashed`) with "Configuration" badge to separate from content
+- **Primary action buttons:** "Join Meet" is a prominent purple button with video icon for upcoming slots; past slots show smaller text link
+- **Secondary/danger actions:** "Cancel Slot" has red hover state (`text-red-600 hover:bg-red-50`); "Export" is neutral hover
+- **Attendee status badges:** Color-coded pills indicate attendee type:
+  - Blue "New" badge for first-time attendees (`totalBookings === 1`)
+  - Purple "Returning" for repeat attendees
+  - Green "Frequent" for high-frequency attendees
+  - Red percentage for high no-show rate (>30%)
+- **Attendee search:** Search input appears when >5 attendees; filters by name or email; shows "No results" message when empty
+- **Mobile-responsive cards:** Attendee rows use `flex flex-col sm:flex-row` to stack info above actions on mobile; action buttons wrap with `flex-wrap`
+
 ### Event Settings Page
 - **Sidebar navigation:** Left sidebar with section links that highlights active section on scroll (General, Questions, Team Settings, Booking Rules, HubSpot, SMS, etc.)
 - **Sticky action bar:** Save/Cancel buttons fixed at bottom of viewport, always visible

@@ -67,6 +67,7 @@ export default function SlotCard({
   const [showAttendees, setShowAttendees] = useState(false);
   const [expandedHubSpot, setExpandedHubSpot] = useState<string | null>(null);
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
+  const [attendeeSearchTerm, setAttendeeSearchTerm] = useState('');
 
   // Tags and tasks state
   const [allTags, setAllTags] = useState<SessionTag[]>([]);
@@ -728,26 +729,42 @@ export default function SlotCard({
               </div>
             </div>
 
-            {slot.google_meet_link && (
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 mt-2">
+            {/* Primary: Google Meet (for upcoming slots) */}
+            {!isPastSlot && slot.google_meet_link && (
               <a
                 href={slot.google_meet_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 mt-2 text-sm text-[#6F71EE] hover:underline font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] transition font-medium text-sm shadow-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                  <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+                </svg>
+                Join Meet
+              </a>
+            )}
+            {/* Secondary: Google Meet link for past slots */}
+            {isPastSlot && slot.google_meet_link && (
+              <a
+                href={slot.google_meet_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-[#6F71EE] hover:underline font-medium"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
                 </svg>
                 Google Meet
               </a>
             )}
-          </div>
-
-          <div className="flex gap-2">
             {slot.booking_count > 0 && (
               <a
                 href={`/api/slots/${slot.id}/export`}
-                className="text-[#417762] hover:text-[#355f4f] text-sm font-medium"
+                className="px-3 py-2 text-sm font-medium text-[#667085] hover:text-[#101E57] hover:bg-gray-100 rounded-lg transition"
               >
                 Export
               </a>
@@ -755,9 +772,9 @@ export default function SlotCard({
             {!isPastSlot && (
               <button
                 onClick={() => onDeleteSlot(slot.id)}
-                className="text-red-600 hover:text-red-700 text-sm font-medium"
+                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
               >
-                Cancel
+                Cancel Slot
               </button>
             )}
           </div>
@@ -873,15 +890,66 @@ export default function SlotCard({
 
           {showAttendees && (
             <div className="px-4 pb-4 space-y-2">
-              {bookings.map((booking) => {
+              {/* Search input - only show if more than 5 attendees */}
+              {bookings.length > 5 && (
+                <div className="relative mb-3">
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#667085]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search attendees..."
+                    value={attendeeSearchTerm}
+                    onChange={(e) => setAttendeeSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-9 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE]/30 focus:border-[#6F71EE] placeholder:text-[#9CA3AF]"
+                  />
+                  {attendeeSearchTerm && (
+                    <button
+                      onClick={() => setAttendeeSearchTerm('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#101E57]"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+              {(() => {
+                const filteredBookings = bookings.filter((booking) => {
+                  if (!attendeeSearchTerm.trim()) return true;
+                  const search = attendeeSearchTerm.toLowerCase();
+                  return (
+                    booking.email.toLowerCase().includes(search) ||
+                    booking.first_name?.toLowerCase().includes(search) ||
+                    booking.last_name?.toLowerCase().includes(search) ||
+                    `${booking.first_name} ${booking.last_name}`.toLowerCase().includes(search)
+                  );
+                });
+
+                if (filteredBookings.length === 0 && attendeeSearchTerm.trim()) {
+                  return (
+                    <div className="text-center py-4 text-sm text-[#667085]">
+                      No attendees match &ldquo;{attendeeSearchTerm}&rdquo;
+                    </div>
+                  );
+                }
+
+                return filteredBookings.map((booking) => {
               const stats = attendeeStats[booking.email];
               const isHubSpotExpanded = expandedHubSpot === booking.email;
               return (
                 <div key={booking.id} className="bg-[#F6F6F9] p-3 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <p className="text-sm text-[#101E57] font-medium">
+                  {/* Stack on mobile, row on larger screens */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-[#101E57] font-medium truncate">
                           {booking.first_name} {booking.last_name}
                           {booking.is_waitlisted && (
                             <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">
@@ -898,17 +966,23 @@ export default function SlotCard({
                               Returning
                             </span>
                           )}
+                          {!booking.is_waitlisted && stats && stats.totalBookings === 1 && !stats.isRepeatAttendee && (
+                            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                              New
+                            </span>
+                          )}
                           {!booking.is_waitlisted && stats && stats.noShowRate > 30 && (
                             <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
                               {stats.noShowRate}% no-show
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-[#667085]">{booking.email}</p>
+                        <p className="text-xs text-[#667085] truncate">{booking.email}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Actions - wrap on mobile */}
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       {/* Attendance status */}
                       {isPastSlot && (
                         <div className="flex gap-1">
@@ -1030,7 +1104,8 @@ export default function SlotCard({
                   )}
                 </div>
               );
-            })}
+            });
+              })()}
             </div>
           )}
         </div>

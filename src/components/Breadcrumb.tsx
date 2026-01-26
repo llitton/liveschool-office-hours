@@ -9,11 +9,18 @@ interface BreadcrumbItem {
 
 interface BreadcrumbProps {
   items: BreadcrumbItem[];
+  size?: 'sm' | 'base' | 'lg';
 }
 
-export default function Breadcrumb({ items }: BreadcrumbProps) {
+export default function Breadcrumb({ items, size = 'sm' }: BreadcrumbProps) {
+  const sizeClasses = {
+    sm: 'text-sm',
+    base: 'text-base',
+    lg: 'text-lg',
+  };
+
   return (
-    <nav className="flex items-center gap-2 text-sm">
+    <nav className={`flex items-center gap-2 ${sizeClasses[size]}`}>
       {items.map((item, index) => (
         <span key={index} className="flex items-center gap-2">
           {index > 0 && <span className="text-[#667085]">/</span>}

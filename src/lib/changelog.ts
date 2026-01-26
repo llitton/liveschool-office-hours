@@ -12,6 +12,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-26-event-details-ux',
+    date: '2026-01-26',
+    title: 'Event Details Page UX Improvements',
+    description: 'Better information hierarchy and streamlined attendee management on the event details page.',
+    category: 'improvement',
+    details: [
+      'Sticky header keeps event title and booking link visible while scrolling',
+      'Visual distinction between "Add Time Slots" configuration and content sections',
+      'Larger breadcrumb for better navigation wayfinding',
+      'Prominent "Join Meet" button with video icon for upcoming sessions',
+      '"New" badge identifies first-time attendees at a glance',
+      'Search bar to quickly find attendees in large sessions (6+ attendees)',
+      'Mobile-responsive attendee cards that stack gracefully on small screens',
+    ],
+  },
+  {
     id: '2026-01-26-hubspot-context-fix',
     date: '2026-01-26',
     title: 'HubSpot Attendee Context Improvements',

@@ -430,7 +430,8 @@ export default function ManageEventPage({
 
   return (
     <div className="min-h-screen bg-[#F6F6F9]">
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      {/* Sticky Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -445,6 +446,7 @@ export default function ManageEventPage({
                   { label: 'Dashboard', href: '/admin' },
                   { label: event.name },
                 ]}
+                size="base"
               />
             </div>
           </div>
@@ -903,10 +905,15 @@ export default function ManageEventPage({
 
         {/* Add Time Slots - only for webinars */}
         {event.meeting_type === 'webinar' && (
-        <div ref={slotsRef} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 scroll-mt-4">
+        <div ref={slotsRef} className="bg-gradient-to-br from-[#F6F6F9] to-white rounded-lg shadow-sm border border-gray-300 border-dashed p-6 mb-8 scroll-mt-4">
           {/* Header with dropdown */}
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-[#101E57]">Add Time Slots</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-[#101E57]">Add Time Slots</h2>
+              <span className="px-2 py-0.5 text-xs font-medium bg-[#6F71EE]/10 text-[#6F71EE] rounded-full">
+                Configuration
+              </span>
+            </div>
             <div className="relative">
               <select
                 value={creationMode}
