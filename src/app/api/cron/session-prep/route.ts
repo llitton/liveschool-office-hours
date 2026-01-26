@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/google';
 import { getContactWithCompany } from '@/lib/hubspot';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { cronLogger } from '@/lib/logger';
 
 // This cron job runs at 7am ET daily to send Hannah a morning digest
 // of all attendees for today's sessions
@@ -74,7 +75,10 @@ export async function GET() {
       .single();
 
     if (!admin?.google_access_token || !admin?.google_refresh_token) {
-      console.log(`No tokens for host: ${hostEmail}`);
+      cronLogger.debug('No tokens for host, skipping', {
+        operation: 'session-prep',
+        metadata: { hostEmail },
+      });
       continue;
     }
 
@@ -86,7 +90,10 @@ export async function GET() {
     );
 
     if (totalAttendees === 0) {
-      console.log(`No attendees for host: ${hostEmail}`);
+      cronLogger.debug('No attendees for host, skipping', {
+        operation: 'session-prep',
+        metadata: { hostEmail },
+      });
       continue;
     }
 

@@ -15,6 +15,7 @@ import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
 import { formatPhoneE164 } from '@/lib/sms';
 import { checkTimeAvailability } from '@/lib/availability';
 import { validateEmail } from '@/lib/email-validation';
+import { bookingLogger } from '@/lib/logger';
 import type { OHAdmin } from '@/types';
 import { parseISO, format, addHours, addDays, addMinutes, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import crypto from 'crypto';
@@ -432,7 +433,11 @@ export async function POST(request: NextRequest) {
       if (preferredHostData) {
         assignedHost = preferredHostData;
         assignedHostId = preferred_host_id;
-        console.log(`Using preferred host ${preferredHostData.email} from routing form`);
+        bookingLogger.info('Using preferred host from routing form', {
+          operation: 'createBooking',
+          eventId: event.id,
+          metadata: { hostEmail: preferredHostData.email },
+        });
       }
     }
 
@@ -464,7 +469,11 @@ export async function POST(request: NextRequest) {
 
       assignedHost = assignment.host;
       assignedHostId = assignment.hostId;
-      console.log(`Round-robin assigned host ${assignedHost.email} to booking (${assignment.reason})`);
+      bookingLogger.info('Round-robin assigned host', {
+        operation: 'createBooking',
+        eventId: event.id,
+        metadata: { hostEmail: assignedHost.email, reason: assignment.reason },
+      });
     }
 
     // Update slot with assigned host if not already set

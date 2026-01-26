@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { syncGoogleCalendarBusy } from '@/lib/availability';
 import { addDays } from 'date-fns';
+import { cronLogger } from '@/lib/logger';
 
 // This cron job syncs Google Calendar busy times for all admins
 export async function GET(request: NextRequest) {
@@ -52,7 +53,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  console.log('Availability sync completed:', results);
+  cronLogger.info('Availability sync completed', {
+    operation: 'sync-availability',
+    metadata: { synced: results.synced, failed: results.failed, errors: results.errors.length },
+  });
 
   return NextResponse.json({
     success: true,

@@ -212,6 +212,8 @@ export const hubspotLogger = new Logger({ component: 'hubspot' });
 export const smsLogger = new Logger({ component: 'sms' });
 export const bookingLogger = new Logger({ component: 'booking' });
 export const slotLogger = new Logger({ component: 'slot' });
+export const slackLogger = new Logger({ component: 'slack' });
+export const cronLogger = new Logger({ component: 'cron' });
 
 // Default logger
 export const logger = new Logger();

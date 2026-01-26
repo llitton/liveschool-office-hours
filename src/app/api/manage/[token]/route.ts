@@ -9,6 +9,7 @@ import {
   htmlifyEmailBody,
 } from '@/lib/email-templates';
 import { updateMeetingOutcome } from '@/lib/hubspot';
+import { calendarLogger } from '@/lib/logger';
 
 // GET booking by manage token
 export async function GET(
@@ -253,7 +254,12 @@ export async function DELETE(
           booking.slot.google_event_id,
           booking.email
         );
-        console.log(`Removed ${booking.email} from calendar event ${booking.slot.google_event_id}`);
+        calendarLogger.info('Removed attendee from calendar event', {
+          operation: 'cancellation',
+          bookingId: booking.id,
+          attendeeEmail: booking.email,
+          metadata: { googleEventId: booking.slot.google_event_id },
+        });
       } catch (err) {
         console.error('Failed to remove attendee from calendar event:', err);
         // Continue with cancellation even if calendar update fails

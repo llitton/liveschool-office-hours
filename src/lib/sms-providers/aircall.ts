@@ -4,6 +4,7 @@
  */
 
 import type { OHSMSConfig } from '@/types';
+import { smsLogger } from '@/lib/logger';
 
 export interface SMSProviderInterface {
   sendSMS(to: string, message: string): Promise<boolean>;
@@ -54,7 +55,10 @@ export class AircallProvider implements SMSProviderInterface {
           );
           if (matchingNumber) {
             numberId = String(matchingNumber.id);
-            console.log('Found Aircall number ID:', numberId, 'SMS enabled:', matchingNumber.is_sms_enabled);
+            smsLogger.debug('Found Aircall number', {
+              operation: 'aircall.sendSMS',
+              metadata: { numberId, smsEnabled: matchingNumber.is_sms_enabled },
+            });
           }
         }
       }
@@ -84,7 +88,10 @@ export class AircallProvider implements SMSProviderInterface {
       }
 
       const result = await response.json();
-      console.log('Aircall SMS sent:', result);
+      smsLogger.info('Aircall SMS sent', {
+        operation: 'aircall.sendSMS',
+        metadata: { messageId: result?.id },
+      });
       return true;
     } catch (error) {
       console.error('Aircall SMS error:', error);

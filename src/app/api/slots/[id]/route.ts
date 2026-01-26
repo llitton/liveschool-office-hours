@@ -9,6 +9,7 @@ import {
   defaultTemplates,
   htmlifyEmailBody,
 } from '@/lib/email-templates';
+import { slotLogger } from '@/lib/logger';
 
 // PATCH slot (admin only) - update recording link, etc.
 export async function PATCH(
@@ -154,7 +155,11 @@ export async function DELETE(
       const notified = cancellationResults.filter((r) => r.status === 'fulfilled').length;
       const failed = cancellationResults.filter((r) => r.status === 'rejected').length;
 
-      console.log(`Slot ${id} cancelled. Notified: ${notified}, Failed: ${failed}`);
+      slotLogger.info('Slot cancelled with attendee notifications', {
+        operation: 'cancelSlot',
+        slotId: id,
+        metadata: { notified, failed },
+      });
     }
   }
 

@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { htmlifyEmailBody } from '@/lib/email-templates';
+import { emailLogger } from '@/lib/logger';
 
 // POST send bulk follow-up emails to attendees or no-shows
 export async function POST(
@@ -114,7 +115,11 @@ export async function POST(
   const sent = results.filter((r) => r.status === 'fulfilled').length;
   const failed = results.filter((r) => r.status === 'rejected').length;
 
-  console.log(`Follow-up emails for slot ${id}: sent ${sent}, failed ${failed}`);
+  emailLogger.info('Follow-up emails sent', {
+    operation: 'sendFollowup',
+    slotId: id,
+    metadata: { sent, failed },
+  });
 
   return NextResponse.json({
     success: true,

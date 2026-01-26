@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { addWeeks } from 'date-fns';
 import crypto from 'crypto';
+import { bookingLogger } from '@/lib/logger';
 
 function generateManageToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -151,14 +152,21 @@ export async function POST(request: NextRequest) {
 
       if (!targetSlot) {
         // No slot available at this time - skip this session
-        console.log(`No slot available for series session ${i + 1} on ${currentDate.toDateString()}`);
+        bookingLogger.debug('No slot available for series session', {
+          operation: 'createSeriesBooking',
+          metadata: { sessionNumber: i + 1, date: currentDate.toDateString() },
+        });
         continue;
       }
 
       // Check if slot has capacity
       const bookingCount = targetSlot.bookings?.[0]?.count || 0;
       if (bookingCount >= initialSlot.event.max_attendees) {
-        console.log(`Slot full for series session ${i + 1}`);
+        bookingLogger.debug('Slot full for series session', {
+          operation: 'createSeriesBooking',
+          slotId: targetSlot.id,
+          metadata: { sessionNumber: i + 1 },
+        });
         continue;
       }
 

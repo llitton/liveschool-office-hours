@@ -9,6 +9,7 @@ import {
 import { generateReminderEmailHtml } from '@/lib/email-html';
 import { getSMSConfig, sendSMS, processSMSTemplate, defaultSMSTemplates, logSMSSend } from '@/lib/sms';
 import { addHours, isAfter, isBefore } from 'date-fns';
+import { cronLogger, emailLogger, smsLogger } from '@/lib/logger';
 
 // This endpoint is designed to be called by Vercel Cron
 // Configure in vercel.json: { "crons": [{ "path": "/api/cron/send-reminders", "schedule": "0 * * * *" }] }
@@ -155,7 +156,12 @@ export async function GET(request: NextRequest) {
           .eq('id', booking.id);
 
         emailRemindersSent++;
-        console.log(`Sent ${reminderType} email reminder to ${booking.email} for slot ${slot.id}`);
+        emailLogger.info(`Sent ${reminderType} email reminder`, {
+          operation: 'send-reminders',
+          bookingId: booking.id,
+          slotId: slot.id,
+          attendeeEmail: booking.email,
+        });
 
         // === SMS REMINDER ===
         // Check if SMS should be sent for this booking
@@ -205,7 +211,12 @@ export async function GET(request: NextRequest) {
                 });
 
                 smsRemindersSent++;
-                console.log(`Sent ${reminderType} SMS reminder to ${booking.phone} for slot ${slot.id}`);
+                smsLogger.info(`Sent ${reminderType} SMS reminder`, {
+                  operation: 'send-reminders',
+                  bookingId: booking.id,
+                  slotId: slot.id,
+                  metadata: { phone: booking.phone },
+                });
               } else {
                 // Log failed SMS send
                 await logSMSSend({

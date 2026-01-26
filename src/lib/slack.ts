@@ -1,4 +1,5 @@
 import { getServiceSupabase } from './supabase';
+import { slackLogger } from './logger';
 
 interface SlackConfig {
   webhook_url: string;
@@ -97,7 +98,7 @@ export async function saveSlackConfig(config: Partial<SlackConfig>): Promise<boo
 export async function sendSlackMessage(message: SlackMessage): Promise<boolean> {
   const config = await getSlackConfig();
   if (!config || !config.webhook_url) {
-    console.log('[Slack] Not configured, skipping notification');
+    slackLogger.debug('Not configured, skipping notification', { operation: 'sendSlackMessage' });
     return false;
   }
 
