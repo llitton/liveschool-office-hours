@@ -394,6 +394,8 @@ https://app.hubspot.com/contacts/{portalId}/record/0-1/{contactId}
 - `0-1` is HubSpot's object type ID for contacts
 - `contactId` is the HubSpot contact ID returned from their API
 
+**Self-healing portal_id:** If `portal_id` is missing in the database (e.g., from older OAuth connections), `getHubSpotConfig()` automatically fetches it from HubSpot's token info API and saves it to the database. This ensures the "View in HubSpot" link works even for legacy connections.
+
 **Files:**
 - Component: `src/components/HubSpotContactCard.tsx`
 - API: `src/app/api/attendees/[email]/hubspot/route.ts`
