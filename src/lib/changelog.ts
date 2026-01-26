@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-migration-verification',
+    date: '2026-01-25',
+    title: 'Database Migration Verification',
+    description: 'New admin tool to verify all database migrations have been applied.',
+    category: 'feature',
+    details: [
+      'Visit /api/admin/verify-migrations to check schema status',
+      'Shows which migrations are complete vs missing',
+      'Identifies specific columns/tables that need to be created',
+      'Helps troubleshoot database sync issues',
+    ],
+  },
+  {
     id: '2026-01-25-team-page-redesign',
     date: '2026-01-25',
     title: 'Team Page Redesign',

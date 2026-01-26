@@ -223,6 +223,14 @@ export default function SystemStatusPage() {
                 >
                   Changelog
                 </Link>
+                <a
+                  href="/api/admin/verify-migrations"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition"
+                >
+                  Verify Migrations
+                </a>
               </div>
             </div>
 

@@ -125,6 +125,25 @@ All tables have Row Level Security (RLS) enabled. This is critical for Supabase 
 - `anon` key (public) is restricted by RLS policies
 - Migrations in `migrations/006_enable_rls.sql` and `migrations/031_enable_rls_missing_tables.sql`
 
+### Migration Verification
+
+To verify all database migrations have been applied:
+
+```
+GET /api/admin/verify-migrations
+```
+
+Returns:
+```json
+{
+  "summary": { "total": 33, "complete": 33, "missing": 0, "allComplete": true },
+  "missingMigrations": [],
+  "details": [...]
+}
+```
+
+If migrations are missing, run the corresponding SQL files from `migrations/` in the Supabase SQL Editor. Migration files are numbered (002-040) and should be run in order.
+
 **Table Access Levels:**
 
 | Access Level | Tables | Notes |
