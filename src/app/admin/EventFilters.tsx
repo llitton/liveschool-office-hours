@@ -41,9 +41,9 @@ export default function EventFilters({
     <div className="mb-6 space-y-4">
       {/* Search and View Toggle Row */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-lg">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#667085]"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6F71EE]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -60,14 +60,14 @@ export default function EventFilters({
             placeholder="Search events by name or host..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm
-              focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/20 focus:border-[#6F71EE]
-              placeholder:text-[#667085]"
+            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-sm
+              focus:outline-none focus:ring-2 focus:ring-[#6F71EE]/30 focus:border-[#6F71EE]
+              placeholder:text-[#9CA3AF] shadow-sm hover:border-gray-400 transition"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#101E57]"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#667085] hover:text-[#101E57] p-1 rounded-full hover:bg-gray-100"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

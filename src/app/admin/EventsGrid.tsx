@@ -69,6 +69,47 @@ interface EventsGridProps {
   events: EventWithAnalytics[];
 }
 
+// Copy Link button with feedback
+function CopyLinkButton({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `${window.location.origin}/book/${slug}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition whitespace-nowrap ${
+        copied
+          ? 'bg-emerald-500 text-white'
+          : 'bg-[#6F71EE] text-white hover:bg-[#5a5cd0]'
+      }`}
+    >
+      {copied ? (
+        <>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          Copied!
+        </>
+      ) : (
+        <>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy Link
+        </>
+      )}
+    </button>
+  );
+}
+
 export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
   const [events, setEvents] = useState(initialEvents);
   const [searchQuery, setSearchQuery] = useState('');
@@ -259,17 +300,17 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
     const usesDynamicAvailability = event.meeting_type !== 'webinar';
 
     if (!event.is_active) {
-      return { label: 'Disabled', color: 'bg-gray-100 text-gray-600 border-gray-300', isDimmed: true };
+      return { label: 'Disabled', color: 'bg-gray-200 text-gray-700 border-gray-400', isDimmed: true };
     } else if (activeSlots.length === 0 && !usesDynamicAvailability) {
-      return { label: 'No slots', color: 'bg-amber-100 text-amber-800 border-amber-300', isDimmed: true };
+      return { label: 'No slots', color: 'bg-amber-200 text-amber-900 border-amber-500', isDimmed: true };
     } else if (activeSlots.length === 0 && usesDynamicAvailability) {
-      return { label: 'Available', color: 'bg-green-100 text-green-800 border-green-300', isDimmed: false };
+      return { label: 'Available', color: 'bg-emerald-100 text-emerald-800 border-emerald-400', isDimmed: false };
     } else if (capacityPercent >= 100) {
-      return { label: 'Fully booked', color: 'bg-red-100 text-red-800 border-red-300', isDimmed: false };
+      return { label: 'Fully booked', color: 'bg-red-200 text-red-900 border-red-500', isDimmed: false };
     } else if (capacityPercent >= 80) {
-      return { label: 'Almost full', color: 'bg-amber-100 text-amber-800 border-amber-300', isDimmed: false };
+      return { label: 'Almost full', color: 'bg-amber-200 text-amber-900 border-amber-500', isDimmed: false };
     }
-    return { label: 'Active', color: 'bg-green-100 text-green-800 border-green-300', isDimmed: false };
+    return { label: 'Active', color: 'bg-emerald-100 text-emerald-800 border-emerald-400', isDimmed: false };
   };
 
   // Get hosts for avatar display, sorted by role priority (owner > host > backup)
@@ -420,6 +461,18 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
               {event.total_bookings ?? 0} total bookings
             </span>
           </div>
+
+          {/* Prominent CTA for events with no bookings */}
+          {(event.total_bookings ?? 0) === 0 && (
+            <div className="mb-3 p-3 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-[#667085]">
+                  No bookings yet — share your link to get started
+                </p>
+                <CopyLinkButton slug={event.slug} />
+              </div>
+            </div>
+          )}
 
           {/* Booking link preview */}
           <div className="flex items-center gap-2 text-sm">
