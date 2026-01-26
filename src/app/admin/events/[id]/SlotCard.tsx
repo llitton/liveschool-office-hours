@@ -128,6 +128,21 @@ export default function SlotCard({
   const [attendeeUserTypes, setAttendeeUserTypes] = useState<Record<string, string | null>>({});
   const [userTypesLoading, setUserTypesLoading] = useState(false);
 
+  // Pre-fetched attendee context data (for instant HubSpot card expansion)
+  const [attendeeContextData, setAttendeeContextData] = useState<Record<string, {
+    connected: boolean;
+    portalId?: string;
+    hubspot: import('@/lib/hubspot').HubSpotEnrichedContact | null;
+    sessionHistory: {
+      totalSessions: number;
+      attendedCount: number;
+      previousTopics: string[];
+      firstSession: string | null;
+      lastSession: string | null;
+    };
+  }>>({});
+  const [contextDataPortalId, setContextDataPortalId] = useState<string | undefined>();
+
   const isPastSlot = isPast(parseISO(slot.end_time));
   const confirmedBookings = bookings.filter((b) => !b.is_waitlisted && !b.cancelled_at);
   const waitlistedBookings = bookings.filter((b) => b.is_waitlisted && !b.cancelled_at);
@@ -178,17 +193,18 @@ export default function SlotCard({
     }
   }, [showWrapUp, event.id]);
 
-  // Fetch attendee user types from HubSpot when attendees section is shown
+  // Fetch attendee context from HubSpot when attendees section is shown
+  // This pre-fetches all data so individual context cards expand instantly
   useEffect(() => {
     if (showAttendees && bookings.length > 0 && Object.keys(attendeeUserTypes).length === 0 && !userTypesLoading) {
-      const fetchUserTypes = async () => {
+      const fetchAttendeeContext = async () => {
         setUserTypesLoading(true);
         try {
           const emails = bookings
             .filter(b => !b.cancelled_at)
             .map(b => b.email);
 
-          const response = await fetch('/api/attendees/batch-types', {
+          const response = await fetch('/api/attendees/batch-context', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ emails }),
@@ -196,17 +212,46 @@ export default function SlotCard({
 
           if (response.ok) {
             const data = await response.json();
-            if (data.connected && data.userTypes) {
-              setAttendeeUserTypes(data.userTypes);
+            if (data.connected && data.contacts) {
+              // Extract user types for the summary display
+              const userTypes: Record<string, string | null> = {};
+              for (const [email, contact] of Object.entries(data.contacts)) {
+                const contactData = contact as { hubspot: { role?: string } | null };
+                userTypes[email] = contactData.hubspot?.role || null;
+              }
+              setAttendeeUserTypes(userTypes);
+
+              // Store full context data for instant card expansion
+              const contextData: typeof attendeeContextData = {};
+              for (const [email, contact] of Object.entries(data.contacts)) {
+                const c = contact as {
+                  hubspot: import('@/lib/hubspot').HubSpotEnrichedContact | null;
+                  sessionHistory: {
+                    totalSessions: number;
+                    attendedCount: number;
+                    previousTopics: string[];
+                    firstSession: string | null;
+                    lastSession: string | null;
+                  };
+                };
+                contextData[email] = {
+                  connected: true,
+                  portalId: data.portalId,
+                  hubspot: c.hubspot,
+                  sessionHistory: c.sessionHistory,
+                };
+              }
+              setAttendeeContextData(contextData);
+              setContextDataPortalId(data.portalId);
             }
           }
         } catch (err) {
-          console.error('Failed to fetch attendee user types:', err);
+          console.error('Failed to fetch attendee context:', err);
         } finally {
           setUserTypesLoading(false);
         }
       };
-      fetchUserTypes();
+      fetchAttendeeContext();
     }
   }, [showAttendees, bookings]);
 
@@ -1202,6 +1247,7 @@ export default function SlotCard({
                       email={booking.email}
                       expanded={true}
                       onToggle={() => setExpandedHubSpot(null)}
+                      prefetchedData={attendeeContextData[booking.email.toLowerCase()]}
                     />
                   )}
                 </div>

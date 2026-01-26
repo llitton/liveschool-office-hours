@@ -23,6 +23,13 @@ interface HubSpotContactCardProps {
   email: string;
   expanded?: boolean;
   onToggle?: () => void;
+  /** Pre-fetched data from batch API - if provided, skips individual fetch */
+  prefetchedData?: {
+    connected: boolean;
+    portalId?: string;
+    hubspot: HubSpotEnrichedContact | null;
+    sessionHistory: SessionHistory;
+  } | null;
 }
 
 // Map deal stages to colors (customize based on your HubSpot pipeline)
@@ -47,16 +54,30 @@ export default function HubSpotContactCard({
   email,
   expanded = false,
   onToggle,
+  prefetchedData,
 }: HubSpotContactCardProps) {
   const [data, setData] = useState<HubSpotContactData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Use prefetched data if available
   useEffect(() => {
-    if (expanded && !data && !loading) {
+    if (prefetchedData) {
+      setData({
+        connected: prefetchedData.connected,
+        portalId: prefetchedData.portalId,
+        hubspot: prefetchedData.hubspot,
+        sessionHistory: prefetchedData.sessionHistory,
+      });
+    }
+  }, [prefetchedData]);
+
+  useEffect(() => {
+    // Skip fetch if we have prefetched data or already have data
+    if (expanded && !data && !loading && !prefetchedData) {
       fetchData();
     }
-  }, [expanded, email]);
+  }, [expanded, email, prefetchedData]);
 
   const fetchData = async () => {
     setLoading(true);

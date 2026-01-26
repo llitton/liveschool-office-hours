@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-26-attendee-context-performance',
+    date: '2026-01-26',
+    title: 'Faster Attendee Context Loading',
+    description: 'Attendee context cards now load instantly when you expand them.',
+    category: 'improvement',
+    details: [
+      'Context data is pre-fetched when you expand the attendees list',
+      'Clicking "Context" on any attendee shows their HubSpot info immediately',
+      'No more waiting for individual API calls per attendee',
+      'Batch API reduces HubSpot requests and improves reliability',
+    ],
+  },
+  {
     id: '2026-01-26-attendee-roles',
     date: '2026-01-26',
     title: 'Attendee Role Breakdown',

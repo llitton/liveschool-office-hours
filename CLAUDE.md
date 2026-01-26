@@ -540,13 +540,17 @@ Attendees can be categorized by their role (Teacher, Administrator, Site Leader)
 - **Gray** - Other/Unknown
 
 **API endpoints:**
-- `POST /api/attendees/batch-types` - Batch fetch user types for multiple emails
-- `GET /api/attendees/[email]/hubspot` - Get full HubSpot context including role
+- `POST /api/attendees/batch-context` - **Primary.** Batch fetch full HubSpot context for multiple emails (used for pre-fetching)
+- `POST /api/attendees/batch-types` - Batch fetch user types only (lightweight alternative)
+- `GET /api/attendees/[email]/hubspot` - Get full HubSpot context for single email (used as fallback)
+
+**Performance optimization:** When expanding the attendees list in SlotCard, we call `batch-context` to pre-fetch all attendee data at once. This means clicking "Context" on any individual attendee shows their HubSpot info instantly (no additional API call needed).
 
 **HubSpot field:** The role is read from `user_type` or `user_type__liveschool_` property, falling back to `jobtitle`.
 
 **Files:**
-- Batch API: `src/app/api/attendees/batch-types/route.ts`
+- Batch context API: `src/app/api/attendees/batch-context/route.ts`
+- Batch types API: `src/app/api/attendees/batch-types/route.ts`
 - HubSpot library: `src/lib/hubspot.ts` (`getContactWithCompany`)
 - Context card: `src/components/HubSpotContactCard.tsx`
 - SlotCard integration: `src/app/admin/events/[id]/SlotCard.tsx`
