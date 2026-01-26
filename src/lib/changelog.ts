@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-26-expanded-test-coverage',
+    date: '2026-01-26',
+    title: 'Expanded Test Coverage',
+    description: 'Added 135 new automated tests covering core business logic modules.',
+    category: 'improvement',
+    details: [
+      '409 total tests now run on every deployment',
+      'Email validation, error handling, and routing logic fully tested',
+      'iCal generation and calendar URL tests added',
+      'HTML email template tests ensure consistent formatting',
+    ],
+  },
+  {
     id: '2026-01-25-migration-verification',
     date: '2026-01-25',
     title: 'Database Migration Verification',

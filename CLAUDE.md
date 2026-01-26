@@ -222,19 +222,25 @@ tests/
 │   └── supabase.ts           # Comprehensive Supabase mock factory
 ├── unit/
 │   └── lib/
-│       ├── auth.test.ts              # Session management, token refresh
-│       ├── availability.test.ts      # Slot generation logic
-│       ├── booking-constraints.test.ts # Validation rules
-│       ├── hubspot.test.ts           # HubSpot API integration
-│       ├── round-robin.test.ts       # Host selection strategies
-│       ├── slack.test.ts             # Slack webhook integration
-│       ├── sms.test.ts               # Phone validation, templates
-│       └── timezone.test.ts          # Timezone formatting utilities
+│       ├── auth.test.ts              # Session management, token refresh (21 tests)
+│       ├── availability.test.ts      # Slot generation logic (14 tests)
+│       ├── booking-constraints.test.ts # Validation rules (29 tests)
+│       ├── email-html.test.ts        # HTML email templates (33 tests)
+│       ├── email-validation.test.ts  # Email format/MX/disposable (21 tests)
+│       ├── errors.test.ts            # Error sanitization, user-friendly messages (30 tests)
+│       ├── hubspot.test.ts           # HubSpot API integration (25 tests)
+│       ├── ical.test.ts              # iCal generation, calendar URLs (21 tests)
+│       ├── round-robin.test.ts       # Host selection strategies (16 tests)
+│       ├── routing.test.ts           # Lead routing rules, encoding (30 tests)
+│       ├── slack.test.ts             # Slack webhook integration (26 tests)
+│       ├── sms.test.ts               # Phone validation, templates (35 tests)
+│       ├── timezone.test.ts          # Timezone formatting utilities (48 tests)
+│       └── url-handling.test.ts      # URL utilities (29 tests)
 ├── integration/
 │   └── api/
-│       ├── bookings.test.ts          # Booking API endpoints
-│       ├── events.test.ts            # Event CRUD operations
-│       └── slots.test.ts             # Slot generation API
+│       ├── bookings.test.ts          # Booking API endpoints (16 tests)
+│       ├── events.test.ts            # Event CRUD operations (13 tests)
+│       └── slots.test.ts             # Slot generation API (11 tests)
 └── e2e/
     ├── booking-flow.spec.ts          # Public booking flows
     └── round-robin-booking.spec.ts   # Team booking + admin UI
@@ -242,17 +248,25 @@ tests/
 
 ### Test Coverage Areas
 
-| Area | Coverage | Files |
-|------|----------|-------|
-| Auth & Sessions | 100% | `auth.ts` |
-| Timezone Utilities | 100% | `timezone.ts` |
-| Slack Integration | 100% | `slack.ts` |
-| SMS Utilities | ~80% | `sms.ts` |
-| Booking Constraints | ~79% | `booking-constraints.ts` |
-| HubSpot Integration | ~50% | `hubspot.ts` |
-| Availability Logic | ~47% | `availability.ts` |
-| API Routes | ~40% | Various API endpoints |
-| **Overall** | **~37%** | All lib files |
+| Area | Tests | Files |
+|------|-------|-------|
+| Timezone Utilities | 48 | `timezone.ts` |
+| SMS Utilities | 35 | `sms.ts` |
+| Email HTML Templates | 33 | `email-html.ts` |
+| Error Handling | 30 | `errors.ts` |
+| Lead Routing | 30 | `routing.ts` |
+| Booking Constraints | 29 | `booking-constraints.ts` |
+| URL Handling | 29 | `url-handling.ts` |
+| Slack Integration | 26 | `slack.ts` |
+| HubSpot Integration | 25 | `hubspot.ts` |
+| Auth & Sessions | 21 | `auth.ts` |
+| Email Validation | 21 | `email-validation.ts` |
+| iCal Generation | 21 | `ical.ts` |
+| Round-Robin | 16 | `round-robin.ts` |
+| Availability Logic | 14 | `availability.ts` |
+| **Total Unit Tests** | **378** | 14 lib modules |
+| **Integration Tests** | **40** | 3 API test files |
+| **Grand Total** | **418** | All test files |
 
 ### Writing Tests
 
