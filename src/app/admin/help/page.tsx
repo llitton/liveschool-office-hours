@@ -483,11 +483,12 @@ const helpSections: HelpSection[] = [
           {
             label: 'HubSpot context',
             items: [
-              'Click "Context" to see attendee details from HubSpot',
+              'Click "Context" to see attendee details from HubSpot — loads instantly',
               'Role badge shows user type: Teacher (blue), Administrator (purple), Site Leader (amber)',
               'Company name and ARR displayed when available',
               'Session history shows attendance record',
               '"View in HubSpot" link opens the contact record directly',
+              'Data is pre-fetched when you expand attendees, so no waiting',
             ],
           },
           {
