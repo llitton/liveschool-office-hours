@@ -37,9 +37,9 @@ test.describe('Critical Path: Booking Flow', () => {
 
     const pageContent = await page.textContent('body');
 
-    // If event doesn't exist, fail with helpful message
+    // If event doesn't exist, skip with helpful message
     if (pageContent?.includes('not found') || pageContent?.includes('404')) {
-      test.fail(true, `Test event '${TEST_EVENT_SLUG}' not found. Please create it first.`);
+      test.skip(true, `Test event '${TEST_EVENT_SLUG}' not found. Please create it first.`);
       return;
     }
 
@@ -57,7 +57,7 @@ test.describe('Critical Path: Booking Flow', () => {
       const hasAltSlots = await altSlot.isVisible().catch(() => false);
 
       if (!hasAltSlots) {
-        test.fail(true, `No available slots found for event '${TEST_EVENT_SLUG}'. Please add future slots.`);
+        test.skip(true, `No available slots found for event '${TEST_EVENT_SLUG}'. Please add future slots.`);
         return;
       }
 
@@ -124,10 +124,9 @@ test.describe('Critical Path: Booking Flow', () => {
 
     if (hasError && !foundSuccess) {
       // Capture the error for debugging
-      const screenshot = await page.screenshot();
+      await page.screenshot();
       console.error('Booking failed. Page content:', finalContent?.substring(0, 500));
-      test.fail(true, 'Booking submission returned an error. Check logs for details.');
-      return;
+      throw new Error('Booking submission returned an error. Check logs for details.');
     }
 
     expect(foundSuccess).toBe(true);
