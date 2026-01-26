@@ -30,13 +30,14 @@ interface HubSpotTask {
 
 /**
  * Get HubSpot configuration from database
+ * If portal_id is missing, fetches it from HubSpot API and updates the database
  */
 export async function getHubSpotConfig(): Promise<HubSpotTokens | null> {
   const supabase = getServiceSupabase();
 
   const { data, error } = await supabase
     .from('oh_hubspot_config')
-    .select('access_token, refresh_token, portal_id')
+    .select('id, access_token, refresh_token, portal_id')
     .eq('is_active', true)
     .single();
 
@@ -44,10 +45,34 @@ export async function getHubSpotConfig(): Promise<HubSpotTokens | null> {
     return null;
   }
 
+  let portalId = data.portal_id || '';
+
+  // If portal_id is missing, fetch it from HubSpot and save it
+  if (!portalId && data.access_token) {
+    try {
+      const response = await fetch(
+        `https://api.hubapi.com/oauth/v1/access-tokens/${data.access_token}`
+      );
+      if (response.ok) {
+        const tokenInfo = await response.json();
+        if (tokenInfo.hub_id) {
+          portalId = tokenInfo.hub_id.toString();
+          // Update the database with the portal_id
+          await supabase
+            .from('oh_hubspot_config')
+            .update({ portal_id: portalId })
+            .eq('id', data.id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch HubSpot portal ID:', err);
+    }
+  }
+
   return {
     access_token: data.access_token,
     refresh_token: data.refresh_token || '',
-    portal_id: data.portal_id || '',
+    portal_id: portalId,
   };
 }
 
@@ -464,19 +489,25 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       if (companiesResponse.ok) {
         const companiesData = await companiesResponse.json();
         if (companiesData.results && companiesData.results.length > 0) {
-          const companyId = companiesData.results[0].toObjectId;
-          // Get company details
-          const companyResponse = await hubspotFetch(
-            `/crm/v3/objects/companies/${companyId}?properties=name,domain`
-          );
-          if (companyResponse.ok) {
-            const companyData = await companyResponse.json();
-            result.company = {
-              id: companyId,
-              name: companyData.properties.name || 'Unknown Company',
-            };
+          // Handle both v4 API formats: toObjectId (standard) or id (alternative)
+          const firstResult = companiesData.results[0];
+          const companyId = firstResult.toObjectId || firstResult.id;
+          if (companyId) {
+            // Get company details
+            const companyResponse = await hubspotFetch(
+              `/crm/v3/objects/companies/${companyId}?properties=name,domain`
+            );
+            if (companyResponse.ok) {
+              const companyData = await companyResponse.json();
+              result.company = {
+                id: companyId,
+                name: companyData.properties.name || 'Unknown Company',
+              };
+            }
           }
         }
+      } else {
+        console.error('Company association request failed:', companiesResponse.status);
       }
     } catch (err) {
       console.error('Failed to fetch company association:', err);
@@ -490,21 +521,27 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
       if (dealsResponse.ok) {
         const dealsData = await dealsResponse.json();
         if (dealsData.results && dealsData.results.length > 0) {
-          const dealId = dealsData.results[0].toObjectId;
-          // Get deal details
-          const dealResponse = await hubspotFetch(
-            `/crm/v3/objects/deals/${dealId}?properties=dealname,dealstage,amount,hs_lastmodifieddate`
-          );
-          if (dealResponse.ok) {
-            const dealData = await dealResponse.json();
-            result.deal = {
-              id: dealId,
-              name: dealData.properties.dealname || 'Unknown Deal',
-              stage: dealData.properties.dealstage || 'unknown',
-              amount: dealData.properties.amount ? parseFloat(dealData.properties.amount) : null,
-            };
+          // Handle both v4 API formats: toObjectId (standard) or id (alternative)
+          const firstResult = dealsData.results[0];
+          const dealId = firstResult.toObjectId || firstResult.id;
+          if (dealId) {
+            // Get deal details
+            const dealResponse = await hubspotFetch(
+              `/crm/v3/objects/deals/${dealId}?properties=dealname,dealstage,amount,hs_lastmodifieddate`
+            );
+            if (dealResponse.ok) {
+              const dealData = await dealResponse.json();
+              result.deal = {
+                id: dealId,
+                name: dealData.properties.dealname || 'Unknown Deal',
+                stage: dealData.properties.dealstage || 'unknown',
+                amount: dealData.properties.amount ? parseFloat(dealData.properties.amount) : null,
+              };
+            }
           }
         }
+      } else {
+        console.error('Deal association request failed:', dealsResponse.status);
       }
     } catch (err) {
       console.error('Failed to fetch deal association:', err);
