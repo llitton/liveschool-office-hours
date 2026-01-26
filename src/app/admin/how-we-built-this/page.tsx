@@ -91,6 +91,7 @@ const featureCategories = [
       { name: 'Attendee search', desc: 'Search bar for sessions with 6+ attendees to quickly find people' },
       { name: 'Visual section hierarchy', desc: 'Configuration sections use dashed borders and badges to separate from content' },
       { name: 'Attendee status badges', desc: 'Blue "New", purple "Returning", green "Frequent" badges at a glance' },
+      { name: 'Session topics display', desc: 'See what each attendee wants to discuss directly on the slot card' },
     ],
   },
   {

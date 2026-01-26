@@ -99,6 +99,7 @@ Event pages (accessible from event cards):
 | Auth utilities | `src/lib/auth.ts` |
 | Error utilities | `src/lib/errors.ts` |
 | Structured logging | `src/lib/logger.ts` |
+| Session topics extraction | `src/lib/session-topics.ts` |
 | Type definitions | `src/types/index.ts` |
 
 ## Database Tables (Supabase)
@@ -234,6 +235,7 @@ tests/
 │       ├── routing.test.ts           # Lead routing rules, encoding (30 tests)
 │       ├── slack.test.ts             # Slack webhook integration (26 tests)
 │       ├── sms.test.ts               # Phone validation, templates (35 tests)
+│       ├── session-topics.test.ts    # Session topics extraction (21 tests)
 │       ├── timezone.test.ts          # Timezone formatting utilities (48 tests)
 │       └── url-handling.test.ts      # URL utilities (29 tests)
 ├── integration/
@@ -262,11 +264,13 @@ tests/
 | Auth & Sessions | 21 | `auth.ts` |
 | Email Validation | 21 | `email-validation.ts` |
 | iCal Generation | 21 | `ical.ts` |
+| Session Topics | 21 | `session-topics.ts` |
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
-| **Total Unit Tests** | **378** | 14 lib modules |
+| Breadcrumb Component | 8 | `Breadcrumb.tsx` |
+| **Total Unit Tests** | **407** | 15 lib modules + 1 component |
 | **Integration Tests** | **40** | 3 API test files |
-| **Grand Total** | **418** | All test files |
+| **Grand Total** | **447** | All test files |
 
 ### Writing Tests
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { format, parseISO, isPast } from 'date-fns';
 import type { OHEvent, OHBooking, OHSlot, OHTaskTemplate } from '@/types';
 import HubSpotContactCard from '@/components/HubSpotContactCard';
+import { extractSessionTopics } from '@/lib/session-topics';
 
 interface SlotWithBookings extends OHSlot {
   booking_count: number;
@@ -865,42 +866,7 @@ export default function SlotCard({
 
       {/* Session Topics - show what attendees want to discuss for upcoming slots */}
       {!isPastSlot && bookings && bookings.length > 0 && (() => {
-        // Collect all topics from booking question_responses
-        const topicsWithAttendees: { name: string; topic: string; questionLabel?: string }[] = [];
-
-        // Find topic-related questions (usually contain "topic", "discuss", "help with", "questions")
-        const topicQuestionIds = event.custom_questions
-          ?.filter(q =>
-            q.question.toLowerCase().includes('topic') ||
-            q.question.toLowerCase().includes('discuss') ||
-            q.question.toLowerCase().includes('help') ||
-            q.question.toLowerCase().includes('question') ||
-            q.question.toLowerCase().includes('cover') ||
-            q.type === 'textarea'
-          )
-          .map(q => q.id) || [];
-
-        bookings.forEach(booking => {
-          if (!booking.question_responses || booking.cancelled_at || booking.is_waitlisted) return;
-          const name = booking.first_name || booking.email.split('@')[0];
-
-          // Get responses to topic-related questions
-          Object.entries(booking.question_responses).forEach(([questionId, response]) => {
-            if (response && response.trim()) {
-              // Find the question label
-              const question = event.custom_questions?.find(q => q.id === questionId);
-              const isTopicQuestion = topicQuestionIds.includes(questionId);
-
-              if (isTopicQuestion || !event.custom_questions || event.custom_questions.length === 0) {
-                topicsWithAttendees.push({
-                  name,
-                  topic: response.trim(),
-                  questionLabel: question?.question,
-                });
-              }
-            }
-          });
-        });
+        const topicsWithAttendees = extractSessionTopics(bookings, event.custom_questions);
 
         if (topicsWithAttendees.length === 0) return null;
 
