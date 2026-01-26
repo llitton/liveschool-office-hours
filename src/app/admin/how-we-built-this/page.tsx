@@ -80,6 +80,7 @@ const featureCategories = [
       { name: 'QR code generator', desc: 'Print codes for easy booking' },
       { name: 'Visual consistency', desc: 'Same action = same color (brand purple for all calendar icons)' },
       { name: 'Mobile-first design', desc: '44px+ touch targets for accessibility on all devices' },
+      { name: 'Complete navigation', desc: 'Every admin page accessible via nav - no orphaned pages' },
     ],
   },
   {

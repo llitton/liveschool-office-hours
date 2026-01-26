@@ -38,6 +38,53 @@ chrome-extension/           # Browser extension for quick link access
 tests/                      # Unit, integration, e2e tests
 ```
 
+## Admin Navigation Structure
+
+All admin pages are accessible via the main navigation in `src/components/AppShell.tsx`:
+
+```
+/admin (Sessions - Today)
+├── /admin/past (Past)
+├── /admin/one-off (One-off)
+└── /admin/polls (Polls) → /new, /[id]
+
+/admin/prepare (Prepare)
+
+/admin/people (People - Team)
+└── /admin/people/routing (Routing)
+    └── /admin/routing/new, /admin/routing/[id] (Create/Edit forms)
+
+/admin/insights (Insights - Overview)
+├── /admin/insights/conversions (Conversions)
+├── /admin/insights/attendance (Attendance)
+├── /admin/insights/topics (Topics)
+├── /admin/analytics (Analytics - word cloud/topics)
+└── /admin/team-health (Team Health)
+
+/admin/integrations (Integrations)
+
+/admin/sms (SMS - Dashboard)
+└── /admin/sms/logs (Logs)
+
+/admin/settings (Settings - General)
+├── /admin/settings/templates (Templates) → /[id]
+├── /admin/settings/holidays (Holidays)
+└── /admin/system-status (System Status)
+
+Header icons:
+├── /admin/changelog (Megaphone icon)
+├── /admin/help (? icon)
+└── /admin/how-we-built-this (Profile dropdown)
+
+Event pages (accessible from event cards):
+├── /admin/events/[id] (Event details)
+├── /admin/events/[id]/settings (Event settings)
+├── /admin/events/[id]/emails (Email templates)
+└── /admin/events/[id]/embed (Embed code)
+```
+
+**Navigation rule:** Every admin page must be accessible via navigation or contextual links - no orphaned pages.
+
 ## Key Files
 
 | Purpose | Location |

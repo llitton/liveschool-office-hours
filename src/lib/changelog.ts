@@ -12,6 +12,31 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-feedback-details',
+    date: '2026-01-25',
+    title: 'View Feedback Details',
+    description: 'Click on feedback stars in Past Sessions to see the full details of what attendees shared.',
+    category: 'feature',
+    details: [
+      'Click the stars on any session to open the feedback modal',
+      'See individual ratings from each attendee',
+      'Read their comments and topic suggestions',
+      'Average rating displayed at the top',
+    ],
+  },
+  {
+    id: '2026-01-25-navigation-cleanup',
+    date: '2026-01-25',
+    title: 'Improved Navigation',
+    description: 'All admin pages are now accessible from the main navigation - no hidden pages.',
+    category: 'improvement',
+    details: [
+      'Analytics and Team Health added to Insights menu',
+      'System Status added to Settings menu',
+      'Removed duplicate pages for cleaner navigation',
+    ],
+  },
+  {
     id: '2026-01-25-system-status',
     date: '2026-01-25',
     title: 'System Status Dashboard',
