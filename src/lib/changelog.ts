@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-25-url-standardization',
+    date: '2026-01-25',
+    title: 'Improved Email Link Reliability',
+    description: 'All email links (confirmations, reminders, feedback requests) now use consistent URLs that work correctly in all environments.',
+    category: 'fix',
+    details: [
+      'Fixed an issue where some email links could point to incorrect URLs',
+      'Standardized URL handling across all API routes',
+      'Poll booking confirmations now show times in the host\'s timezone',
+      'Team invitation emails use the correct application URL',
+    ],
+  },
+  {
     id: '2026-01-25-feedback-visibility',
     date: '2026-01-25',
     title: 'Feedback Stars Visible Everywhere',

@@ -503,6 +503,33 @@ CHECK constraints prevent invalid data at the database level:
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint) - use `/api/events/check-slug` to validate before creation
 
+### URL Handling
+All URLs in emails, API responses, and redirects **must** use the `NEXT_PUBLIC_APP_URL` environment variable:
+
+```typescript
+// CORRECT - use environment variable
+const url = `${process.env.NEXT_PUBLIC_APP_URL}/book/${slug}`;
+
+// WRONG - never hardcode domains
+const url = `https://liveschoolhelp.com/book/${slug}`;  // Don't do this!
+const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
+```
+
+**Rules:**
+- **API routes:** Use `process.env.NEXT_PUBLIC_APP_URL` directly (no fallback needed in production)
+- **Client components:** Use `process.env.NEXT_PUBLIC_APP_URL || window.location.origin` for SSR compatibility
+- **Never hardcode domains:** Even as fallbacks - this causes issues when domains change or in different environments
+- **Wrong env var:** Use `NEXT_PUBLIC_APP_URL` not `APP_URL` (the latter is not a standard Next.js public variable)
+
+**Files that construct URLs:**
+- Email templates (confirmation, reminder, cancellation, feedback request)
+- Manage URLs for attendees
+- iCal download links
+- Team invitation emails
+- Poll voting links
+- One-off meeting links
+- Copy link buttons in admin UI
+
 ## UX Patterns
 
 ### Round-Robin & Collective Events

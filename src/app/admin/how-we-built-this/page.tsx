@@ -91,7 +91,8 @@ const featureCategories = [
       { name: 'Attendee feedback', desc: 'Star ratings, comments, and topic suggestions from attendees' },
       { name: 'Feedback visibility', desc: 'See ratings in Past Sessions, event details, and daily summaries' },
       { name: 'CSV export', desc: 'Download analytics and booking data' },
-      { name: 'Automated test suite', desc: '248+ tests covering auth, SMS, Slack, timezone, and booking logic' },
+      { name: 'Automated test suite', desc: '250+ tests covering auth, SMS, Slack, timezone, URL handling, and booking logic' },
+      { name: 'URL handling tests', desc: 'Automated checks prevent hardcoded URLs in emails and API routes' },
     ],
   },
 ];
