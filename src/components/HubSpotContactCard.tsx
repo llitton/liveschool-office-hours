@@ -220,10 +220,13 @@ export default function HubSpotContactCard({
           )}
 
           {/* Quick link to HubSpot */}
-          {data.hubspot?.id && data.portalId && (
+          {data.hubspot?.id && (
             <div className="pt-2 border-t border-gray-100">
               <a
-                href={`https://app.hubspot.com/contacts/${data.portalId}/record/0-1/${data.hubspot.id}`}
+                href={data.portalId
+                  ? `https://app.hubspot.com/contacts/${data.portalId}/record/0-1/${data.hubspot.id}`
+                  : `https://app.hubspot.com/contacts/search?q=${encodeURIComponent(email)}`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-[#6F71EE] hover:underline flex items-center gap-1"

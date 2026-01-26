@@ -124,6 +124,10 @@ export default function SlotCard({
     type: 'success' | 'info';
   } | null>(null);
 
+  // Attendee user types state (from HubSpot)
+  const [attendeeUserTypes, setAttendeeUserTypes] = useState<Record<string, string | null>>({});
+  const [userTypesLoading, setUserTypesLoading] = useState(false);
+
   const isPastSlot = isPast(parseISO(slot.end_time));
   const confirmedBookings = bookings.filter((b) => !b.is_waitlisted && !b.cancelled_at);
   const waitlistedBookings = bookings.filter((b) => b.is_waitlisted && !b.cancelled_at);
@@ -173,6 +177,38 @@ export default function SlotCard({
       fetchTemplates();
     }
   }, [showWrapUp, event.id]);
+
+  // Fetch attendee user types from HubSpot when attendees section is shown
+  useEffect(() => {
+    if (showAttendees && bookings.length > 0 && Object.keys(attendeeUserTypes).length === 0 && !userTypesLoading) {
+      const fetchUserTypes = async () => {
+        setUserTypesLoading(true);
+        try {
+          const emails = bookings
+            .filter(b => !b.cancelled_at)
+            .map(b => b.email);
+
+          const response = await fetch('/api/attendees/batch-types', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ emails }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.connected && data.userTypes) {
+              setAttendeeUserTypes(data.userTypes);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch attendee user types:', err);
+        } finally {
+          setUserTypesLoading(false);
+        }
+      };
+      fetchUserTypes();
+    }
+  }, [showAttendees, bookings]);
 
   const handleMarkAttendance = async (
     bookingId: string,
@@ -901,14 +937,49 @@ export default function SlotCard({
             onClick={() => setShowAttendees(!showAttendees)}
             className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition"
           >
-            <span className="text-sm font-medium text-[#101E57]">
-              {bookings.length} Attendee{bookings.length !== 1 ? 's' : ''}
-              {isPastSlot && (
-                <span className="ml-2 text-[#667085] font-normal">
-                  ({bookings.filter(b => b.attended_at).length} attended)
+            <div className="flex flex-col items-start gap-1">
+              <span className="text-sm font-medium text-[#101E57]">
+                {bookings.length} Attendee{bookings.length !== 1 ? 's' : ''}
+                {isPastSlot && (
+                  <span className="ml-2 text-[#667085] font-normal">
+                    ({bookings.filter(b => b.attended_at).length} attended)
+                  </span>
+                )}
+              </span>
+              {/* User type breakdown */}
+              {Object.keys(attendeeUserTypes).length > 0 && (() => {
+                const typeCounts: Record<string, number> = {};
+                bookings.filter(b => !b.cancelled_at).forEach(booking => {
+                  const userType = attendeeUserTypes[booking.email.toLowerCase()];
+                  if (userType) {
+                    const normalizedType = userType.toLowerCase().replace(/_/g, ' ');
+                    typeCounts[normalizedType] = (typeCounts[normalizedType] || 0) + 1;
+                  }
+                });
+
+                const breakdown = Object.entries(typeCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([type, count]) => `${count} ${type}${count !== 1 ? 's' : ''}`)
+                  .join(', ');
+
+                if (!breakdown) return null;
+
+                return (
+                  <span className="text-xs text-[#667085] font-normal">
+                    {breakdown}
+                  </span>
+                );
+              })()}
+              {userTypesLoading && (
+                <span className="text-xs text-[#667085] font-normal flex items-center gap-1">
+                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Loading roles...
                 </span>
               )}
-            </span>
+            </div>
             <svg
               className={`w-5 h-5 text-[#667085] transition-transform ${showAttendees ? 'rotate-180' : ''}`}
               fill="none"
