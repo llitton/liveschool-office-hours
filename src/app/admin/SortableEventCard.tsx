@@ -28,21 +28,20 @@ export default function SortableEventCard({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    cursor: disabled ? 'default' : 'grab',
   };
 
   return (
     <div ref={setNodeRef} style={style} className="relative group">
-      {/* Drag handle */}
+      {/* Drag handle - always visible when not disabled, highlighted on hover */}
       {!disabled && (
         <div
           {...attributes}
           {...listeners}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 cursor-grab active:cursor-grabbing"
         >
-          <div className="p-1.5 rounded hover:bg-[#F6F6F9]">
+          <div className="p-1.5 rounded bg-[#F6F6F9] hover:bg-[#6F71EE]/10 transition">
             <svg
-              className="w-4 h-4 text-[#667085]"
+              className="w-5 h-5 text-[#667085] group-hover:text-[#6F71EE] transition"
               fill="currentColor"
               viewBox="0 0 20 20"
             >

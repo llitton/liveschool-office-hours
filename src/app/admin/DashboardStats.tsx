@@ -216,7 +216,7 @@ export default function DashboardStats() {
               {stats.nextSession ? (
                 <Link href={`/admin/events/${stats.nextSession.event_id}`} className="group">
                   <p className="text-lg font-semibold text-[#101E57] group-hover:text-[#6F71EE] transition">
-                    Next: {format(parseISO(stats.nextSession.start_time), 'EEE h:mm a')}
+                    Next: {stats.nextSession.event_name} · {format(parseISO(stats.nextSession.start_time), 'EEE h:mm a')}
                   </p>
                   <p className="text-sm text-[#667085]">
                     {stats.nextSession.booked > 0

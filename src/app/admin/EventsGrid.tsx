@@ -52,6 +52,7 @@ interface EventWithAnalytics {
   is_active: boolean;
   created_at: string;
   display_order?: number;
+  ignore_busy_blocks?: boolean; // "Allow Any Time" events generate slots dynamically
   slots: EventSlot[];
   hosts?: EventHost[];
   // Primary host from event record (joined via host_id)
@@ -297,7 +298,9 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
     const totalCapacity = activeSlots.length * event.max_attendees;
     const capacityPercent = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
 
-    const usesDynamicAvailability = event.meeting_type !== 'webinar';
+    // Events with dynamic availability (non-webinars) or "Allow Any Time" (ignore_busy_blocks)
+    // generate slots on demand, so they're never truly "fully booked"
+    const usesDynamicAvailability = event.meeting_type !== 'webinar' || event.ignore_busy_blocks;
 
     if (!event.is_active) {
       return { label: 'Disabled', color: 'bg-gray-200 text-gray-700 border-gray-400', isDimmed: true };
@@ -305,9 +308,10 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
       return { label: 'No slots', color: 'bg-amber-200 text-amber-900 border-amber-500', isDimmed: true };
     } else if (activeSlots.length === 0 && usesDynamicAvailability) {
       return { label: 'Available', color: 'bg-emerald-100 text-emerald-800 border-emerald-400', isDimmed: false };
-    } else if (capacityPercent >= 100) {
+    } else if (capacityPercent >= 100 && !usesDynamicAvailability) {
+      // Only show "Fully booked" for events that don't generate slots dynamically
       return { label: 'Fully booked', color: 'bg-red-200 text-red-900 border-red-500', isDimmed: false };
-    } else if (capacityPercent >= 80) {
+    } else if (capacityPercent >= 80 && !usesDynamicAvailability) {
       return { label: 'Almost full', color: 'bg-amber-200 text-amber-900 border-amber-500', isDimmed: false };
     }
     return { label: 'Active', color: 'bg-emerald-100 text-emerald-800 border-emerald-400', isDimmed: false };

@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-26-dashboard-improvements',
+    date: '2026-01-26',
+    title: 'Dashboard Improvements',
+    description: 'Several usability fixes to the admin dashboard.',
+    category: 'improvement',
+    details: [
+      '"Next session" banner now shows which event it\'s for',
+      '"Allow Any Time" events no longer incorrectly show as "Fully booked"',
+      'Drag-and-drop reorder handles are now visible (not hidden until hover)',
+    ],
+  },
+  {
     id: '2026-01-26-expanded-test-coverage',
     date: '2026-01-26',
     title: 'Expanded Test Coverage',
