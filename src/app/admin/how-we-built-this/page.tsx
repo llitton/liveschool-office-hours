@@ -87,6 +87,10 @@ const featureCategories = [
       { name: 'Visual consistency', desc: 'Same action = same color (brand purple for all calendar icons)' },
       { name: 'Mobile-first design', desc: '44px+ touch targets for accessibility on all devices' },
       { name: 'Complete navigation', desc: 'Every admin page accessible via nav - no orphaned pages' },
+      { name: 'Sticky headers', desc: 'Event details page keeps title and actions visible while scrolling' },
+      { name: 'Attendee search', desc: 'Search bar for sessions with 6+ attendees to quickly find people' },
+      { name: 'Visual section hierarchy', desc: 'Configuration sections use dashed borders and badges to separate from content' },
+      { name: 'Attendee status badges', desc: 'Blue "New", purple "Returning", green "Frequent" badges at a glance' },
     ],
   },
   {

@@ -456,6 +456,45 @@ const helpSections: HelpSection[] = [
         ],
       },
       {
+        id: 'event-details',
+        title: 'Event Details Page',
+        description: 'Manage slots, attendees, and post-session workflows for any event.',
+        body: 'The event details page gives you full control over a single event. View all upcoming slots, manage attendees, and handle post-session tasks.',
+        lists: [
+          {
+            label: 'Page layout',
+            items: [
+              'Sticky header keeps event title and booking link visible while scrolling',
+              'Larger breadcrumb navigation for easy wayfinding',
+              'Visual distinction between configuration (Add Time Slots) and content sections',
+              'Add Time Slots section has a dashed border and "Configuration" badge',
+            ],
+          },
+          {
+            label: 'Attendee management',
+            items: [
+              'Search bar appears when a slot has 6+ attendees — filter by name or email',
+              'Status badges: "New" (blue) for first-time, "Returning" (purple), "Frequent" (green)',
+              'High no-show rate warning (red) helps identify attendance risks',
+              'Mobile-responsive cards stack on smaller screens',
+            ],
+          },
+          {
+            label: 'Slot actions',
+            items: [
+              'Prominent purple "Join Meet" button with video icon for upcoming sessions',
+              'Export attendee list to CSV',
+              'Cancel Slot button with red hover state for clear destructive action',
+            ],
+          },
+        ],
+        tips: [
+          'Use the search bar to quickly find specific attendees in large sessions',
+          'The "New" badge helps you identify first-time attendees for extra attention',
+          'Sticky header keeps quick actions accessible even on long pages',
+        ],
+      },
+      {
         id: 'join-meet',
         title: 'Joining Google Meet',
         description: 'Each session gets a unique Google Meet link automatically.',
