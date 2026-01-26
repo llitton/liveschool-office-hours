@@ -757,7 +757,7 @@ export default function ManageEventPage({
                     <li className="flex items-start gap-2">
                       <span className="text-blue-500 mt-0.5">•</span>
                       <span className="text-[#667085]">
-                        <Link href="/admin/analytics" className="text-[#6F71EE] hover:underline">Check Topics</Link> to see what attendees want to discuss
+                        Check <span className="font-medium text-[#101E57]">Topics to Discuss</span> on each slot card below
                       </span>
                     </li>
                     <li className="flex items-start gap-2">

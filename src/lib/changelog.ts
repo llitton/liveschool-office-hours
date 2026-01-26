@@ -25,6 +25,7 @@ export const changelog: ChangelogEntry[] = [
       '"New" badge identifies first-time attendees at a glance',
       'Search bar to quickly find attendees in large sessions (6+ attendees)',
       'Mobile-responsive attendee cards that stack gracefully on small screens',
+      '"Topics to Discuss" section shows what each attendee wants to cover for this specific session',
     ],
   },
   {

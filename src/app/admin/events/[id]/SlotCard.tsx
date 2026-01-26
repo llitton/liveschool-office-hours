@@ -863,6 +863,71 @@ export default function SlotCard({
         </div>
       )}
 
+      {/* Session Topics - show what attendees want to discuss for upcoming slots */}
+      {!isPastSlot && bookings && bookings.length > 0 && (() => {
+        // Collect all topics from booking question_responses
+        const topicsWithAttendees: { name: string; topic: string; questionLabel?: string }[] = [];
+
+        // Find topic-related questions (usually contain "topic", "discuss", "help with", "questions")
+        const topicQuestionIds = event.custom_questions
+          ?.filter(q =>
+            q.question.toLowerCase().includes('topic') ||
+            q.question.toLowerCase().includes('discuss') ||
+            q.question.toLowerCase().includes('help') ||
+            q.question.toLowerCase().includes('question') ||
+            q.question.toLowerCase().includes('cover') ||
+            q.type === 'textarea'
+          )
+          .map(q => q.id) || [];
+
+        bookings.forEach(booking => {
+          if (!booking.question_responses || booking.cancelled_at || booking.is_waitlisted) return;
+          const name = booking.first_name || booking.email.split('@')[0];
+
+          // Get responses to topic-related questions
+          Object.entries(booking.question_responses).forEach(([questionId, response]) => {
+            if (response && response.trim()) {
+              // Find the question label
+              const question = event.custom_questions?.find(q => q.id === questionId);
+              const isTopicQuestion = topicQuestionIds.includes(questionId);
+
+              if (isTopicQuestion || !event.custom_questions || event.custom_questions.length === 0) {
+                topicsWithAttendees.push({
+                  name,
+                  topic: response.trim(),
+                  questionLabel: question?.question,
+                });
+              }
+            }
+          });
+        });
+
+        if (topicsWithAttendees.length === 0) return null;
+
+        return (
+          <div className="border-t border-[#6F71EE]/20 bg-gradient-to-r from-[#6F71EE]/5 to-transparent">
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-4 h-4 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                <span className="text-sm font-medium text-[#101E57]">
+                  Topics to Discuss ({topicsWithAttendees.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {topicsWithAttendees.map((item, index) => (
+                  <div key={index} className="flex items-start gap-2 text-sm">
+                    <span className="font-medium text-[#6F71EE] whitespace-nowrap">{item.name}:</span>
+                    <span className="text-[#667085] italic">&ldquo;{item.topic}&rdquo;</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Collapsible Attendees Section */}
       {bookings && bookings.length > 0 && (
         <div className="border-t border-gray-200">

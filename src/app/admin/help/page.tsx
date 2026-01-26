@@ -487,10 +487,20 @@ const helpSections: HelpSection[] = [
               'Cancel Slot button with red hover state for clear destructive action',
             ],
           },
+          {
+            label: 'Session preparation',
+            items: [
+              '"Topics to Discuss" section shows what each attendee wants to cover',
+              'Topics are pulled from attendee responses to topic-related questions',
+              'See exactly what THIS session\'s attendees requested — not aggregate data',
+              'Prepare targeted content based on specific attendee needs',
+            ],
+          },
         ],
         tips: [
           'Use the search bar to quickly find specific attendees in large sessions',
           'The "New" badge helps you identify first-time attendees for extra attention',
+          'Check "Topics to Discuss" before each session to see what attendees want to cover',
           'Sticky header keeps quick actions accessible even on long pages',
         ],
       },

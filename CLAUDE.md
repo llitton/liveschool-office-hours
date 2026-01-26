@@ -723,6 +723,7 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
   - Green "Frequent" for high-frequency attendees
   - Red percentage for high no-show rate (>30%)
 - **Attendee search:** Search input appears when >5 attendees; filters by name or email; shows "No results" message when empty
+- **Session topics display:** "Topics to Discuss" section shows each attendee's responses to topic-related questions directly on the slot card; detects questions containing "topic", "discuss", "help", "question", "cover", or textarea type; only shows for upcoming (non-past) slots
 - **Mobile-responsive cards:** Attendee rows use `flex flex-col sm:flex-row` to stack info above actions on mobile; action buttons wrap with `flex-wrap`
 
 ### Event Settings Page
