@@ -22,11 +22,11 @@ const migrationChecks = [
   // 009 - Webinar type (check constraint, hard to verify)
   { migration: '009', table: 'oh_events', column: 'meeting_type' },
   // 010 - No show reengagement
-  { migration: '010', table: 'oh_bookings', column: 'attendance_status' },
+  { migration: '010', table: 'oh_events', column: 'no_show_emails_enabled' },
   // 011 - Task templates
   { migration: '011', table: 'oh_task_templates', column: 'id' },
   // 014 - Waitlist
-  { migration: '014', table: 'oh_events', column: 'enable_waitlist' },
+  { migration: '014', table: 'oh_events', column: 'waitlist_enabled' },
   // 015 - Session templates
   { migration: '015', table: 'oh_session_templates', column: 'id' },
   // 016 - Onboarding
@@ -34,13 +34,13 @@ const migrationChecks = [
   // 017 - Host priority
   { migration: '017', table: 'oh_event_hosts', column: 'priority' },
   // 018 - One off meetings
-  { migration: '018', table: 'oh_slots', column: 'one_off_title' },
+  { migration: '018', table: 'oh_events', column: 'is_one_off' },
   // 019 - Meeting polls
   { migration: '019', table: 'oh_polls', column: 'id' },
   // 020 - Start time increments
   { migration: '020', table: 'oh_events', column: 'start_time_increment' },
   // 021 - Quick links token
-  { migration: '021', table: 'oh_admins', column: 'quick_link_token' },
+  { migration: '021', table: 'oh_admins', column: 'quick_links_token' },
   // 022 - Phone required
   { migration: '022', table: 'oh_events', column: 'phone_required' },
   // 023 - Cancellation reason
@@ -49,10 +49,10 @@ const migrationChecks = [
   { migration: '024', table: 'oh_bookings', column: 'guest_emails' },
   // 025 - SMS logs
   { migration: '025', table: 'oh_sms_logs', column: 'id' },
-  // 026 - Booking analytics
-  { migration: '026', table: 'oh_bookings', column: 'page_view_id' },
+  // 026 - Booking analytics (creates oh_booking_analytics table)
+  { migration: '026', table: 'oh_booking_analytics', column: 'session_id' },
   // 027 - Event templates expand
-  { migration: '027', table: 'oh_session_templates', column: 'confirmation_email_template' },
+  { migration: '027', table: 'oh_session_templates', column: 'confirmation_subject' },
   // 028 - Company holidays
   { migration: '028', table: 'oh_company_holidays', column: 'id' },
   // 029 - Priority strategy
