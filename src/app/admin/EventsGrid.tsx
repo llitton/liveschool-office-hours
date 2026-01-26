@@ -14,7 +14,7 @@ import {
 import {
   SortableContext,
   sortableKeyboardCoordinates,
-  rectSortingStrategy,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { MeetingType, MEETING_TYPE_LABELS } from '@/types';
 import EventFilters from './EventFilters';
@@ -565,9 +565,10 @@ export default function EventsGrid({ events: initialEvents }: EventsGridProps) {
           >
             <SortableContext
               items={filteredEvents.map((e) => e.id)}
-              strategy={rectSortingStrategy}
+              strategy={verticalListSortingStrategy}
             >
-              <div className="grid gap-4 pl-8 lg:grid-cols-2">
+              {/* Single column in reorder mode for reliable drag-and-drop */}
+              <div className="grid gap-4 pl-8">
                 {filteredEvents.map((event) => (
                   <SortableEventCard key={event.id} id={event.id}>
                     {renderEventCard(event, selectedIds.has(event.id))}
