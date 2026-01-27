@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const latestBookable = addDays(now, bookingWindowDays);
 
   // Get slots with booking counts and assigned host info
-  const { data: slots, error } = await supabase
+  let query = supabase
     .from('oh_slots')
     .select(`
       *,
@@ -49,8 +49,14 @@ export async function GET(request: NextRequest) {
     `)
     .eq('event_id', eventId)
     .eq('is_cancelled', false)
-    .gte('start_time', now.toISOString())
     .order('start_time', { ascending: true });
+
+  // Only filter to future slots for public booking pages (not admin views)
+  if (!includeAll) {
+    query = query.gte('start_time', now.toISOString());
+  }
+
+  const { data: slots, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

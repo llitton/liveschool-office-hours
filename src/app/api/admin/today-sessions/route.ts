@@ -54,7 +54,38 @@ export async function GET() {
   const todayStart = startOfDay(zonedNow);
   const todayEnd = endOfDay(zonedNow);
 
-  // Get all slots for today
+  // Get current admin's ID
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
+  if (!admin) {
+    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+  }
+
+  // Get events where user is primary host or co-host
+  const { data: hostedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', admin.id);
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', admin.id);
+
+  // Combine event IDs
+  const eventIds = new Set<string>();
+  hostedEvents?.forEach(e => eventIds.add(e.id));
+  coHostedEvents?.forEach(e => eventIds.add(e.event_id));
+
+  if (eventIds.size === 0) {
+    return NextResponse.json({ sessions: [], hubspotConnected: false });
+  }
+
+  // Get slots for today for the user's events
   const { data: slots, error: slotsError } = await supabase
     .from('oh_slots')
     .select(`
@@ -80,6 +111,7 @@ export async function GET() {
       )
     `)
     .eq('is_cancelled', false)
+    .in('event_id', Array.from(eventIds))
     .gte('start_time', todayStart.toISOString())
     .lt('start_time', todayEnd.toISOString())
     .order('start_time', { ascending: true });

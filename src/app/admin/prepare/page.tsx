@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { format, parseISO, isToday, isTomorrow, addDays } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { PageContainer, PageHeader } from '@/components/AppShell';
 import { Card, CardBody, EmptyState } from '@/components/ui/Card';
 import { LinkButton } from '@/components/ui/Button';
@@ -46,10 +46,7 @@ export default function UpcomingPage() {
   useEffect(() => {
     async function fetchUpcomingSessions() {
       try {
-        const startDate = new Date().toISOString();
-        const endDate = addDays(new Date(), daysAhead).toISOString();
-
-        const res = await fetch(`/api/slots?start=${startDate}&end=${endDate}&includeBookings=true`);
+        const res = await fetch(`/api/admin/upcoming-sessions?days=${daysAhead}`);
         if (!res.ok) throw new Error('Failed to fetch');
 
         const data = await res.json();

@@ -756,7 +756,10 @@ export default function SlotCard({
   };
 
   return (
-    <div className={`border rounded-lg overflow-hidden ${isPastSlot ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}>
+    <div
+      id={`slot-${slot.id}`}
+      className={`border rounded-lg overflow-hidden scroll-mt-24 ${isPastSlot ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}
+    >
       <div className="p-4">
         <div className="flex justify-between items-start">
           <div className="flex-1">

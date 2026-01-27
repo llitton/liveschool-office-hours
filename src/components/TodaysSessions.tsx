@@ -41,9 +41,14 @@ function CompactSessionRow({ session }: { session: Session }) {
   const startTime = parseISO(session.start_time);
   const attendeeCount = session.attendees.length;
 
+  // Link to event page with slot anchor for quick navigation
+  const href = session.isPast
+    ? `/admin/events/${session.event.id}#slot-${session.id}`
+    : `/admin/events/${session.event.id}`;
+
   return (
     <Link
-      href={`/admin/events/${session.event.id}`}
+      href={href}
       className="flex items-center justify-between py-2 px-3 hover:bg-gray-50 rounded-lg transition group"
     >
       <div className="flex items-center gap-3">

@@ -136,7 +136,7 @@ export default function ManageEventPage({
     try {
       const [eventRes, slotsRes] = await Promise.all([
         fetch(`/api/events/${id}`),
-        fetch(`/api/slots?eventId=${id}`),
+        fetch(`/api/slots?eventId=${id}&includeAll=true`),
       ]);
 
       if (!eventRes.ok) throw new Error('Event not found');
