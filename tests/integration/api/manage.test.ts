@@ -121,12 +121,20 @@ function createMockSupabaseClient() {
           ],
         }));
 
-        // Create chainable methods that eventually resolve
+        // Create chainable methods that track the requested slot ID
         const createChain = () => {
+          let requestedSlotId: string | null = null;
           const chain: Record<string, unknown> = {};
-          const methods = ['eq', 'gt', 'lt', 'gte', 'lte', 'is', 'neq'];
+          const methods = ['gt', 'lt', 'gte', 'lte', 'is', 'neq'];
           methods.forEach((method) => {
             chain[method] = vi.fn().mockReturnValue(chain);
+          });
+          // Track the slot ID when .eq('id', ...) is called
+          chain.eq = vi.fn().mockImplementation((field: string, value: unknown) => {
+            if (field === 'id') {
+              requestedSlotId = value as string;
+            }
+            return chain;
           });
           chain.order = vi.fn().mockReturnValue({
             ...chain,
@@ -135,9 +143,15 @@ function createMockSupabaseClient() {
               return Promise.resolve({ data: slotsWithBookings, error: null });
             },
           });
-          chain.single = vi.fn().mockResolvedValue({
-            data: slotsWithBookings[0] || null,
-            error: slotsWithBookings[0] ? null : { message: 'Not found' },
+          chain.single = vi.fn().mockImplementation(async () => {
+            // If a specific slot ID was requested, find that slot
+            const slot = requestedSlotId
+              ? slotsWithBookings.find((s) => s.id === requestedSlotId)
+              : slotsWithBookings[0];
+            return {
+              data: slot || null,
+              error: slot ? null : { message: 'Not found' },
+            };
           });
           return chain;
         };
