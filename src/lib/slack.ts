@@ -391,10 +391,11 @@ export async function sendSessionSummary(session: {
 }
 
 /**
- * Send detailed post-session summary to Slack with attendee responses
+ * Send concise post-session summary to Slack
  */
 export async function sendDetailedSessionSummary(session: {
   eventName: string;
+  eventId?: string;
   startTime: string;
   timezone?: string | null;
   attendees: Array<{
@@ -434,19 +435,11 @@ export async function sendDetailedSessionSummary(session: {
     timeZone: timezone,
   }).split(' ').pop() || '';
 
-  const attendedCount = session.attendees.filter(a => a.attended).length;
-  const noShowCount = session.attendees.filter(a => a.noShow).length;
+  const attendedList = session.attendees.filter(a => a.attended);
+  const noShowList = session.attendees.filter(a => a.noShow);
+  const attendedCount = attendedList.length;
+  const noShowCount = noShowList.length;
   const totalCount = session.attendees.length;
-
-  // Build question label map
-  const questionLabels: Record<string, string> = {};
-  if (session.customQuestions && Array.isArray(session.customQuestions)) {
-    for (const q of session.customQuestions) {
-      if (q && q.id && q.question) {
-        questionLabels[q.id] = q.question;
-      }
-    }
-  }
 
   const message: SlackMessage = {
     blocks: [
@@ -462,70 +455,71 @@ export async function sendDetailedSessionSummary(session: {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `🕐 *${formattedDate} at ${formattedTime} ${tzAbbrev}*`,
-        },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `📊 *Attendance:* ${attendedCount}/${totalCount} attended${noShowCount > 0 ? ` · ${noShowCount} no-show${noShowCount !== 1 ? 's' : ''}` : ''}`,
+          text: `🕐 ${formattedDate} at ${formattedTime} ${tzAbbrev}\n📊 *${attendedCount}/${totalCount} attended*${noShowCount > 0 ? ` · ${noShowCount} no-show${noShowCount !== 1 ? 's' : ''}` : ''}`,
         },
       },
     ],
   };
 
-  // Add resources section if any exist
+  // Add resources section if any exist (compact format)
   const hasResources = session.recordingLink || session.deckLink || (session.sharedLinks && session.sharedLinks.length > 0);
   if (hasResources) {
-    let resourcesText = '*📎 Resources:*';
+    const resourceLinks: string[] = [];
     if (session.recordingLink) {
-      resourcesText += `\n• <${session.recordingLink}|🎥 Recording>`;
+      resourceLinks.push(`<${session.recordingLink}|Recording>`);
     }
     if (session.deckLink) {
-      resourcesText += `\n• <${session.deckLink}|📊 Deck/Slides>`;
+      resourceLinks.push(`<${session.deckLink}|Deck>`);
     }
     if (session.sharedLinks && session.sharedLinks.length > 0) {
       for (const link of session.sharedLinks) {
-        resourcesText += `\n• <${link.url}|${link.title}>`;
+        resourceLinks.push(`<${link.url}|${link.title}>`);
       }
     }
     message.blocks!.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: resourcesText,
+        text: `📎 ${resourceLinks.join(' · ')}`,
       },
     });
   }
 
-  // Add divider before attendee details
-  message.blocks!.push({ type: 'divider' } as SlackBlock);
-
-  // Add each attendee with their responses
-  for (const attendee of session.attendees) {
-    const statusEmoji = attendee.attended ? '✓' : attendee.noShow ? '✗' : '?';
-    const statusText = attendee.attended ? 'attended' : attendee.noShow ? 'no-show' : 'unknown';
-
-    let attendeeText = `*${attendee.name}* (${statusEmoji} ${statusText})\n${attendee.email}`;
-
-    // Add question responses
-    if (attendee.questionResponses && typeof attendee.questionResponses === 'object') {
-      for (const [questionId, response] of Object.entries(attendee.questionResponses)) {
-        if (response && typeof response === 'string' && response.trim()) {
-          const label = questionLabels[questionId] || 'Response';
-          attendeeText += `\n\n_${label}_\n>${response.replace(/\n/g, '\n>')}`;
-        }
-      }
-    }
-
+  // Add compact attendee lists
+  if (attendedCount > 0) {
+    const attendedNames = attendedList.map(a => a.name.split(' ')[0]).join(', ');
     message.blocks!.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: attendeeText,
+        text: `✓ *Attended:* ${attendedNames}`,
       },
     });
+  }
+
+  if (noShowCount > 0) {
+    const noShowNames = noShowList.map(a => a.name.split(' ')[0]).join(', ');
+    message.blocks!.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `✗ *No-shows:* ${noShowNames}`,
+      },
+    });
+  }
+
+  // Add link to view full details
+  if (session.eventId) {
+    const detailsUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/events/${session.eventId}`;
+    message.blocks!.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `<${detailsUrl}|View full session details including topics & responses →>`,
+        },
+      ],
+    } as SlackBlock);
   }
 
   return sendSlackMessage(message);

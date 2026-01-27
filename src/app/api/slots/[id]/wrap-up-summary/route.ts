@@ -108,6 +108,7 @@ export async function POST(
   // Send to Slack
   const sent = await sendDetailedSessionSummary({
     eventName: eventData.name,
+    eventId: eventData.id,
     startTime: slot.start_time,
     timezone: eventData.display_timezone,
     attendees,

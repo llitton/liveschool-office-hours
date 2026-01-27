@@ -627,7 +627,7 @@ describe('Slack Integration', () => {
       expect(result).toBe(true);
     });
 
-    it('includes attendee details in message', async () => {
+    it('includes attendee names in compact format', async () => {
       mockSlackConfig = {
         webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
         post_session_summary: true,
@@ -650,14 +650,14 @@ describe('Slack Integration', () => {
       const body = JSON.parse(fetchCall[1].body);
       const blocksStr = JSON.stringify(body.blocks);
 
-      expect(blocksStr).toContain('John Doe');
-      expect(blocksStr).toContain('Jane Smith');
-      expect(blocksStr).toContain('john@example.com');
-      expect(blocksStr).toContain('attended');
-      expect(blocksStr).toContain('no-show');
+      // New concise format shows just first names in attended/no-show lists
+      expect(blocksStr).toContain('John');
+      expect(blocksStr).toContain('Jane');
+      expect(blocksStr).toContain('Attended');
+      expect(blocksStr).toContain('No-shows');
     });
 
-    it('includes question responses when provided', async () => {
+    it('includes link to view full details when eventId provided', async () => {
       mockSlackConfig = {
         webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
         post_session_summary: true,
@@ -669,6 +669,7 @@ describe('Slack Integration', () => {
 
       await sendDetailedSessionSummary({
         eventName: 'Office Hours',
+        eventId: 'event-123',
         startTime: '2024-01-15T14:00:00Z',
         attendees: [
           {
@@ -686,8 +687,9 @@ describe('Slack Integration', () => {
       const body = JSON.parse(fetchCall[1].body);
       const blocksStr = JSON.stringify(body.blocks);
 
-      expect(blocksStr).toContain('What topics do you want to discuss?');
-      expect(blocksStr).toContain('How do I use rewards?');
+      // New concise format shows link to view full details instead of individual responses
+      expect(blocksStr).toContain('event-123');
+      expect(blocksStr).toContain('View full session details');
     });
 
     it('includes recording link when provided', async () => {
@@ -776,7 +778,7 @@ describe('Slack Integration', () => {
       expect(blocksStr).toContain('youtube.com');
     });
 
-    it('includes all resources together in resources section', async () => {
+    it('includes all resources together in compact format', async () => {
       mockSlackConfig = {
         webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
         post_session_summary: true,
@@ -803,8 +805,8 @@ describe('Slack Integration', () => {
       const body = JSON.parse(fetchCall[1].body);
       const blocksStr = JSON.stringify(body.blocks);
 
-      // All resources should be in the message
-      expect(blocksStr).toContain('Resources');
+      // All resources should be in the message (compact format with 📎)
+      expect(blocksStr).toContain('📎');
       expect(blocksStr).toContain('Recording');
       expect(blocksStr).toContain('Deck');
       expect(blocksStr).toContain('Resource Guide');
