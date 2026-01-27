@@ -66,8 +66,10 @@ const featureCategories = [
       { name: 'Attendee role breakdown', desc: 'See who is attending at a glance (e.g., "2 site leaders, 1 admin")' },
       { name: 'Instant context cards', desc: 'HubSpot data pre-fetched when you expand attendees — no waiting' },
       { name: 'Slack notifications', desc: 'Per-event booking alerts with attendee context' },
-      { name: 'Slack wrap-up summary', desc: 'Send post-session report with attendance and all question responses' },
-      { name: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
+      { name: 'Slack wrap-up summary', desc: 'Send post-session report with attendance, resources, and all question responses' },
+      { name: 'Session resources', desc: 'Add deck link and shared links during wrap-up, included in follow-up emails' },
+      { name: 'Attendance auto-sync', desc: 'Detects who joined Google Meet (requires Google reconnect)' },
+      { name: 'Google disconnect/reconnect', desc: 'Re-authorize Google to get new permissions in Settings' },
     ],
   },
   {

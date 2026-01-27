@@ -560,20 +560,35 @@ After a session ends, hosts can wrap up the session from the event details page.
 
 **Wrap Up Session modal features:**
 - **Attendance tracking:** Mark attendees as attended or no-show (syncs from Google Meet if available)
-- **Recording link:** Add a link to the session recording
+- **Recording link:** Add a link to the session recording (Fireflies, Loom, etc.)
+- **Deck link:** Add a link to the presentation/slides used
+- **Shared links:** Add any other resources shared during the session
 - **Follow-up emails:** Send thank you emails to attendees or "we missed you" emails to no-shows
 - **Slack summary:** Send a detailed summary to Slack (if Slack notifications enabled)
+
+**Session resources (migration 041):**
+- `deck_link` - Link to presentation/deck used during the session
+- `shared_links` - JSONB array of `[{ "title": "...", "url": "..." }]` for other resources
+- Resources are included in follow-up emails when sent
+- Resources are included in Slack wrap-up summary
+
+**Follow-up emails:**
+- Sent from whoever clicks "Send Follow-Up" (not the primary host)
+- Uses the current user's Google credentials and email address
+- Includes recording, deck, and shared links if added
 
 **Slack session summary:**
 When you click "Send Summary to Slack" in the Wrap Up modal, it sends:
 - Event name and time
 - Attendance count (attended vs no-shows)
-- Recording link (if added)
+- Resources (recording, deck, shared links if added)
 - Each attendee's name, email, attendance status
 - All question responses from each attendee
 
-**API endpoint:**
+**API endpoints:**
 - `POST /api/slots/[id]/wrap-up-summary` - Sends detailed summary to Slack
+- `POST /api/slots/[id]/send-followup` - Sends follow-up emails (from current user)
+- `PATCH /api/slots/[id]` - Updates recording_link, deck_link, shared_links
 
 **Visibility rules:**
 - Today's sessions show on the main dashboard (`/admin`)
@@ -588,8 +603,34 @@ When you click "Send Summary to Slack" in the Wrap Up modal, it sends:
 - Wrap Up modal: `src/app/admin/events/[id]/SlotCard.tsx`
 - Slack summary: `src/lib/slack.ts` (`sendDetailedSessionSummary`)
 - Wrap-up API: `src/app/api/slots/[id]/wrap-up-summary/route.ts`
+- Follow-up API: `src/app/api/slots/[id]/send-followup/route.ts`
 - Today sessions API: `src/app/api/admin/today-sessions/route.ts`
 - Upcoming sessions API: `src/app/api/admin/upcoming-sessions/route.ts`
+
+### Google Disconnect & Reconnect
+Users can disconnect and reconnect their Google account from Settings to re-authorize with updated OAuth scopes.
+
+**When to reconnect:**
+- After new Google API scopes are added (e.g., Meet API for auto-attendance)
+- If experiencing authentication issues
+- To refresh credentials
+
+**How it works:**
+1. Go to Settings (top navigation)
+2. In "Google Calendar Sync" section, click "Disconnect"
+3. Click "Reconnect Google" to re-authorize
+
+**OAuth scopes requested (in `src/lib/google.ts`):**
+- `calendar` - Full calendar access
+- `calendar.events` - Create/update calendar events
+- `gmail.send` - Send emails
+- `userinfo.email` and `userinfo.profile` - User info
+- `meetings.space.readonly` - Read Google Meet participant data (for auto-attendance)
+
+**API endpoint:**
+- `POST /api/auth/disconnect-google` - Clears Google tokens for current user
+
+**Note:** Each team member needs to disconnect and reconnect to get new scopes.
 
 ## Error Handling & Reliability
 

@@ -12,6 +12,44 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-27-session-wrap-up',
+    date: '2026-01-27',
+    title: 'Enhanced Session Wrap-Up',
+    description: 'Add deck links, shared resources, and send a Slack summary after each session.',
+    category: 'feature',
+    details: [
+      'Add your deck/slides link in the Wrap Up modal',
+      'Add any links you shared during the session',
+      'Resources are included in follow-up emails to attendees',
+      'Send a Slack summary with attendance and all question responses',
+    ],
+  },
+  {
+    id: '2026-01-27-google-reconnect',
+    date: '2026-01-27',
+    title: 'Google Disconnect & Reconnect',
+    description: 'Easily re-authorize Google to get new features like Meet auto-attendance.',
+    category: 'feature',
+    details: [
+      'Go to Settings → Google Calendar Sync → Disconnect',
+      'Click "Reconnect Google" to re-authorize with updated permissions',
+      'Required for Google Meet auto-attendance feature',
+      'Each team member needs to reconnect once for new scopes',
+    ],
+  },
+  {
+    id: '2026-01-27-followup-from-sender',
+    date: '2026-01-27',
+    title: 'Follow-Up Emails From You',
+    description: 'Follow-up emails now come from whoever clicks Send, not the primary host.',
+    category: 'improvement',
+    details: [
+      'When you click "Send Follow-Up", emails come from your account',
+      'Previously, all emails came from the event\'s primary host',
+      'More natural for co-hosts who actually ran the session',
+    ],
+  },
+  {
     id: '2026-01-26-attendee-context-performance',
     date: '2026-01-26',
     title: 'Faster Attendee Context Loading',

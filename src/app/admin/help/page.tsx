@@ -31,16 +31,17 @@ const helpSections: HelpSection[] = [
         description: 'Sync your calendar to check availability, create Meet links, and add bookings.',
         body: 'Connecting your Google Calendar allows Connect with LiveSchool to check your availability, automatically create Google Meet links, and add bookings to your calendar.',
         steps: [
-          'Go to Settings, then Integrations',
-          'Click Connect Google Calendar',
+          'Go to Settings in the top navigation',
+          'In the Google Calendar Sync section, click "Reconnect Google"',
           'Sign in with your Google account',
           'Grant the necessary permissions',
         ],
         tips: [
           'Your calendar syncs automatically after connecting',
-          'You can disconnect and reconnect at any time',
+          'You can disconnect and reconnect at any time from Settings',
           'Calendar events use your session name as the title (e.g., "Office Hours")',
           'For webinars with co-hosts, all co-hosts receive calendar invitations automatically',
+          'If new features require additional permissions (like Meet auto-attendance), disconnect and reconnect to grant them',
         ],
       },
       {
@@ -555,7 +556,7 @@ const helpSections: HelpSection[] = [
       {
         id: 'wrap-up',
         title: 'Post-Session Wrap Up',
-        description: 'Mark attendance, add notes, link recordings, send Slack summaries, and follow-ups.',
+        description: 'Mark attendance, add recordings, deck links, shared resources, send Slack summaries, and follow-ups.',
         body: 'After each session, use the wrap-up workflow to close out the session properly. Find the "Wrap Up Session" button in the Past Sessions section of the event details page.',
         steps: [
           'Go to the event details page (click the session from Today or Sessions)',
@@ -563,17 +564,27 @@ const helpSections: HelpSection[] = [
           'Click the "Wrap Up Session" button',
           'Mark attendance — check off who attended vs. no-shows',
           'Add recording link — paste the Fireflies or other recording URL',
+          'Add deck link — paste the link to your slides/presentation',
+          'Add shared links — any resources you shared during the session',
           'Click "Send Summary to Slack" to notify your team (if Slack enabled)',
-          'Optionally send follow-up emails to attendees or no-shows',
+          'Click "Send Follow-Up" to email attendees (includes resources you added)',
           'Click "Done" to close the wrap-up modal',
         ],
         lists: [
+          {
+            label: 'Resources you can add',
+            items: [
+              'Recording link — Fireflies, Loom, or any video recording URL',
+              'Deck link — Google Slides, PowerPoint, PDF of your presentation',
+              'Shared links — Any other resources shared during the session',
+            ],
+          },
           {
             label: 'Slack summary includes',
             items: [
               'Event name and session time',
               'Attendance count (X attended, Y no-shows)',
-              'Recording link (if added)',
+              'Recording link, deck link, and shared links (if added)',
               'Each attendee\'s name, email, and attendance status',
               'All booking question responses from each attendee',
             ],
@@ -581,13 +592,15 @@ const helpSections: HelpSection[] = [
           {
             label: 'Follow-up email options',
             items: [
-              'Thank You Email — send to attendees who joined',
+              'Thank You Email — send to attendees who joined (includes resources)',
               'We Missed You — send to no-shows for re-engagement',
+              'Emails come from YOU, not the primary host',
             ],
           },
         ],
         tips: [
           'Slack summary only appears if Slack notifications are enabled for the event',
+          'Added resources are automatically included in follow-up emails',
           'Attendees can download certificates for PD credit after being marked as attended',
           'The Wrap Up button only shows for past sessions with bookings',
         ],

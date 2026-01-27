@@ -716,5 +716,98 @@ describe('Slack Integration', () => {
       expect(blocksStr).toContain('fireflies.ai');
       expect(blocksStr).toContain('Recording');
     });
+
+    it('includes deck link when provided', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+        ],
+        deckLink: 'https://docs.google.com/presentation/d/abc123',
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('docs.google.com');
+      expect(blocksStr).toContain('Deck');
+    });
+
+    it('includes shared links when provided', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+        ],
+        sharedLinks: [
+          { title: 'Help Article', url: 'https://help.liveschool.com/rewards' },
+          { title: 'Training Video', url: 'https://youtube.com/watch?v=abc123' },
+        ],
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('Help Article');
+      expect(blocksStr).toContain('help.liveschool.com');
+      expect(blocksStr).toContain('Training Video');
+      expect(blocksStr).toContain('youtube.com');
+    });
+
+    it('includes all resources together in resources section', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+        ],
+        recordingLink: 'https://fireflies.ai/recording/abc123',
+        deckLink: 'https://docs.google.com/presentation/d/xyz',
+        sharedLinks: [
+          { title: 'Resource Guide', url: 'https://example.com/guide' },
+        ],
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      // All resources should be in the message
+      expect(blocksStr).toContain('Resources');
+      expect(blocksStr).toContain('Recording');
+      expect(blocksStr).toContain('Deck');
+      expect(blocksStr).toContain('Resource Guide');
+    });
   });
 });
