@@ -52,7 +52,7 @@ export async function POST(
     return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
   }
 
-  const eventData = slot.event as {
+  const eventData = slot.event as unknown as {
     id: string;
     name: string;
     slug: string;
