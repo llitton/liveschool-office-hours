@@ -555,16 +555,41 @@ const helpSections: HelpSection[] = [
       {
         id: 'wrap-up',
         title: 'Post-Session Wrap Up',
-        description: 'Mark attendance, add notes, link recordings, and send follow-ups.',
-        body: 'After each session, use the wrap-up workflow to close out the session properly.',
+        description: 'Mark attendance, add notes, link recordings, send Slack summaries, and follow-ups.',
+        body: 'After each session, use the wrap-up workflow to close out the session properly. Find the "Wrap Up Session" button in the Past Sessions section of the event details page.',
         steps: [
+          'Go to the event details page (click the session from Today or Sessions)',
+          'Scroll to "Past Sessions" to find your completed session',
+          'Click the "Wrap Up Session" button',
           'Mark attendance — check off who attended vs. no-shows',
-          'Add notes — record key discussion points or follow-ups',
-          'Add recording — link the Fireflies recording',
-          'Send follow-ups — recording to attendees, re-engagement to no-shows',
+          'Add recording link — paste the Fireflies or other recording URL',
+          'Click "Send Summary to Slack" to notify your team (if Slack enabled)',
+          'Optionally send follow-up emails to attendees or no-shows',
+          'Click "Done" to close the wrap-up modal',
+        ],
+        lists: [
+          {
+            label: 'Slack summary includes',
+            items: [
+              'Event name and session time',
+              'Attendance count (X attended, Y no-shows)',
+              'Recording link (if added)',
+              'Each attendee\'s name, email, and attendance status',
+              'All booking question responses from each attendee',
+            ],
+          },
+          {
+            label: 'Follow-up email options',
+            items: [
+              'Thank You Email — send to attendees who joined',
+              'We Missed You — send to no-shows for re-engagement',
+            ],
+          },
         ],
         tips: [
+          'Slack summary only appears if Slack notifications are enabled for the event',
           'Attendees can download certificates for PD credit after being marked as attended',
+          'The Wrap Up button only shows for past sessions with bookings',
         ],
       },
       {
@@ -1181,10 +1206,12 @@ const helpSections: HelpSection[] = [
             ],
           },
           {
-            label: 'Other notification types',
+            label: 'Post-session summary (Wrap Up)',
             items: [
-              'Daily digest — summary of upcoming sessions',
-              'Post-session summary — attendance and topics discussed',
+              'After a session ends, click "Wrap Up Session" on the event page',
+              'Click "Send Summary to Slack" to notify your team',
+              'Includes attendance, recording link, and all attendee responses',
+              'Perfect for sharing session outcomes with your team',
             ],
           },
         ],

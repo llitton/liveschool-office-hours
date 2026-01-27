@@ -555,6 +555,42 @@ Attendees can be categorized by their role (Teacher, Administrator, Site Leader)
 - Context card: `src/components/HubSpotContactCard.tsx`
 - SlotCard integration: `src/app/admin/events/[id]/SlotCard.tsx`
 
+### Session Wrap-Up
+After a session ends, hosts can wrap up the session from the event details page. Past sessions appear in the "Past Sessions" section on the event page (`/admin/events/[id]`).
+
+**Wrap Up Session modal features:**
+- **Attendance tracking:** Mark attendees as attended or no-show (syncs from Google Meet if available)
+- **Recording link:** Add a link to the session recording
+- **Follow-up emails:** Send thank you emails to attendees or "we missed you" emails to no-shows
+- **Slack summary:** Send a detailed summary to Slack (if Slack notifications enabled)
+
+**Slack session summary:**
+When you click "Send Summary to Slack" in the Wrap Up modal, it sends:
+- Event name and time
+- Attendance count (attended vs no-shows)
+- Recording link (if added)
+- Each attendee's name, email, attendance status
+- All question responses from each attendee
+
+**API endpoint:**
+- `POST /api/slots/[id]/wrap-up-summary` - Sends detailed summary to Slack
+
+**Visibility rules:**
+- Today's sessions show on the main dashboard (`/admin`)
+- Past sessions show in "Past Sessions" section on event details page
+- Clicking "Earlier" on Today page links directly to the past slot
+
+**Co-host visibility:**
+- Today's Sessions and Upcoming pages only show sessions for events where you are a host or co-host
+- API: `/api/admin/today-sessions` and `/api/admin/upcoming-sessions` filter by user's hosted events
+
+**Files:**
+- Wrap Up modal: `src/app/admin/events/[id]/SlotCard.tsx`
+- Slack summary: `src/lib/slack.ts` (`sendDetailedSessionSummary`)
+- Wrap-up API: `src/app/api/slots/[id]/wrap-up-summary/route.ts`
+- Today sessions API: `src/app/api/admin/today-sessions/route.ts`
+- Upcoming sessions API: `src/app/api/admin/upcoming-sessions/route.ts`
+
 ## Error Handling & Reliability
 
 ### User-Friendly Error Messages

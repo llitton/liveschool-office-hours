@@ -66,6 +66,7 @@ const featureCategories = [
       { name: 'Attendee role breakdown', desc: 'See who is attending at a glance (e.g., "2 site leaders, 1 admin")' },
       { name: 'Instant context cards', desc: 'HubSpot data pre-fetched when you expand attendees — no waiting' },
       { name: 'Slack notifications', desc: 'Per-event booking alerts with attendee context' },
+      { name: 'Slack wrap-up summary', desc: 'Send post-session report with attendance and all question responses' },
       { name: 'Attendance auto-sync', desc: 'Detects who joined Google Meet' },
     ],
   },
@@ -95,6 +96,8 @@ const featureCategories = [
       { name: 'Visual section hierarchy', desc: 'Configuration sections use dashed borders and badges to separate from content' },
       { name: 'Attendee status badges', desc: 'Blue "New", purple "Returning", green "Frequent" badges at a glance' },
       { name: 'Session topics display', desc: 'See what each attendee wants to discuss directly on the slot card' },
+      { name: 'Co-host visibility', desc: 'Today and Upcoming pages show only sessions where you are a host or co-host' },
+      { name: 'Past session deep links', desc: 'Click Earlier sessions to jump directly to the slot on the event page' },
     ],
   },
   {
