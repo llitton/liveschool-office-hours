@@ -113,8 +113,10 @@ export interface OHSlot {
   google_meet_link: string | null;
   is_cancelled: boolean;
   created_at: string;
-  // Recording link for post-session
+  // Post-session resources
   recording_link: string | null;
+  deck_link: string | null;
+  shared_links: Array<{ title: string; url: string }> | null;
 }
 
 export interface OHBooking {

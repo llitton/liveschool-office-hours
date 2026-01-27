@@ -30,6 +30,19 @@ export async function PATCH(
   if (body.recording_link !== undefined) {
     allowedUpdates.recording_link = body.recording_link || null;
   }
+  if (body.deck_link !== undefined) {
+    allowedUpdates.deck_link = body.deck_link || null;
+  }
+  if (body.shared_links !== undefined) {
+    // Validate shared_links format: array of {title, url} objects
+    if (Array.isArray(body.shared_links)) {
+      allowedUpdates.shared_links = body.shared_links.filter(
+        (link: { title?: string; url?: string }) => link.title && link.url
+      );
+    } else {
+      allowedUpdates.shared_links = [];
+    }
+  }
 
   if (Object.keys(allowedUpdates).length === 0) {
     return NextResponse.json({ error: 'No valid updates provided' }, { status: 400 });

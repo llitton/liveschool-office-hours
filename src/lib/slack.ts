@@ -406,6 +406,8 @@ export async function sendDetailedSessionSummary(session: {
   }>;
   customQuestions?: Array<{ id: string; question: string }> | null;
   recordingLink?: string | null;
+  deckLink?: string | null;
+  sharedLinks?: Array<{ title: string; url: string }> | null;
 }): Promise<boolean> {
   const config = await getSlackConfig();
   if (!config || !config.post_session_summary) {
@@ -473,13 +475,26 @@ export async function sendDetailedSessionSummary(session: {
     ],
   };
 
-  // Add recording link if available
-  if (session.recordingLink) {
+  // Add resources section if any exist
+  const hasResources = session.recordingLink || session.deckLink || (session.sharedLinks && session.sharedLinks.length > 0);
+  if (hasResources) {
+    let resourcesText = '*📎 Resources:*';
+    if (session.recordingLink) {
+      resourcesText += `\n• <${session.recordingLink}|🎥 Recording>`;
+    }
+    if (session.deckLink) {
+      resourcesText += `\n• <${session.deckLink}|📊 Deck/Slides>`;
+    }
+    if (session.sharedLinks && session.sharedLinks.length > 0) {
+      for (const link of session.sharedLinks) {
+        resourcesText += `\n• <${link.url}|${link.title}>`;
+      }
+    }
     message.blocks!.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `🎥 <${session.recordingLink}|View Recording>`,
+        text: resourcesText,
       },
     });
   }

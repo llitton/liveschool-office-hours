@@ -58,7 +58,14 @@ export default function SlotCard({
   onRefresh,
 }: SlotCardProps) {
   const [recordingLink, setRecordingLink] = useState(slot.recording_link || '');
+  const [deckLink, setDeckLink] = useState(slot.deck_link || '');
+  const [sharedLinks, setSharedLinks] = useState<Array<{ title: string; url: string }>>(
+    slot.shared_links || []
+  );
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
   const [savingRecording, setSavingRecording] = useState(false);
+  const [savingResources, setSavingResources] = useState(false);
   const [attendeeStats, setAttendeeStats] = useState<Record<string, AttendeeStats>>({});
   const [showNotes, setShowNotes] = useState<string | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
@@ -378,6 +385,34 @@ export default function SlotCard({
     }
   };
 
+  const handleSaveResources = async () => {
+    setSavingResources(true);
+    try {
+      await fetch(`/api/slots/${slot.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deck_link: deckLink, shared_links: sharedLinks }),
+      });
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save resources:', err);
+    } finally {
+      setSavingResources(false);
+    }
+  };
+
+  const handleAddSharedLink = () => {
+    if (newLinkTitle.trim() && newLinkUrl.trim()) {
+      setSharedLinks([...sharedLinks, { title: newLinkTitle.trim(), url: newLinkUrl.trim() }]);
+      setNewLinkTitle('');
+      setNewLinkUrl('');
+    }
+  };
+
+  const handleRemoveSharedLink = (index: number) => {
+    setSharedLinks(sharedLinks.filter((_, i) => i !== index));
+  };
+
   const handleSendSlackSummary = async () => {
     setSendingSlackSummary(true);
     setSlackSummaryError(null);
@@ -662,8 +697,29 @@ export default function SlotCard({
     const defaultSubject = recipients === 'attended'
       ? `Thanks for attending: ${event.name}`
       : `We missed you at ${event.name}`;
+
+    // Build resources section for attended emails
+    let resourcesSection = '';
+    if (recipients === 'attended') {
+      const resources: string[] = [];
+      if (recordingLink) {
+        resources.push(`Recording: ${recordingLink}`);
+      }
+      if (deckLink) {
+        resources.push(`Deck/Slides: ${deckLink}`);
+      }
+      if (sharedLinks.length > 0) {
+        sharedLinks.forEach(link => {
+          resources.push(`${link.title}: ${link.url}`);
+        });
+      }
+      if (resources.length > 0) {
+        resourcesSection = `\n\nHere are the resources from our session:\n${resources.map(r => `• ${r}`).join('\n')}`;
+      }
+    }
+
     const defaultBody = recipients === 'attended'
-      ? `Hi there,\n\nThank you for attending ${event.name}!${recordingLink ? `\n\nHere's the recording from our session:\n${recordingLink}` : ''}\n\nLet us know if you have any questions.\n\nBest,\n${event.host_name}`
+      ? `Hi there,\n\nThank you for attending ${event.name}!${resourcesSection}\n\nLet us know if you have any questions.\n\nBest,\n${event.host_name}`
       : `Hi there,\n\nWe noticed you weren't able to make it to ${event.name}. No worries - life happens!\n\nIf you'd like to reschedule for another time, you can do so from your booking confirmation email.\n\nHope to see you soon!\n\n${event.host_name}`;
     setFollowupSubject(defaultSubject);
     setFollowupBody(defaultBody);
@@ -1964,6 +2020,106 @@ export default function SlotCard({
                   </div>
                   <p className="text-xs text-[#667085] mt-2">
                     Paste your Fireflies recording link. Will be included in follow-up emails.
+                  </p>
+                </div>
+              </div>
+
+              {/* Section 2b: Deck & Shared Resources */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📎</span>
+                    <span className="font-medium text-[#101E57]">Deck & Resources</span>
+                  </div>
+                  {(slot.deck_link || (slot.shared_links && slot.shared_links.length > 0)) ? (
+                    <span className="text-xs text-green-600 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Saved
+                    </span>
+                  ) : (
+                    <span className="text-xs text-[#667085]">Optional</span>
+                  )}
+                </div>
+                <div className="p-4 space-y-4">
+                  {/* Deck Link */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Presentation / Deck
+                    </label>
+                    <input
+                      type="url"
+                      value={deckLink}
+                      onChange={(e) => setDeckLink(e.target.value)}
+                      placeholder="https://docs.google.com/presentation/..."
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                    />
+                  </div>
+
+                  {/* Shared Links */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#101E57] mb-1">
+                      Shared Links
+                    </label>
+                    {sharedLinks.length > 0 && (
+                      <div className="space-y-2 mb-2">
+                        {sharedLinks.map((link, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-[#F6F6F9] rounded-lg">
+                            <span className="flex-1 text-sm text-[#101E57] truncate">
+                              <span className="font-medium">{link.title}:</span>{' '}
+                              <span className="text-[#667085]">{link.url}</span>
+                            </span>
+                            <button
+                              onClick={() => handleRemoveSharedLink(index)}
+                              className="p-1 text-gray-400 hover:text-red-500 transition"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newLinkTitle}
+                        onChange={(e) => setNewLinkTitle(e.target.value)}
+                        placeholder="Link title"
+                        className="w-1/3 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      <input
+                        type="url"
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                      />
+                      <button
+                        onClick={handleAddSharedLink}
+                        disabled={!newLinkTitle.trim() || !newLinkUrl.trim()}
+                        className="px-3 py-2 bg-gray-100 text-[#101E57] text-sm rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleSaveResources}
+                      disabled={savingResources || (deckLink === (slot.deck_link || '') && JSON.stringify(sharedLinks) === JSON.stringify(slot.shared_links || []))}
+                      className="px-4 py-2 bg-[#6F71EE] text-white text-sm rounded-lg hover:bg-[#5a5cd0] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingResources ? 'Saving...' : 'Save Resources'}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-[#667085]">
+                    Add the deck and any links you shared during the session. These will be included in follow-up emails.
                   </p>
                 </div>
               </div>

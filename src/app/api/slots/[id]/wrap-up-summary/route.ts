@@ -24,6 +24,8 @@ export async function POST(
       start_time,
       end_time,
       recording_link,
+      deck_link,
+      shared_links,
       event:oh_events(
         id,
         name,
@@ -105,6 +107,8 @@ export async function POST(
     attendees,
     customQuestions: eventData.custom_questions,
     recordingLink: slot.recording_link,
+    deckLink: slot.deck_link,
+    sharedLinks: slot.shared_links as Array<{ title: string; url: string }> | null,
   });
 
   if (!sent) {
