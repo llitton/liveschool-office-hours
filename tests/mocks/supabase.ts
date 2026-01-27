@@ -83,6 +83,8 @@ export function createMockSlot(overrides: Partial<OHSlot> = {}): OHSlot {
     is_cancelled: false,
     created_at: new Date().toISOString(),
     recording_link: null,
+    deck_link: null,
+    shared_links: null,
     ...overrides,
   };
 }
