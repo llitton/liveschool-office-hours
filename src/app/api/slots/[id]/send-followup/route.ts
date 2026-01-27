@@ -67,16 +67,16 @@ export async function POST(
     );
   }
 
-  // Get admin credentials for sending email
+  // Get current user's credentials for sending email (send from whoever clicks the button)
   const { data: admin } = await supabase
     .from('oh_admins')
     .select('*')
-    .eq('email', slot.event.host_email)
+    .eq('email', session.user.email)
     .single();
 
   if (!admin?.google_access_token || !admin?.google_refresh_token) {
     return NextResponse.json(
-      { error: 'Host email not configured. Please connect Google in integrations.' },
+      { error: 'Your Google account is not connected. Please reconnect Google in Settings.' },
       { status: 400 }
     );
   }
@@ -103,7 +103,7 @@ export async function POST(
         {
           to: booking.email,
           subject,
-          replyTo: slot.event.host_email,
+          replyTo: admin.email,
           htmlBody,
         }
       );
@@ -118,7 +118,8 @@ export async function POST(
   emailLogger.info('Follow-up emails sent', {
     operation: 'sendFollowup',
     slotId: id,
-    metadata: { sent, failed },
+    adminId: admin.id,
+    metadata: { sent, failed, sentBy: admin.email },
   });
 
   return NextResponse.json({
