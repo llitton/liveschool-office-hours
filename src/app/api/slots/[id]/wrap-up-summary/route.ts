@@ -17,6 +17,7 @@ export async function POST(
   const supabase = getServiceSupabase();
 
   // Get slot with event and bookings
+  // Note: deck_link and shared_links added in migration 041
   const { data: slot, error: slotError } = await supabase
     .from('oh_slots')
     .select(`
@@ -26,7 +27,7 @@ export async function POST(
       recording_link,
       deck_link,
       shared_links,
-      event:oh_events(
+      event:oh_events!inner(
         id,
         name,
         slug,
@@ -49,7 +50,12 @@ export async function POST(
     .single();
 
   if (slotError || !slot) {
-    return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
+    console.error('[wrap-up-summary] Slot query error:', slotError, 'slotId:', slotId);
+    return NextResponse.json({
+      error: slotError?.message || 'Slot not found',
+      code: slotError?.code,
+      hint: slotError?.hint,
+    }, { status: 404 });
   }
 
   const eventData = slot.event as unknown as {
