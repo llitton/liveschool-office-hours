@@ -31,7 +31,7 @@ export async function POST(
         id,
         name,
         slug,
-        timezone,
+        display_timezone,
         custom_questions,
         slack_notifications_enabled
       ),
@@ -62,7 +62,7 @@ export async function POST(
     id: string;
     name: string;
     slug: string;
-    timezone: string | null;
+    display_timezone: string | null;
     custom_questions: Array<{ id: string; question: string }> | null;
     slack_notifications_enabled: boolean;
   };
@@ -109,7 +109,7 @@ export async function POST(
   const sent = await sendDetailedSessionSummary({
     eventName: eventData.name,
     startTime: slot.start_time,
-    timezone: eventData.timezone,
+    timezone: eventData.display_timezone,
     attendees,
     customQuestions: eventData.custom_questions,
     recordingLink: slot.recording_link,
