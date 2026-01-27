@@ -71,7 +71,7 @@ export async function POST(
   const { data: admin } = await supabase
     .from('oh_admins')
     .select('*')
-    .eq('email', session.user.email)
+    .eq('email', session.email)
     .single();
 
   if (!admin?.google_access_token || !admin?.google_refresh_token) {

@@ -18,7 +18,7 @@ export async function POST() {
       google_access_token: null,
       google_refresh_token: null,
     })
-    .eq('email', session.user.email);
+    .eq('email', session.email);
 
   if (error) {
     console.error('[Auth] Failed to disconnect Google:', error);
