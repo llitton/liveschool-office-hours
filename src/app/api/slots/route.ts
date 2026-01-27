@@ -48,15 +48,14 @@ export async function GET(request: NextRequest) {
       assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)
     .eq('event_id', eventId)
-    .eq('is_cancelled', false)
-    .order('start_time', { ascending: true });
+    .eq('is_cancelled', false);
 
   // Only filter to future slots for public booking pages (not admin views)
   if (!includeAll) {
     query = query.gte('start_time', now.toISOString());
   }
 
-  const { data: slots, error } = await query;
+  const { data: slots, error } = await query.order('start_time', { ascending: true });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
