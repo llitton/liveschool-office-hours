@@ -36,6 +36,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{
     googleConnected: boolean;
     lastSynced: string | null;
@@ -242,6 +243,38 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDisconnectGoogle = async () => {
+    if (!confirm('Disconnect your Google account? You will need to reconnect to use calendar, email, and Meet features.')) {
+      return;
+    }
+
+    setDisconnecting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/auth/disconnect-google', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect');
+      }
+
+      setSyncStatus({
+        googleConnected: false,
+        lastSynced: null,
+        busyBlocksCount: 0,
+      });
+      setSuccess('Google account disconnected. Click "Reconnect Google" to re-authorize with updated permissions.');
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err) {
+      setError('Failed to disconnect Google account');
+      console.error(err);
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   const addPattern = (dayOfWeek: number) => {
     // Check if pattern for this day already exists
     const existing = editPatterns.find((p) => p.day_of_week === dayOfWeek);
@@ -308,43 +341,61 @@ export default function SettingsPage() {
               </p>
             </div>
             {syncStatus?.googleConnected ? (
-              <button
-                onClick={handleSyncCalendar}
-                disabled={syncing}
-                className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
-              >
-                {syncing ? 'Syncing...' : 'Sync Now'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSyncCalendar}
+                  disabled={syncing}
+                  className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                >
+                  {syncing ? 'Syncing...' : 'Sync Now'}
+                </button>
+              </div>
             ) : (
               <a
                 href="/api/auth/login"
                 className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium"
               >
-                Connect Google Calendar
+                Reconnect Google
               </a>
             )}
           </div>
 
           {syncStatus && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${syncStatus.googleConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
-                  <span className="text-[#667085]">
-                    {syncStatus.googleConnected ? 'Connected' : 'Not connected'}
-                  </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${syncStatus.googleConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className="text-[#667085]">
+                      {syncStatus.googleConnected ? 'Connected' : 'Not connected'}
+                    </span>
+                  </div>
+                  {syncStatus.lastSynced && (
+                    <span className="text-[#667085]">
+                      Last synced: {new Date(syncStatus.lastSynced).toLocaleString()}
+                    </span>
+                  )}
+                  {syncStatus.busyBlocksCount > 0 && (
+                    <span className="text-[#667085]">
+                      {syncStatus.busyBlocksCount} busy blocks cached
+                    </span>
+                  )}
                 </div>
-                {syncStatus.lastSynced && (
-                  <span className="text-[#667085]">
-                    Last synced: {new Date(syncStatus.lastSynced).toLocaleString()}
-                  </span>
-                )}
-                {syncStatus.busyBlocksCount > 0 && (
-                  <span className="text-[#667085]">
-                    {syncStatus.busyBlocksCount} busy blocks cached
-                  </span>
+                {syncStatus.googleConnected && (
+                  <button
+                    onClick={handleDisconnectGoogle}
+                    disabled={disconnecting}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                  </button>
                 )}
               </div>
+              {!syncStatus.googleConnected && (
+                <p className="text-sm text-amber-600 mt-3">
+                  Reconnecting will re-authorize with current permissions, including Google Meet access for auto-attendance.
+                </p>
+              )}
             </div>
           )}
         </div>
