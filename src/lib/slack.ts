@@ -332,7 +332,7 @@ export async function sendDailyDigest(sessions: Array<{
 }
 
 /**
- * Send post-session summary to Slack
+ * Send post-session summary to Slack (basic version)
  */
 export async function sendSessionSummary(session: {
   eventName: string;
@@ -383,6 +383,132 @@ export async function sendSessionSummary(session: {
       text: {
         type: 'mrkdwn',
         text: `*Topics Discussed:*\n${session.topics.map((t) => `• ${t}`).join('\n')}`,
+      },
+    });
+  }
+
+  return sendSlackMessage(message);
+}
+
+/**
+ * Send detailed post-session summary to Slack with attendee responses
+ */
+export async function sendDetailedSessionSummary(session: {
+  eventName: string;
+  startTime: string;
+  timezone?: string | null;
+  attendees: Array<{
+    name: string;
+    email: string;
+    attended: boolean;
+    noShow: boolean;
+    questionResponses?: Record<string, string> | null;
+  }>;
+  customQuestions?: Array<{ id: string; question: string }> | null;
+  recordingLink?: string | null;
+}): Promise<boolean> {
+  const config = await getSlackConfig();
+  if (!config || !config.post_session_summary) {
+    return false;
+  }
+
+  // Use session timezone or default to Central
+  const timezone = session.timezone || 'America/Chicago';
+  const startDate = new Date(session.startTime);
+
+  const formattedDate = startDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    timeZone: timezone,
+  });
+  const formattedTime = startDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: timezone,
+  });
+  const tzAbbrev = startDate.toLocaleTimeString('en-US', {
+    timeZoneName: 'short',
+    timeZone: timezone,
+  }).split(' ').pop() || '';
+
+  const attendedCount = session.attendees.filter(a => a.attended).length;
+  const noShowCount = session.attendees.filter(a => a.noShow).length;
+  const totalCount = session.attendees.length;
+
+  // Build question label map
+  const questionLabels: Record<string, string> = {};
+  if (session.customQuestions && Array.isArray(session.customQuestions)) {
+    for (const q of session.customQuestions) {
+      if (q && q.id && q.question) {
+        questionLabels[q.id] = q.question;
+      }
+    }
+  }
+
+  const message: SlackMessage = {
+    blocks: [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `✅ Session Complete: ${session.eventName}`,
+          emoji: true,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `🕐 *${formattedDate} at ${formattedTime} ${tzAbbrev}*`,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `📊 *Attendance:* ${attendedCount}/${totalCount} attended${noShowCount > 0 ? ` · ${noShowCount} no-show${noShowCount !== 1 ? 's' : ''}` : ''}`,
+        },
+      },
+    ],
+  };
+
+  // Add recording link if available
+  if (session.recordingLink) {
+    message.blocks!.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `🎥 <${session.recordingLink}|View Recording>`,
+      },
+    });
+  }
+
+  // Add divider before attendee details
+  message.blocks!.push({ type: 'divider' } as SlackBlock);
+
+  // Add each attendee with their responses
+  for (const attendee of session.attendees) {
+    const statusEmoji = attendee.attended ? '✓' : attendee.noShow ? '✗' : '?';
+    const statusText = attendee.attended ? 'attended' : attendee.noShow ? 'no-show' : 'unknown';
+
+    let attendeeText = `*${attendee.name}* (${statusEmoji} ${statusText})\n${attendee.email}`;
+
+    // Add question responses
+    if (attendee.questionResponses && typeof attendee.questionResponses === 'object') {
+      for (const [questionId, response] of Object.entries(attendee.questionResponses)) {
+        if (response && typeof response === 'string' && response.trim()) {
+          const label = questionLabels[questionId] || 'Response';
+          attendeeText += `\n\n_${label}_\n>${response.replace(/\n/g, '\n>')}`;
+        }
+      }
+    }
+
+    message.blocks!.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: attendeeText,
       },
     });
   }

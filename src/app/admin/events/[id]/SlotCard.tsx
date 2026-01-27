@@ -118,6 +118,11 @@ export default function SlotCard({
   const [applyingTemplates, setApplyingTemplates] = useState(false);
   const [templatesApplied, setTemplatesApplied] = useState(false);
 
+  // Slack wrap-up summary state
+  const [sendingSlackSummary, setSendingSlackSummary] = useState(false);
+  const [slackSummarySent, setSlackSummarySent] = useState(false);
+  const [slackSummaryError, setSlackSummaryError] = useState<string | null>(null);
+
   // HubSpot sync feedback state
   const [hubspotSyncMessage, setHubspotSyncMessage] = useState<{
     text: string;
@@ -370,6 +375,27 @@ export default function SlotCard({
       console.error('Failed to save recording:', err);
     } finally {
       setSavingRecording(false);
+    }
+  };
+
+  const handleSendSlackSummary = async () => {
+    setSendingSlackSummary(true);
+    setSlackSummaryError(null);
+    try {
+      const response = await fetch(`/api/slots/${slot.id}/wrap-up-summary`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setSlackSummaryError(data.error || 'Failed to send to Slack');
+      } else {
+        setSlackSummarySent(true);
+      }
+    } catch (err) {
+      console.error('Failed to send Slack summary:', err);
+      setSlackSummaryError('Failed to send to Slack');
+    } finally {
+      setSendingSlackSummary(false);
     }
   };
 
@@ -2165,8 +2191,47 @@ export default function SlotCard({
               </div>
             </div>
 
-            {/* Simple footer */}
-            <div className="p-4 border-t">
+            {/* Footer with Slack summary and Done */}
+            <div className="p-4 border-t space-y-3">
+              {/* Send to Slack button */}
+              {event.slack_notifications_enabled && (
+                <div>
+                  {slackSummarySent ? (
+                    <div className="flex items-center justify-center gap-2 py-2 text-green-700 bg-green-50 rounded-lg">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="font-medium">Summary sent to Slack</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleSendSlackSummary}
+                      disabled={sendingSlackSummary || bookings.filter(b => !b.cancelled_at).length === 0}
+                      className="w-full py-2 border border-[#6F71EE] text-[#6F71EE] rounded-lg hover:bg-[#6F71EE]/5 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {sendingSlackSummary ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                          </svg>
+                          Send Summary to Slack
+                        </>
+                      )}
+                    </button>
+                  )}
+                  {slackSummaryError && (
+                    <p className="text-xs text-red-600 mt-1 text-center">{slackSummaryError}</p>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={() => setShowWrapUp(false)}
                 className="w-full py-2 bg-[#6F71EE] text-white rounded-lg hover:bg-[#5a5cd0] font-medium"
