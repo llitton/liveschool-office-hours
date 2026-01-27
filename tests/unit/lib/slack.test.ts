@@ -583,4 +583,138 @@ describe('Slack Integration', () => {
       );
     });
   });
+
+  describe('sendDetailedSessionSummary', () => {
+    it('returns false when post_session_summary is disabled', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: false,
+        is_active: true,
+      };
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      const result = await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+        ],
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('sends detailed summary when enabled', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      const result = await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+          { name: 'Jane Smith', email: 'jane@example.com', attended: false, noShow: true },
+        ],
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it('includes attendee details in message', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+          { name: 'Jane Smith', email: 'jane@example.com', attended: false, noShow: true },
+        ],
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('John Doe');
+      expect(blocksStr).toContain('Jane Smith');
+      expect(blocksStr).toContain('john@example.com');
+      expect(blocksStr).toContain('attended');
+      expect(blocksStr).toContain('no-show');
+    });
+
+    it('includes question responses when provided', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          {
+            name: 'John Doe',
+            email: 'john@example.com',
+            attended: true,
+            noShow: false,
+            questionResponses: { q1: 'How do I use rewards?' },
+          },
+        ],
+        customQuestions: [{ id: 'q1', question: 'What topics do you want to discuss?' }],
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('What topics do you want to discuss?');
+      expect(blocksStr).toContain('How do I use rewards?');
+    });
+
+    it('includes recording link when provided', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        post_session_summary: true,
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { sendDetailedSessionSummary } = await import('@/lib/slack');
+
+      await sendDetailedSessionSummary({
+        eventName: 'Office Hours',
+        startTime: '2024-01-15T14:00:00Z',
+        attendees: [
+          { name: 'John Doe', email: 'john@example.com', attended: true, noShow: false },
+        ],
+        recordingLink: 'https://fireflies.ai/recording/abc123',
+      });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('fireflies.ai');
+      expect(blocksStr).toContain('Recording');
+    });
+  });
 });
