@@ -517,6 +517,12 @@ After sessions, attendees can provide feedback via email. Feedback data is store
 - **Event details** (`/admin/events/[id]`) - Feedback summary in SlotCard quick status line
 - **Attendee list** - Individual ratings with expandable comments and topic suggestions
 
+**Past Sessions page features:**
+- **"Complete" badge** - Green checkmark badge shown when all attendees marked as attended or no-show
+- **Green tint** - Wrapped-up sessions have subtle green background for visual distinction
+- **"Hide wrapped-up sessions" toggle** - Checkbox to filter out completed sessions and reduce clutter
+- Sessions grouped by date with daily attendance and feedback summaries
+
 **API endpoints:**
 - `GET /api/admin/sessions?period=past` - Returns `feedbackCount` and `averageRating` per session
 - `POST /api/feedback/[token]` - Submit feedback via manage token
@@ -576,6 +582,15 @@ After a session ends, hosts can wrap up the session from the event details page.
 - Sent from whoever clicks "Send Follow-Up" (not the primary host)
 - Uses the current user's Google credentials and email address
 - Includes recording, deck, and shared links if added
+- Success toast shows "Sent from: [email]" so you know which account sent them
+- Emails appear in the sender's Gmail Sent folder
+
+**Email tracking (migration 042):**
+- `followup_sent_at` - When thank you email was sent to attendees (manual or automated)
+- `no_show_email_sent_at` - When "we missed you" email was sent to no-shows
+- `feedback_sent_at` - When feedback request was sent
+- Manual follow-ups mark these fields to prevent automated cron from sending duplicates
+- The post-session cron (`/api/cron/post-session`) checks these flags before sending
 
 **Slack session summary:**
 When you click "Send Summary to Slack" in the Wrap Up modal, it sends:

@@ -554,6 +554,36 @@ const helpSections: HelpSection[] = [
         ],
       },
       {
+        id: 'past-sessions',
+        title: 'Past Sessions Page',
+        description: 'Review all completed sessions with attendance and feedback summaries.',
+        body: 'The Past Sessions page (Sessions → Past in navigation) shows all your completed sessions grouped by date. Use it to review attendance, track feedback, and identify sessions that still need wrap-up.',
+        lists: [
+          {
+            label: 'Visual indicators',
+            items: [
+              'Green "Complete" badge — all attendees marked as attended or no-show',
+              'Green tint — completed sessions have subtle background color',
+              'Star ratings — feedback scores from attendees who responded',
+              'Attendance stats — X/Y attended with percentage',
+            ],
+          },
+          {
+            label: 'Filtering options',
+            items: [
+              '"Hide wrapped-up sessions" toggle — reduce clutter by hiding completed ones',
+              'Click any session to go to the event details page',
+              'Feedback count shows how many attendees submitted ratings',
+            ],
+          },
+        ],
+        tips: [
+          'Sessions without the "Complete" badge still need attendance marked',
+          'Use the toggle to focus on sessions that need attention',
+          'Click the star ratings to see detailed feedback comments',
+        ],
+      },
+      {
         id: 'wrap-up',
         title: 'Post-Session Wrap Up',
         description: 'Mark attendance, add recordings, deck links, shared resources, send Slack summaries, and follow-ups.',
@@ -595,6 +625,8 @@ const helpSections: HelpSection[] = [
               'Thank You Email — send to attendees who joined (includes resources)',
               'We Missed You — send to no-shows for re-engagement',
               'Emails come from YOU, not the primary host',
+              'Success toast shows "Sent from: [email]" so you know which account sent',
+              'Manual follow-ups prevent automated emails from duplicating',
             ],
           },
         ],
@@ -603,6 +635,7 @@ const helpSections: HelpSection[] = [
           'Added resources are automatically included in follow-up emails',
           'Attendees can download certificates for PD credit after being marked as attended',
           'The Wrap Up button only shows for past sessions with bookings',
+          'Once you send a follow-up, the automated cron won\'t send duplicates',
         ],
       },
       {

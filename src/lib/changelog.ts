@@ -12,6 +12,42 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-28-email-tracking',
+    date: '2026-01-28',
+    title: 'No More Duplicate Emails',
+    description: 'Manual follow-ups now prevent automated emails from being sent to the same people.',
+    category: 'fix',
+    details: [
+      'When you send a follow-up, those attendees are marked as "already emailed"',
+      'Automated cron jobs skip people who already received a manual follow-up',
+      'Prevents attendees from receiving multiple thank-you or no-show emails',
+    ],
+  },
+  {
+    id: '2026-01-28-sent-from-toast',
+    date: '2026-01-28',
+    title: 'See Which Account Sent Emails',
+    description: 'Follow-up success message now shows which email account sent the messages.',
+    category: 'improvement',
+    details: [
+      'After sending follow-up emails, you\'ll see "Sent from: yourname@example.com"',
+      'Helps verify emails went out from the correct account',
+      'Emails also appear in that account\'s Gmail Sent folder',
+    ],
+  },
+  {
+    id: '2026-01-28-past-sessions-complete',
+    date: '2026-01-28',
+    title: 'Visual Distinction for Wrapped-Up Sessions',
+    description: 'Past sessions now show when they\'ve been fully wrapped up.',
+    category: 'improvement',
+    details: [
+      'Green "Complete" badge shows when all attendees marked as attended or no-show',
+      'Completed sessions have a subtle green tint',
+      'New "Hide wrapped-up sessions" toggle to reduce clutter',
+    ],
+  },
+  {
     id: '2026-01-27-session-wrap-up',
     date: '2026-01-27',
     title: 'Enhanced Session Wrap-Up',
