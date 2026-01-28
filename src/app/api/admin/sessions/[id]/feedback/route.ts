@@ -46,8 +46,9 @@ export async function GET(
     .from('oh_bookings')
     .select(`
       id,
-      attendee_name,
-      attendee_email,
+      first_name,
+      last_name,
+      email,
       feedback_rating,
       feedback_comment,
       feedback_topic_suggestion,
@@ -65,8 +66,8 @@ export async function GET(
 
   const feedback: FeedbackItem[] = (bookings || []).map(b => ({
     id: b.id,
-    attendee_name: b.attendee_name,
-    attendee_email: b.attendee_email,
+    attendee_name: `${b.first_name} ${b.last_name}`.trim(),
+    attendee_email: b.email,
     rating: b.feedback_rating!,
     comment: b.feedback_comment,
     topic_suggestion: b.feedback_topic_suggestion,
