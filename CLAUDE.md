@@ -168,6 +168,38 @@ TO anon, authenticated
 USING (is_active = true);
 ```
 
+### Column Naming Conventions
+
+**IMPORTANT:** The `oh_bookings` table uses specific column names that differ from computed field names used in API responses and external integrations:
+
+| Database Column | Computed/API Field | Notes |
+|-----------------|-------------------|-------|
+| `first_name` | `attendee_name` | Concatenate: `${first_name} ${last_name}` |
+| `last_name` | (part of attendee_name) | |
+| `email` | `attendee_email` | Same value, different name |
+
+**When querying `oh_bookings`:**
+```typescript
+// CORRECT - use actual database columns
+.select('first_name, last_name, email')
+.eq('email', userEmail)
+
+// WRONG - these columns don't exist
+.select('attendee_name, attendee_email')  // Will cause 500 error
+.eq('attendee_email', userEmail)           // Will fail silently (no matches)
+```
+
+**When passing to external integrations (Slack, HubSpot):**
+```typescript
+// Construct attendee_name for API payloads
+const payload = {
+  attendee_name: `${booking.first_name} ${booking.last_name}`.trim(),
+  attendee_email: booking.email,
+};
+```
+
+**Other tables with `attendee_email` column:** `oh_attendee_notes`, `oh_booking_series` - these DO have an `attendee_email` column.
+
 ## Commands
 
 ```bash

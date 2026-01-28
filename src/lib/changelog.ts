@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-28-feedback-modal-fix',
+    date: '2026-01-28',
+    title: 'Feedback Modal Now Working',
+    description: 'Fixed an issue where clicking on star ratings would fail to show feedback details.',
+    category: 'fix',
+    details: [
+      'Clicking star ratings on Past Sessions now opens the feedback modal correctly',
+      'View individual attendee feedback comments and ratings',
+      'See topic suggestions for future sessions',
+    ],
+  },
+  {
     id: '2026-01-28-email-tracking',
     date: '2026-01-28',
     title: 'No More Duplicate Emails',
