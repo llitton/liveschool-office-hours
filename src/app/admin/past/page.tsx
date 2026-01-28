@@ -50,11 +50,18 @@ interface FeedbackModalData {
 export default function PastPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{
     open: boolean;
     loading: boolean;
     data: FeedbackModalData | null;
   }>({ open: false, loading: false, data: null });
+
+  // A session is "wrapped up" when all attendees have been marked as attended or no-show
+  const isSessionComplete = (session: Session) => {
+    return session.attendeeCount > 0 &&
+           (session.attendedCount + session.noShowCount) === session.attendeeCount;
+  };
 
   useEffect(() => {
     fetchSessions();
@@ -97,8 +104,15 @@ export default function PastPage() {
     }
   };
 
+  // Filter sessions based on completion status
+  const filteredSessions = hideCompleted
+    ? sessions.filter(session => !isSessionComplete(session))
+    : sessions;
+
+  const completedCount = sessions.filter(isSessionComplete).length;
+
   // Group sessions by date (most recent first)
-  const groupedSessions = sessions.reduce((acc, session) => {
+  const groupedSessions = filteredSessions.reduce((acc, session) => {
     const dateKey = format(parseISO(session.start_time), 'yyyy-MM-dd');
     if (!acc[dateKey]) {
       acc[dateKey] = [];
@@ -166,7 +180,37 @@ export default function PastPage() {
           description="Review completed sessions and attendance"
         />
 
+        {/* Filter toggle */}
+        {completedCount > 0 && (
+          <div className="flex items-center justify-end mb-4">
+            <label className="flex items-center gap-2 text-sm text-[#667085] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideCompleted}
+                onChange={(e) => setHideCompleted(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-[#6F71EE] focus:ring-[#6F71EE] cursor-pointer"
+              />
+              Hide wrapped-up sessions ({completedCount})
+            </label>
+          </div>
+        )}
+
         <div className="space-y-6">
+          {filteredSessions.length === 0 && hideCompleted && (
+            <Card>
+              <CardBody>
+                <div className="text-center py-6">
+                  <div className="text-[#667085] mb-2">All sessions have been wrapped up!</div>
+                  <button
+                    onClick={() => setHideCompleted(false)}
+                    className="text-[#6F71EE] hover:underline text-sm"
+                  >
+                    Show all sessions
+                  </button>
+                </div>
+              </CardBody>
+            </Card>
+          )}
           {sortedDates.map((dateKey) => {
             const date = parseISO(dateKey);
             const daySessions = groupedSessions[dateKey];
@@ -221,12 +265,15 @@ export default function PastPage() {
                     const attendanceRate = session.attendeeCount > 0
                       ? Math.round((session.attendedCount / session.attendeeCount) * 100)
                       : null;
+                    const isComplete = isSessionComplete(session);
 
                     return (
                       <Link
                         key={session.id}
                         href={`/admin/events/${session.event.id}`}
-                        className="flex items-center justify-between px-5 py-4 hover:bg-[#FAFAFA] transition group"
+                        className={`flex items-center justify-between px-5 py-4 hover:bg-[#FAFAFA] transition group ${
+                          isComplete ? 'bg-[#F0FDF4]/50' : ''
+                        }`}
                       >
                         <div className="flex items-center gap-4">
                           <div className="text-center min-w-[60px]">
@@ -251,6 +298,14 @@ export default function PastPage() {
                         <div className="flex items-center gap-6">
                           {session.attendeeCount > 0 ? (
                             <>
+                              {isComplete && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0]">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                  Complete
+                                </span>
+                              )}
                               <div className="flex items-center gap-4">
                                 <div className="text-center">
                                   <div className="text-sm font-medium text-[#059669]">

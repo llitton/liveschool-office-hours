@@ -52,7 +52,7 @@ export async function POST(
 
   // Filter bookings based on recipient type
   const targetBookings = (slot.bookings || []).filter(
-    (b: { cancelled_at: string | null; attended_at: string | null; no_show_at: string | null }) => {
+    (b: { id: string; cancelled_at: string | null; attended_at: string | null; no_show_at: string | null }) => {
       if (b.cancelled_at) return false;
       if (recipients === 'attended') return !!b.attended_at;
       if (recipients === 'no_show') return !!b.no_show_at;
@@ -83,7 +83,7 @@ export async function POST(
 
   // Send emails
   const results = await Promise.allSettled(
-    targetBookings.map(async (booking: { first_name: string; email: string }) => {
+    targetBookings.map(async (booking: { id: string; first_name: string; email: string }) => {
       // Replace {{first_name}} placeholder if present
       const personalizedBody = emailBody.replace(/\{\{first_name\}\}/g, booking.first_name);
 
@@ -97,34 +97,61 @@ export async function POST(
         </div>
       `;
 
-      await sendEmail(
+      const result = await sendEmail(
         admin.google_access_token!,
         admin.google_refresh_token!,
         {
           to: booking.email,
           subject,
           replyTo: admin.email,
+          from: admin.email,
           htmlBody,
         }
       );
 
-      return booking.email;
+      return { id: booking.id, email: booking.email, messageId: result.messageId };
     })
   );
 
-  const sent = results.filter((r) => r.status === 'fulfilled').length;
-  const failed = results.filter((r) => r.status === 'rejected').length;
+  const successfulResults = results.filter((r): r is PromiseFulfilledResult<{ id: string; email: string; messageId: string }> =>
+    r.status === 'fulfilled'
+  );
+  const failedResults = results.filter((r): r is PromiseRejectedResult =>
+    r.status === 'rejected'
+  );
 
-  emailLogger.info('Follow-up emails sent', {
+  const sent = successfulResults.length;
+  const failed = failedResults.length;
+
+  // Mark bookings as having received follow-up to prevent duplicate automated emails
+  if (successfulResults.length > 0) {
+    const bookingIds = successfulResults.map(r => r.value.id);
+    const updateColumn = recipients === 'attended' ? 'followup_sent_at' : 'no_show_email_sent_at';
+
+    await supabase
+      .from('oh_bookings')
+      .update({ [updateColumn]: new Date().toISOString() })
+      .in('id', bookingIds);
+  }
+
+  emailLogger.info(`Follow-up emails sent from ${admin.email}`, {
     operation: 'sendFollowup',
     slotId: id,
     adminId: admin.id,
-    metadata: { sent, failed, sentBy: admin.email },
+    metadata: {
+      sent,
+      failed,
+      sentBy: admin.email,
+      recipients: successfulResults.map(r => r.value.email),
+      messageIds: successfulResults.map(r => r.value.messageId),
+      errors: failedResults.map(r => String(r.reason)),
+    },
   });
 
   return NextResponse.json({
     success: true,
     sent,
     failed,
+    sentFrom: admin.email,
   });
 }

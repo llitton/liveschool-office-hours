@@ -377,18 +377,25 @@ export async function sendEmail(
     subject: string;
     htmlBody: string;
     replyTo: string;
+    from?: string; // Optional explicit From header
   }
-) {
+): Promise<{ messageId: string; threadId: string }> {
   const gmail = getGmailClient(accessToken, refreshToken);
 
-  const message = [
+  const headers = [
     `To: ${email.to}`,
     `Subject: ${email.subject}`,
     `Reply-To: ${email.replyTo}`,
     'Content-Type: text/html; charset=utf-8',
-    '',
-    email.htmlBody,
-  ].join('\n');
+    'MIME-Version: 1.0',
+  ];
+
+  // Add From header if provided
+  if (email.from) {
+    headers.unshift(`From: ${email.from}`);
+  }
+
+  const message = [...headers, '', email.htmlBody].join('\r\n');
 
   const encodedMessage = Buffer.from(message)
     .toString('base64')
@@ -398,12 +405,16 @@ export async function sendEmail(
 
   return withRetry(
     async () => {
-      await gmail.users.messages.send({
+      const response = await gmail.users.messages.send({
         userId: 'me',
         requestBody: {
           raw: encodedMessage,
         },
       });
+      return {
+        messageId: response.data.id || '',
+        threadId: response.data.threadId || '',
+      };
     },
     DEFAULT_RETRY_CONFIG,
     'Send email via Gmail'

@@ -743,7 +743,7 @@ export default function SlotCard({
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Follow-up sent to ${result.sent} recipient(s)!`);
+        alert(`Follow-up sent to ${result.sent} recipient(s)!\n\nSent from: ${result.sentFrom}`);
         setShowBulkFollowup(false);
         setFollowupSubject('');
         setFollowupBody('');

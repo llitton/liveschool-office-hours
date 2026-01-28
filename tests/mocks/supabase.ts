@@ -109,6 +109,7 @@ export function createMockBooking(overrides: Partial<OHBooking> = {}): OHBooking
     attended_at: null,
     no_show_at: null,
     no_show_email_sent_at: null,
+    followup_sent_at: null,
     feedback_sent_at: null,
     feedback_rating: null,
     feedback_comment: null,

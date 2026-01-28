@@ -140,6 +140,8 @@ export interface OHBooking {
   attended_at: string | null;
   no_show_at: string | null;
   no_show_email_sent_at: string | null;
+  // Follow-up email tracking (thank you / resources email to attendees)
+  followup_sent_at: string | null;
   // Feedback
   feedback_sent_at: string | null;
   feedback_rating: number | null;
