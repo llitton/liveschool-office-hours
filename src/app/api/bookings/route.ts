@@ -856,7 +856,7 @@ export async function POST(request: NextRequest) {
       const { count: previousBookingCount } = await supabase
         .from('oh_bookings')
         .select('id', { count: 'exact', head: true })
-        .eq('attendee_email', email)
+        .eq('email', email)
         .neq('id', booking.id)
         .is('cancelled_at', null);
 

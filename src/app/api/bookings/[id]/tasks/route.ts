@@ -68,14 +68,10 @@ export async function POST(
   if (sync_to_hubspot) {
     try {
       // Find or create contact
-      const nameParts = (booking.attendee_name || `${booking.first_name} ${booking.last_name}`).split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
       const contact = await findOrCreateContact(
-        booking.attendee_email || booking.email,
-        firstName,
-        lastName
+        booking.email,
+        booking.first_name,
+        booking.last_name
       );
 
       if (contact) {

@@ -35,14 +35,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Find or create HubSpot contact
-  const nameParts = (booking.attendee_name || '').split(' ');
-  const firstName = nameParts[0] || '';
-  const lastName = nameParts.slice(1).join(' ') || '';
-
   const contact = await findOrCreateContact(
-    booking.attendee_email,
-    firstName,
-    lastName
+    booking.email,
+    booking.first_name,
+    booking.last_name
   );
 
   if (!contact) {
