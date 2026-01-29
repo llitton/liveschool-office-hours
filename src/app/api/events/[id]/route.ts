@@ -86,6 +86,8 @@ const ALLOWED_UPDATE_FIELDS = [
   'ignore_busy_blocks',
   // HubSpot
   'hubspot_meeting_type',
+  // Automated emails
+  'automated_emails_enabled',
 ];
 
 // PATCH update event (admin only)

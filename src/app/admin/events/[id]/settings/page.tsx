@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
   { id: 'timezone', label: 'Timezone', hideFor: ['round_robin'] },
   { id: 'hubspot-settings', label: 'HubSpot' },
   { id: 'slack-notifications', label: 'Slack' },
+  { id: 'automated-emails', label: 'Auto Emails' },
   { id: 'sms-reminders', label: 'SMS Reminders' },
   { id: 'phone-collection', label: 'Phone' },
   { id: 'waitlist', label: 'Waitlist', hideFor: ['one_on_one', 'round_robin'] },
@@ -110,6 +111,9 @@ export default function EventSettingsPage({
 
   // Slack notifications
   const [slackNotificationsEnabled, setSlackNotificationsEnabled] = useState(false);
+
+  // Automated post-session emails
+  const [automatedEmailsEnabled, setAutomatedEmailsEnabled] = useState(true);
 
   // Navigation state
   const [activeSection, setActiveSection] = useState('event-info');
@@ -244,6 +248,9 @@ export default function EventSettingsPage({
       // Set Slack notifications
       setSlackNotificationsEnabled(eventData.slack_notifications_enabled ?? false);
 
+      // Set automated emails
+      setAutomatedEmailsEnabled(eventData.automated_emails_enabled ?? true);
+
       // Set banner state
       const currentBanner = eventData.banner_image || '';
       setBannerImage(currentBanner);
@@ -319,6 +326,8 @@ export default function EventSettingsPage({
           hubspot_meeting_type: hubspotMeetingType || null,
           // Slack notifications
           slack_notifications_enabled: slackNotificationsEnabled,
+          // Automated emails
+          automated_emails_enabled: automatedEmailsEnabled,
         }),
       });
 
@@ -1376,6 +1385,76 @@ export default function EventSettingsPage({
                       Configure your Slack webhook in{' '}
                       <Link href="/admin/integrations" className="text-[#6F71EE] hover:underline">
                         Settings → Integrations
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Automated Post-Session Emails */}
+        <div
+          id="automated-emails"
+          ref={(el) => { sectionRefs.current['automated-emails'] = el; }}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
+          <h2 className="text-lg font-semibold text-[#101E57] mb-2">Automated Post-Session Emails</h2>
+          <p className="text-sm text-[#667085] mb-4">
+            Control whether the system automatically sends emails after sessions end.
+          </p>
+
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={automatedEmailsEnabled}
+                onChange={(e) => setAutomatedEmailsEnabled(e.target.checked)}
+                className="mt-1 w-4 h-4 text-[#6F71EE] border-gray-300 rounded focus:ring-[#6F71EE]"
+              />
+              <div>
+                <span className="font-medium text-[#101E57]">Enable Automated Emails</span>
+                <p className="text-sm text-[#667085] mt-0.5">
+                  Automatically send follow-up, no-show, and feedback emails after sessions
+                </p>
+              </div>
+            </label>
+
+            {!automatedEmailsEnabled && (
+              <div className="ml-7 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Manual mode enabled</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      The system will not send any automated emails after sessions. You can still send
+                      follow-up emails manually from the Wrap Up modal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {automatedEmailsEnabled && (
+              <div className="ml-7 bg-[#6F71EE]/5 border border-[#6F71EE]/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-[#6F71EE] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-[#101E57]">Emails sent automatically</p>
+                    <ul className="text-sm text-[#667085] mt-1 space-y-1">
+                      <li>• Thank you emails to attended bookings (2-3 hours after)</li>
+                      <li>• No-show re-engagement emails (if enabled)</li>
+                      <li>• Feedback request emails</li>
+                    </ul>
+                    <p className="text-xs text-[#667085] mt-2">
+                      Customize email templates in{' '}
+                      <Link href={`/admin/events/${eventId}/emails`} className="text-[#6F71EE] hover:underline">
+                        Event → Email Templates
                       </Link>
                     </p>
                   </div>

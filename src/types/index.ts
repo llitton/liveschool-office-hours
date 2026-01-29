@@ -102,6 +102,8 @@ export interface OHEvent {
   one_off_booked_at: string | null;
   // Slack notifications
   slack_notifications_enabled: boolean;
+  // Automated post-session emails (follow-up, no-show, feedback)
+  automated_emails_enabled: boolean;
 }
 
 export interface OHSlot {
