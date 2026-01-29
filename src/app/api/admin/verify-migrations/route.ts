@@ -15,6 +15,8 @@ const migrationChecks = [
   { migration: '004', table: 'oh_events', column: 'buffer_after' },
   // 005 - Round robin
   { migration: '005', table: 'oh_round_robin_state', column: 'id' },
+  // 006 - Enable RLS (verifies RLS-protected table is accessible via service role)
+  { migration: '006', table: 'oh_hubspot_config', column: 'id' },
   // 007 - Routing forms
   { migration: '007', table: 'oh_routing_forms', column: 'id' },
   // 008 - SMS reminders
@@ -25,6 +27,10 @@ const migrationChecks = [
   { migration: '010', table: 'oh_events', column: 'no_show_emails_enabled' },
   // 011 - Task templates
   { migration: '011', table: 'oh_task_templates', column: 'id' },
+  // 012 - Resource sends tracking table
+  { migration: '012', table: 'oh_resource_sends', column: 'id' },
+  // 013 - Task template HubSpot sync
+  { migration: '013', table: 'oh_task_templates', column: 'sync_to_hubspot' },
   // 014 - Waitlist
   { migration: '014', table: 'oh_events', column: 'waitlist_enabled' },
   // 015 - Session templates
@@ -59,10 +65,16 @@ const migrationChecks = [
   { migration: '029', table: 'oh_events', column: 'round_robin_strategy' },
   // 030 - HubSpot meeting type
   { migration: '030', table: 'oh_events', column: 'hubspot_meeting_type' },
+  // 031 - Enable RLS on poll tables (verify by checking poll_options is accessible)
+  { migration: '031', table: 'oh_poll_options', column: 'id' },
   // 032 - Ignore busy blocks
   { migration: '032', table: 'oh_events', column: 'ignore_busy_blocks' },
   // 033 - Expand templates
   { migration: '033', table: 'oh_session_templates', column: 'ignore_busy_blocks' },
+  // 034 - Add CHECK constraints (structural - verifies affected tables exist)
+  { migration: '034', table: 'oh_slots', column: 'start_time' },
+  // 035 - Atomic booking creation (structural - verifies bookings table for unique index)
+  { migration: '035', table: 'oh_bookings', column: 'slot_id' },
   // 036 - Event display order
   { migration: '036', table: 'oh_events', column: 'display_order' },
   // 037 - Event Slack notifications
