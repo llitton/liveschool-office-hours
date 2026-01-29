@@ -1453,7 +1453,7 @@ export default function EventSettingsPage({
                     </ul>
                     <p className="text-xs text-[#667085] mt-2">
                       Customize email templates in{' '}
-                      <Link href={`/admin/events/${eventId}/emails`} className="text-[#6F71EE] hover:underline">
+                      <Link href={`/admin/events/${id}/emails`} className="text-[#6F71EE] hover:underline">
                         Event → Email Templates
                       </Link>
                     </p>
