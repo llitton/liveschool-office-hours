@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-29-migration-verification',
+    date: '2026-01-29',
+    title: 'Complete Migration Verification',
+    description: 'The migration verification endpoint now tracks all 42 database migrations.',
+    category: 'improvement',
+    details: [
+      'Visit /api/admin/verify-migrations to check your database status',
+      'Now includes migrations 006, 012, 013, 031, 034, and 035',
+      'Clearly shows which migrations are missing and need to be run',
+      'Helps troubleshoot issues caused by missing database columns',
+    ],
+  },
+  {
     id: '2026-01-29-auto-attendance',
     date: '2026-01-29',
     title: 'Automatic Attendance from Google Meet',

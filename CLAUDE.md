@@ -137,13 +137,28 @@ GET /api/admin/verify-migrations
 Returns:
 ```json
 {
-  "summary": { "total": 33, "complete": 33, "missing": 0, "allComplete": true },
+  "summary": { "total": 42, "complete": 42, "missing": 0, "allComplete": true },
   "missingMigrations": [],
   "details": [...]
 }
 ```
 
-If migrations are missing, run the corresponding SQL files from `migrations/` in the Supabase SQL Editor. Migration files are numbered (002-040) and should be run in order.
+If migrations are missing, run the corresponding SQL files from `migrations/` in the Supabase SQL Editor. Migration files are numbered (002-043) and should be run in order.
+
+**Migration categories:**
+| Range | Purpose |
+|-------|---------|
+| 002-005 | Core tables (availability, hosts, round-robin) |
+| 006, 031 | Row Level Security (RLS) policies |
+| 007-011 | Features (routing, SMS, no-show, tasks) |
+| 012-013 | Resource tracking, HubSpot sync |
+| 014-019 | Waitlist, templates, polls |
+| 020-030 | Booking features (time increments, guest emails, analytics) |
+| 032-035 | Structural (constraints, atomic booking function) |
+| 036-040 | UI features (display order, Slack, changelog, feedback) |
+| 041-043 | Session resources, email tracking, auto-emails toggle |
+
+**Structural migrations (034, 035):** These add CHECK constraints and stored functions. The verify endpoint confirms the affected tables exist, but you should manually verify these were run if you see database constraint errors.
 
 **Table Access Levels:**
 

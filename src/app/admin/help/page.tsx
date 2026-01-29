@@ -1510,6 +1510,48 @@ const helpSections: HelpSection[] = [
         ],
       },
       {
+        id: 'verify-migrations',
+        title: 'Verifying Database Migrations',
+        description: 'Check if all required database migrations have been applied.',
+        body: 'The migration verification endpoint checks your database for all required columns, tables, and structures. Use it to troubleshoot issues or verify a fresh deployment.',
+        lists: [
+          {
+            label: 'How to check migrations',
+            items: [
+              'Visit /api/admin/verify-migrations while logged in',
+              'The response shows total migrations, how many are complete, and which are missing',
+              'If migrations are missing, run the SQL files from the migrations/ folder',
+              'Run migrations in order (002, 003, 004, etc.) in the Supabase SQL Editor',
+            ],
+          },
+          {
+            label: 'Migration categories',
+            items: [
+              '002-005 — Core tables (availability, hosts, round-robin)',
+              '006, 031 — Row Level Security policies',
+              '007-019 — Features (routing, SMS, waitlist, templates, polls)',
+              '020-035 — Booking features and structural improvements',
+              '036-043 — Recent features (Slack, changelog, auto-attendance)',
+            ],
+          },
+          {
+            label: 'Structural migrations (special)',
+            items: [
+              '034 — Adds CHECK constraints (data validation at database level)',
+              '035 — Creates atomic booking function (prevents race conditions)',
+              'These are verified by checking affected tables exist',
+              'If you see constraint errors, manually verify these were run',
+            ],
+          },
+        ],
+        tips: [
+          'Always run migrations in numerical order',
+          'The endpoint requires admin authentication to access',
+          'Missing migrations often cause 500 errors or missing features',
+          'After running migrations, refresh the verify endpoint to confirm',
+        ],
+      },
+      {
         id: 'branding',
         title: 'Branding & Favicon',
         description: 'Brand colors, favicon, and visual identity guidelines.',
