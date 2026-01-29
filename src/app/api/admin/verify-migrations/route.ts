@@ -74,6 +74,15 @@ const migrationChecks = [
   { migration: '039', table: 'oh_admins', column: 'invitation_last_sent_at' },
   // 040 - Feedback topics
   { migration: '040', table: 'oh_bookings', column: 'feedback_topic_suggestion' },
+  // 041 - Slot resources (deck link, shared links)
+  { migration: '041', table: 'oh_slots', column: 'deck_link' },
+  { migration: '041', table: 'oh_slots', column: 'shared_links' },
+  // 042 - Email tracking (prevent duplicate automated emails)
+  { migration: '042', table: 'oh_bookings', column: 'followup_sent_at' },
+  { migration: '042', table: 'oh_bookings', column: 'no_show_email_sent_at' },
+  { migration: '042', table: 'oh_bookings', column: 'feedback_sent_at' },
+  // 043 - Automated emails toggle
+  { migration: '043', table: 'oh_events', column: 'automated_emails_enabled' },
 ];
 
 export async function GET() {
