@@ -12,6 +12,33 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-29-auto-attendance',
+    date: '2026-01-29',
+    title: 'Automatic Attendance from Google Meet',
+    description: 'Attendance is now automatically synced from Google Meet after sessions end.',
+    category: 'feature',
+    details: [
+      'No more manual clicking "Sync from Google Meet" - it happens automatically',
+      'Runs 30-90 minutes after your session ends',
+      'Attendees in the meeting for 5+ minutes are marked as attended',
+      'Others are marked as no-show',
+      'Still syncs to HubSpot if connected',
+    ],
+  },
+  {
+    id: '2026-01-29-disable-auto-emails',
+    date: '2026-01-29',
+    title: 'Control Automated Post-Session Emails',
+    description: 'New toggle to disable automated follow-up emails when you prefer to send them manually.',
+    category: 'feature',
+    details: [
+      'Find it in Event Settings → Auto Emails section',
+      'When disabled, no automated emails are sent after sessions',
+      'You can still send follow-ups manually from the Wrap Up modal',
+      'Great for sessions where you want full control over communications',
+    ],
+  },
+  {
     id: '2026-01-28-feedback-modal-fix',
     date: '2026-01-28',
     title: 'Feedback Modal Now Working',

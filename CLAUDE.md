@@ -624,6 +624,23 @@ After a session ends, hosts can wrap up the session from the event details page.
 - Manual follow-ups mark these fields to prevent automated cron from sending duplicates
 - The post-session cron (`/api/cron/post-session`) checks these flags before sending
 
+**Automated emails toggle (migration 043):**
+- `automated_emails_enabled` - When false, disables all automated post-session emails
+- Affects: follow-up emails, no-show emails, feedback requests, recording link emails
+- Manual emails via Wrap Up modal still work when disabled
+- Toggle in Event Settings → "Auto Emails" section
+- Defaults to true (enabled) for backward compatibility
+- Use case: Hosts who prefer to send all follow-up emails manually
+
+**Auto-attendance from Google Meet:**
+- Cron job at `/api/cron/auto-attendance` runs hourly (at :45)
+- Automatically syncs attendance from Google Meet 30-90 minutes after sessions end
+- Requires host to have Google connected with `meetings.space.readonly` scope
+- Marks attendees as attended if they were in the meeting for 5+ minutes
+- Marks others as no-show
+- Syncs outcomes to HubSpot if contact exists
+- Manual "Sync from Google Meet" button in Wrap Up modal still available
+
 **Slack session summary:**
 When you click "Send Summary to Slack" in the Wrap Up modal, it sends:
 - Event name and time

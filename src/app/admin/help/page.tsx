@@ -535,14 +535,27 @@ const helpSections: HelpSection[] = [
       {
         id: 'attendance',
         title: 'Marking Attendance',
-        description: 'Track who showed up to enable follow-ups and certificates.',
-        steps: [
-          'Open the session from the Sessions page',
-          'Click Wrap Up after the session ends',
-          'Check the box next to each attendee who joined',
-          'Click Save',
-        ],
+        description: 'Attendance is synced automatically from Google Meet, or you can mark it manually.',
+        body: 'Attendance is now automatically synced from Google Meet about 30-60 minutes after your session ends. Attendees who were in the meeting for at least 5 minutes are marked as attended; others are marked as no-show.',
         lists: [
+          {
+            label: 'Automatic attendance sync',
+            items: [
+              'Runs automatically 30-90 minutes after sessions end',
+              'Uses Google Meet participant data to determine who attended',
+              'Requires 5+ minutes in the meeting to count as attended',
+              'Syncs to HubSpot automatically if connected',
+            ],
+          },
+          {
+            label: 'Manual attendance (if needed)',
+            items: [
+              'Open the Wrap Up modal from the event details page',
+              'Click "Sync from Google Meet" to pull latest data',
+              'Or manually check/uncheck attendees',
+              'Use manual mode for edge cases the auto-sync missed',
+            ],
+          },
           {
             label: 'Why track attendance',
             items: [
@@ -551,6 +564,11 @@ const helpSections: HelpSection[] = [
               'Enable attendance certificates for PD credit',
             ],
           },
+        ],
+        tips: [
+          'Auto-sync requires the host to have Google connected with Meet permissions',
+          'If auto-sync didn\'t run, you can manually sync from the Wrap Up modal',
+          'Attendance is synced to HubSpot as meeting outcomes (Completed/No-Show)',
         ],
       },
       {
@@ -636,6 +654,45 @@ const helpSections: HelpSection[] = [
           'Attendees can download certificates for PD credit after being marked as attended',
           'The Wrap Up button only shows for past sessions with bookings',
           'Once you send a follow-up, the automated cron won\'t send duplicates',
+          'To disable automated emails entirely, go to Event Settings → Auto Emails',
+        ],
+      },
+      {
+        id: 'auto-emails',
+        title: 'Controlling Automated Emails',
+        description: 'Choose whether to send post-session emails automatically or manually.',
+        body: 'By default, the system automatically sends follow-up emails after sessions. If you prefer to have full control over when emails are sent, you can disable automated emails for specific events.',
+        lists: [
+          {
+            label: 'Automated emails (when enabled)',
+            items: [
+              'Thank you emails sent to attended bookings (2-3 hours after)',
+              'No-show re-engagement emails (if enabled for the event)',
+              'Feedback request emails (1-2 hours after)',
+              'Recording link emails (when you add a recording)',
+            ],
+          },
+          {
+            label: 'Manual mode (when disabled)',
+            items: [
+              'No automated emails are sent after sessions',
+              'You control exactly when and what to send',
+              'Use the Wrap Up modal to send follow-ups manually',
+              'Great for sessions where you want personalized communication',
+            ],
+          },
+        ],
+        steps: [
+          'Go to your event\'s Settings page',
+          'Scroll to the "Auto Emails" section',
+          'Uncheck "Enable Automated Emails"',
+          'Save your changes',
+          'After sessions, use the Wrap Up modal to send emails manually',
+        ],
+        tips: [
+          'This setting is per-event — you can have some events automated and others manual',
+          'Manual follow-ups still prevent duplicates if you later enable automation',
+          'The Wrap Up modal works the same way regardless of this setting',
         ],
       },
       {
