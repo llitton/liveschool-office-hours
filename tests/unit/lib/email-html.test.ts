@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateConfirmationEmailHtml,
   generateReminderEmailHtml,
+  generateFollowupEmailHtml,
 } from '@/lib/email-html';
 
 describe('Email HTML Templates', () => {
@@ -310,6 +311,219 @@ describe('Email HTML Templates', () => {
 
       expect(html).toContain('style="');
       expect(html).not.toContain('<link rel="stylesheet"');
+    });
+  });
+
+  describe('generateFollowupEmailHtml', () => {
+    const baseData = {
+      recipientFirstName: 'Laura',
+      eventName: 'Office Hours',
+      hostName: 'Sarah Smith',
+      sessionDate: 'Friday, January 31',
+      sessionTime: '10:30 AM',
+      timezoneAbbr: 'CT',
+      bookingPageUrl: 'https://liveschoolhelp.com/book/office-hours',
+    };
+
+    it('generates valid HTML document', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<html lang="en">');
+      expect(html).toContain('<head>');
+      expect(html).toContain('<body');
+      expect(html).toContain('</body>');
+      expect(html).toContain('</html>');
+    });
+
+    it('includes personalized greeting for attended sessions', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('Thanks for joining, Laura!');
+      expect(html).toContain('Great chatting with you at Office Hours');
+    });
+
+    it('includes session date and time', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('Friday, January 31');
+      expect(html).toContain('10:30 AM');
+      expect(html).toContain('CT');
+    });
+
+    it('includes host name', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('Hosted by Sarah Smith');
+    });
+
+    it('uses purple header for attended sessions', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      // Brand purple
+      expect(html).toContain('#6F71EE');
+    });
+
+    it('uses amber header for no-show sessions', () => {
+      const noShowData = { ...baseData, isNoShow: true };
+      const html = generateFollowupEmailHtml(noShowData);
+
+      // Amber/warning color
+      expect(html).toContain('#F59E0B');
+      expect(html).toContain('We missed you, Laura!');
+      expect(html).toContain("We're sorry we couldn't connect at Office Hours");
+    });
+
+    it('includes recording link when provided', () => {
+      const dataWithRecording = {
+        ...baseData,
+        recordingLink: 'https://fireflies.ai/view/abc123',
+      };
+      const html = generateFollowupEmailHtml(dataWithRecording);
+
+      expect(html).toContain('https://fireflies.ai/view/abc123');
+      expect(html).toContain('Watch Recording');
+    });
+
+    it('includes deck link when provided', () => {
+      const dataWithDeck = {
+        ...baseData,
+        deckLink: 'https://docs.google.com/presentation/d/abc123',
+      };
+      const html = generateFollowupEmailHtml(dataWithDeck);
+
+      expect(html).toContain('https://docs.google.com/presentation/d/abc123');
+      expect(html).toContain('View Slides');
+    });
+
+    it('includes shared links when provided', () => {
+      const dataWithLinks = {
+        ...baseData,
+        sharedLinks: [
+          { title: 'Getting Started Guide', url: 'https://example.com/guide' },
+          { title: 'Help Center', url: 'https://example.com/help' },
+        ],
+      };
+      const html = generateFollowupEmailHtml(dataWithLinks);
+
+      expect(html).toContain('Getting Started Guide');
+      expect(html).toContain('https://example.com/guide');
+      expect(html).toContain('Help Center');
+      expect(html).toContain('https://example.com/help');
+    });
+
+    it('shows resources section with emoji icons', () => {
+      const dataWithResources = {
+        ...baseData,
+        recordingLink: 'https://example.com/recording',
+        deckLink: 'https://example.com/deck',
+      };
+      const html = generateFollowupEmailHtml(dataWithResources);
+
+      expect(html).toContain('📚');
+      expect(html).toContain('🎥');
+      expect(html).toContain('📊');
+    });
+
+    it('omits resources section for no-shows', () => {
+      const noShowWithResources = {
+        ...baseData,
+        isNoShow: true,
+        recordingLink: 'https://example.com/recording',
+        deckLink: 'https://example.com/deck',
+      };
+      const html = generateFollowupEmailHtml(noShowWithResources);
+
+      expect(html).not.toContain('Session Resources');
+      // Should not contain actual links/buttons (not checking HTML comments)
+      expect(html).not.toContain('href="https://example.com/recording"');
+      expect(html).not.toContain('href="https://example.com/deck"');
+      expect(html).not.toContain('Watch Recording →');
+      expect(html).not.toContain('View Slides →');
+    });
+
+    it('includes book another session CTA for attended', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('Want to continue the conversation?');
+      expect(html).toContain('Book Another Session');
+      expect(html).toContain('https://liveschoolhelp.com/book/office-hours');
+    });
+
+    it('includes book session CTA for no-shows', () => {
+      const noShowData = { ...baseData, isNoShow: true };
+      const html = generateFollowupEmailHtml(noShowData);
+
+      expect(html).toContain("Let's find a time that works");
+      expect(html).toContain('Book a Session');
+      expect(html).toContain('https://liveschoolhelp.com/book/office-hours');
+    });
+
+    it('includes custom message when provided', () => {
+      const dataWithMessage = {
+        ...baseData,
+        customMessage: 'Thanks so much for meeting today!\n\nLet me know if you have any questions.',
+      };
+      const html = generateFollowupEmailHtml(dataWithMessage);
+
+      expect(html).toContain('Thanks so much for meeting today!');
+      expect(html).toContain('Let me know if you have any questions.');
+    });
+
+    it('includes footer with reply prompt', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('Questions? Just reply to this email.');
+      expect(html).toContain('Connect with LiveSchool');
+    });
+
+    it('uses brand colors in styling', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      // Check for brand purple
+      expect(html).toContain('#6F71EE');
+      // Check for brand navy
+      expect(html).toContain('#101E57');
+      // Check for brand green (for Watch Recording button)
+      const dataWithRecording = { ...baseData, recordingLink: 'https://example.com' };
+      const htmlWithRecording = generateFollowupEmailHtml(dataWithRecording);
+      expect(htmlWithRecording).toContain('#417762');
+    });
+
+    it('uses table-based layout for email compatibility', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('role="presentation"');
+      expect(html).toContain('<table');
+      expect(html).toContain('<td');
+    });
+
+    it('includes viewport meta tag for mobile', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('width=device-width, initial-scale=1.0');
+    });
+
+    it('uses inline styles (not external stylesheets)', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('style="');
+      expect(html).not.toContain('<link rel="stylesheet"');
+    });
+
+    it('uses emoji characters instead of images', () => {
+      const html = generateFollowupEmailHtml(baseData);
+
+      expect(html).toContain('🎉'); // Celebration emoji for attended
+      expect(html).toContain('📅'); // Calendar emoji
+      expect(html).toContain('👤'); // Person emoji
+    });
+
+    it('uses wave emoji for no-show header', () => {
+      const noShowData = { ...baseData, isNoShow: true };
+      const html = generateFollowupEmailHtml(noShowData);
+
+      expect(html).toContain('👋');
     });
   });
 });

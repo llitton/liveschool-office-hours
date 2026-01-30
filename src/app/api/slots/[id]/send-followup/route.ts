@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
-import { htmlifyEmailBody } from '@/lib/email-templates';
+import { generateFollowupEmailHtml } from '@/lib/email-html';
 import { emailLogger } from '@/lib/logger';
+import { format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { getTimezoneAbbr } from '@/lib/timezone';
 
 // POST send bulk follow-up emails to attendees or no-shows
 export async function POST(
@@ -81,21 +84,45 @@ export async function POST(
     );
   }
 
+  // Get host info for the email template
+  const event = slot.event;
+  const eventTimezone = event?.timezone || 'America/Chicago';
+
+  // Format session date/time in event's timezone
+  const startTime = parseISO(slot.start_time);
+  const zonedTime = toZonedTime(startTime, eventTimezone);
+  const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+  const sessionTime = format(zonedTime, 'h:mm a');
+  const timezoneAbbr = getTimezoneAbbr(eventTimezone);
+
+  // Build booking page URL
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+  const bookingPageUrl = event?.slug ? `${appUrl}/book/${event.slug}` : appUrl;
+
+  // Get host name (primary host or event creator)
+  const hostName = event?.host_name || admin.name || 'Your Host';
+
   // Send emails
+  const isNoShow = recipients === 'no_show';
   const results = await Promise.allSettled(
     targetBookings.map(async (booking: { id: string; first_name: string; email: string }) => {
-      // Replace {{first_name}} placeholder if present
-      const personalizedBody = emailBody.replace(/\{\{first_name\}\}/g, booking.first_name);
+      // Replace {{first_name}} placeholder if present in custom body
+      const customMessage = emailBody.replace(/\{\{first_name\}\}/g, booking.first_name);
 
-      const htmlBody = `
-        <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-          ${htmlifyEmailBody(personalizedBody)}
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-          <p style="font-size: 12px; color: #667085;">
-            Sent from Connect with LiveSchool
-          </p>
-        </div>
-      `;
+      const htmlBody = generateFollowupEmailHtml({
+        recipientFirstName: booking.first_name,
+        eventName: event?.name || 'Session',
+        hostName,
+        sessionDate,
+        sessionTime,
+        timezoneAbbr,
+        recordingLink: slot.recording_link,
+        deckLink: slot.deck_link,
+        sharedLinks: slot.shared_links,
+        bookingPageUrl,
+        isNoShow,
+        customMessage,
+      });
 
       const result = await sendEmail(
         admin.google_access_token!,

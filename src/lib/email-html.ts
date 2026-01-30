@@ -414,3 +414,246 @@ export function generateReminderEmailHtml(data: {
 </html>
   `.trim();
 }
+
+/**
+ * Generate a styled follow-up email for post-session communication
+ * Supports both "thank you" (attended) and "we missed you" (no-show) variants
+ */
+export interface FollowupEmailData {
+  recipientFirstName: string;
+  eventName: string;
+  hostName: string;
+  sessionDate: string; // e.g., "Friday, January 31"
+  sessionTime: string; // e.g., "10:30 AM"
+  timezoneAbbr: string; // e.g., "CT"
+  recordingLink?: string | null;
+  deckLink?: string | null;
+  sharedLinks?: Array<{ title: string; url: string }> | null;
+  bookingPageUrl: string; // e.g., "https://liveschoolhelp.com/book/office-hours"
+  isNoShow?: boolean;
+  customMessage?: string; // Optional custom message from the host
+}
+
+export function generateFollowupEmailHtml(data: FollowupEmailData): string {
+  const {
+    recipientFirstName,
+    eventName,
+    hostName,
+    sessionDate,
+    sessionTime,
+    timezoneAbbr,
+    recordingLink,
+    deckLink,
+    sharedLinks,
+    bookingPageUrl,
+    isNoShow = false,
+    customMessage,
+  } = data;
+
+  const headerColor = isNoShow ? '#F59E0B' : COLORS.purple;
+  const headerEmoji = isNoShow ? '👋' : '🎉';
+  const headerTitle = isNoShow
+    ? `We missed you, ${recipientFirstName}!`
+    : `Thanks for joining, ${recipientFirstName}!`;
+  const headerSubtitle = isNoShow
+    ? `We're sorry we couldn't connect at ${eventName}`
+    : `Great chatting with you at ${eventName}`;
+
+  // Build resources section (only for attended, not no-shows)
+  const hasResources = !isNoShow && (recordingLink || deckLink || (sharedLinks && sharedLinks.length > 0));
+
+  const resourcesSection = hasResources ? `
+    <tr>
+      <td style="background: white; padding: 0 32px 24px 32px;">
+        <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: ${COLORS.navy}; font-size: 16px; font-weight: 600;">
+            📚 Session Resources
+          </h3>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            ${recordingLink ? `
+            <tr>
+              <td style="padding: 8px 0;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="width: 28px; vertical-align: middle;">
+                      <span style="font-size: 18px;">🎥</span>
+                    </td>
+                    <td>
+                      <a href="${recordingLink}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
+                        Watch Recording →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            ` : ''}
+            ${deckLink ? `
+            <tr>
+              <td style="padding: 8px 0;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="width: 28px; vertical-align: middle;">
+                      <span style="font-size: 18px;">📊</span>
+                    </td>
+                    <td>
+                      <a href="${deckLink}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
+                        View Slides →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            ` : ''}
+            ${sharedLinks && sharedLinks.length > 0 ? sharedLinks.map(link => `
+            <tr>
+              <td style="padding: 8px 0;">
+                <table role="presentation" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="width: 28px; vertical-align: middle;">
+                      <span style="font-size: 18px;">📎</span>
+                    </td>
+                    <td>
+                      <a href="${link.url}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
+                        ${link.title} →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            `).join('') : ''}
+          </table>
+        </div>
+      </td>
+    </tr>
+  ` : '';
+
+  // Primary CTA for recording (only if attended and recording exists)
+  const recordingCta = !isNoShow && recordingLink ? `
+    <tr>
+      <td style="background: white; padding: 0 32px 24px 32px; text-align: center;">
+        <a href="${recordingLink}" style="display: inline-block; background: ${COLORS.green}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          🎥 Watch Recording
+        </a>
+      </td>
+    </tr>
+  ` : '';
+
+  // Custom message section
+  const customMessageSection = customMessage ? `
+    <tr>
+      <td style="background: white; padding: 0 32px 24px 32px;">
+        <div style="color: ${COLORS.navy}; font-size: 15px; line-height: 1.6;">
+          ${customMessage.split('\n').map(line => `<p style="margin: 0 0 12px 0;">${line}</p>`).join('')}
+        </div>
+      </td>
+    </tr>
+  ` : '';
+
+  // Book another session CTA
+  const bookingCtaText = isNoShow
+    ? "Let's find a time that works"
+    : "Want to continue the conversation?";
+  const bookingCtaButton = isNoShow ? "Book a Session" : "Book Another Session";
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${isNoShow ? 'We missed you!' : 'Thanks for joining!'}</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, sans-serif !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Hero Section -->
+          <tr>
+            <td style="background: ${headerColor}; border-radius: 16px 16px 0 0; padding: 40px 32px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">${headerEmoji}</div>
+              <h1 style="color: white; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">
+                ${headerTitle}
+              </h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
+                ${headerSubtitle}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Session Details Card -->
+          <tr>
+            <td style="background: white; padding: 0 32px;">
+              <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 20px; margin: -20px 0 24px 0; border: 2px solid ${COLORS.border};">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding-bottom: 12px;">
+                      <div style="display: inline-block;">
+                        <span style="font-size: 16px; margin-right: 8px;">📅</span>
+                        <span style="color: ${COLORS.navy}; font-size: 16px; font-weight: 500;">${sessionDate} at ${sessionTime} ${timezoneAbbr}</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span style="font-size: 16px; margin-right: 8px;">👤</span>
+                      <span style="color: ${COLORS.gray}; font-size: 14px;">Hosted by ${hostName}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Custom Message -->
+          ${customMessageSection}
+
+          <!-- Primary CTA: Watch Recording (if attended and recording exists) -->
+          ${recordingCta}
+
+          <!-- Resources Section (if attended and has resources) -->
+          ${resourcesSection}
+
+          <!-- Book Another Session CTA -->
+          <tr>
+            <td style="background: white; padding: 0 32px 32px 32px;">
+              <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 24px; text-align: center;">
+                <p style="color: ${COLORS.navy}; margin: 0 0 16px 0; font-size: 15px; font-weight: 500;">
+                  ${bookingCtaText}
+                </p>
+                <a href="${bookingPageUrl}" style="display: inline-block; background: white; border: 2px solid ${COLORS.purple}; color: ${COLORS.purple}; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                  ${bookingCtaButton}
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: ${COLORS.navy}; border-radius: 0 0 16px 16px; padding: 24px 32px; text-align: center;">
+              <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin: 0 0 8px 0;">
+                Questions? Just reply to this email.
+              </p>
+              <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
