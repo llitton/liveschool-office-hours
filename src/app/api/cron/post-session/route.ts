@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { sendEmail } from '@/lib/google';
+import { generateFollowupEmailHtml, generateFeedbackEmailHtml, generateRecordingEmailHtml } from '@/lib/email-html';
+import { format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { getTimezoneAbbr } from '@/lib/timezone';
 
 // This cron job runs hourly to handle post-session tasks:
 // 1. Send follow-up emails 2 hours after session ends (to attended attendees)
@@ -70,66 +74,48 @@ export async function GET() {
           .select('title, completed_at')
           .eq('booking_id', booking.id);
 
-        // Build the email content
-        let notesSection = '';
+        // Build custom message with notes and tasks if available
+        let customMessageParts: string[] = [];
+
         if (notes && notes.length > 0) {
-          notesSection = `
-            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #101E57; font-size: 16px;">Session Notes</h3>
-              ${notes.map(n => `<p style="color: #667085; margin: 8px 0;">${n.note}</p>`).join('')}
-            </div>
-          `;
+          customMessageParts.push('Session notes:\n' + notes.map(n => `• ${n.note}`).join('\n'));
         }
 
-        let tasksSection = '';
         if (tasks && tasks.length > 0) {
-          tasksSection = `
-            <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: #101E57; font-size: 16px;">Follow-up Items</h3>
-              <ul style="margin: 0; padding-left: 20px;">
-                ${tasks.map(t => `<li style="color: #667085; margin: 4px 0;">${t.title}</li>`).join('')}
-              </ul>
-            </div>
-          `;
+          customMessageParts.push('Follow-up items:\n' + tasks.map(t => `• ${t.title}`).join('\n'));
         }
 
-        let recordingSection = '';
-        if (slot.recording_link) {
-          recordingSection = `
-            <div style="background: #6F71EE; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <a href="${slot.recording_link}" style="color: white; text-decoration: none; font-weight: 600;">
-                Watch Session Recording
-              </a>
-            </div>
-          `;
-        }
+        const customMessage = customMessageParts.length > 0
+          ? customMessageParts.join('\n\n')
+          : 'Thanks so much for joining today! It was great chatting with you.';
 
-        const htmlBody = `
-          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-            <h2 style="color: #101E57;">Thanks for joining us!</h2>
-            <p>Hi ${booking.first_name},</p>
-            <p>Thanks for attending <strong>${slot.event.name}</strong> today! Here's a quick summary of your session.</p>
+        // Format session date/time in event's timezone
+        const event = slot.event;
+        const eventTimezone = event?.timezone || 'America/Chicago';
+        const startTime = parseISO(slot.start_time);
+        const zonedTime = toZonedTime(startTime, eventTimezone);
+        const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+        const sessionTime = format(zonedTime, 'h:mm a');
+        const timezoneAbbr = getTimezoneAbbr(eventTimezone);
 
-            ${notesSection}
-            ${tasksSection}
-            ${recordingSection}
+        // Build booking page URL
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+        const bookingPageUrl = event?.slug ? `${appUrl}/book/${event.slug}` : appUrl;
 
-            <p style="color: #667085; margin-top: 20px;">
-              Have questions? Just reply to this email and we'll be happy to help.
-            </p>
-
-            <p style="margin-top: 24px;">
-              Best,<br>
-              ${slot.event.host_name}
-            </p>
-
-            <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
-              <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-                Sent from Connect with LiveSchool
-              </p>
-            </div>
-          </div>
-        `;
+        const htmlBody = generateFollowupEmailHtml({
+          recipientFirstName: booking.first_name,
+          eventName: event?.name || 'Session',
+          hostName: event?.host_name || 'Your Host',
+          sessionDate,
+          sessionTime,
+          timezoneAbbr,
+          recordingLink: slot.recording_link,
+          deckLink: slot.deck_link,
+          sharedLinks: slot.shared_links,
+          bookingPageUrl,
+          isNoShow: false,
+          customMessage,
+        });
 
         await sendEmail(
           admin.google_access_token,
@@ -138,6 +124,7 @@ export async function GET() {
             to: booking.email,
             subject: `Thanks for joining ${slot.event.name}!`,
             replyTo: slot.event.host_email,
+            from: slot.event.host_email,
             htmlBody,
           }
         );
@@ -208,75 +195,58 @@ export async function GET() {
 
       try {
         // Generate re-booking link
-        const rebookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/book/${event.slug}`;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+        const bookingPageUrl = event.slug ? `${appUrl}/book/${event.slug}` : appUrl;
 
-        // Use custom template or default
-        const subject = event.no_show_subject || `We missed you at ${event.name}!`;
+        // Use custom subject template or default
+        const subjectTemplate = event.no_show_subject || `We missed you at ${event.name}!`;
 
-        // Process template variables
-        const processTemplate = (template: string) => {
-          return template
+        // Process template variables in subject
+        const subject = subjectTemplate
+          .replace(/\{\{first_name\}\}/g, booking.first_name)
+          .replace(/\{\{last_name\}\}/g, booking.last_name)
+          .replace(/\{\{event_name\}\}/g, event.name)
+          .replace(/\{\{host_name\}\}/g, event.host_name);
+
+        // Format session date/time in event's timezone
+        const eventTimezone = event?.timezone || 'America/Chicago';
+        const startTime = parseISO(slot.start_time);
+        const zonedTime = toZonedTime(startTime, eventTimezone);
+        const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+        const sessionTime = format(zonedTime, 'h:mm a');
+        const timezoneAbbr = getTimezoneAbbr(eventTimezone);
+
+        // Use custom body as custom message if provided, otherwise use default
+        let customMessage: string | undefined;
+        if (event.no_show_body) {
+          customMessage = event.no_show_body
             .replace(/\{\{first_name\}\}/g, booking.first_name)
             .replace(/\{\{last_name\}\}/g, booking.last_name)
             .replace(/\{\{event_name\}\}/g, event.name)
             .replace(/\{\{host_name\}\}/g, event.host_name)
-            .replace(/\{\{rebook_link\}\}/g, rebookUrl);
-        };
-
-        let htmlBody: string;
-
-        if (event.no_show_body) {
-          // Use custom template
-          htmlBody = `
-            <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-              ${processTemplate(event.no_show_body)}
-              <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
-                <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-                  Sent from Connect with LiveSchool
-                </p>
-              </div>
-            </div>
-          `;
-        } else {
-          // Default no-show template
-          htmlBody = `
-            <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-              <h2 style="color: #101E57;">We missed you!</h2>
-              <p>Hi ${booking.first_name},</p>
-              <p>We noticed you weren't able to join <strong>${event.name}</strong> today. No worries - life happens!</p>
-              <p>We'd love to connect with you. Feel free to book another session at a time that works better for you.</p>
-
-              <div style="margin: 24px 0; text-align: center;">
-                <a href="${rebookUrl}" style="background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
-                  Book Another Session
-                </a>
-              </div>
-
-              <p style="color: #667085;">
-                If you have any questions, just reply to this email.
-              </p>
-
-              <p style="margin-top: 24px;">
-                Best,<br>
-                ${event.host_name}
-              </p>
-
-              <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
-                <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-                  Sent from Connect with LiveSchool
-                </p>
-              </div>
-            </div>
-          `;
+            .replace(/\{\{rebook_link\}\}/g, bookingPageUrl);
         }
+
+        const htmlBody = generateFollowupEmailHtml({
+          recipientFirstName: booking.first_name,
+          eventName: event?.name || 'Session',
+          hostName: event?.host_name || 'Your Host',
+          sessionDate,
+          sessionTime,
+          timezoneAbbr,
+          bookingPageUrl,
+          isNoShow: true,
+          customMessage,
+        });
 
         await sendEmail(
           admin.google_access_token,
           admin.google_refresh_token,
           {
             to: booking.email,
-            subject: processTemplate(subject),
+            subject,
             replyTo: event.host_email,
+            from: event.host_email,
             htmlBody,
           }
         );
@@ -336,20 +306,24 @@ export async function GET() {
       try {
         const feedbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/feedback/${booking.manage_token}`;
 
-        const htmlBody = `
-          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-            <h2>How was your session?</h2>
-            <p>Hi ${booking.first_name},</p>
-            <p>Thanks for attending <strong>${slot.event.name}</strong>! We'd love to hear your feedback.</p>
-            <div style="margin: 24px 0;">
-              <a href="${feedbackUrl}" style="background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                Share Your Feedback
-              </a>
-            </div>
-            <p>Your input helps us improve future sessions!</p>
-            <p>Best,<br>${slot.event.host_name}</p>
-          </div>
-        `;
+        // Format session date/time in event's timezone
+        const event = slot.event;
+        const eventTimezone = event?.timezone || 'America/Chicago';
+        const startTime = parseISO(slot.start_time);
+        const zonedTime = toZonedTime(startTime, eventTimezone);
+        const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+        const sessionTime = format(zonedTime, 'h:mm a');
+        const timezoneAbbr = getTimezoneAbbr(eventTimezone);
+
+        const htmlBody = generateFeedbackEmailHtml({
+          recipientFirstName: booking.first_name,
+          eventName: event?.name || 'Session',
+          hostName: event?.host_name || 'Your Host',
+          sessionDate,
+          sessionTime,
+          timezoneAbbr,
+          feedbackUrl,
+        });
 
         await sendEmail(
           admin.google_access_token,
@@ -358,6 +332,7 @@ export async function GET() {
             to: booking.email,
             subject: `How was ${slot.event.name}?`,
             replyTo: slot.event.host_email,
+            from: slot.event.host_email,
             htmlBody,
           }
         );
@@ -400,24 +375,36 @@ export async function GET() {
 
     if (!admin?.google_access_token || !admin?.google_refresh_token) continue;
 
+    // Format session date/time in event's timezone (once per slot)
+    const event = slot.event;
+    const eventTimezone = event?.timezone || 'America/Chicago';
+    const startTime = parseISO(slot.start_time);
+    const zonedTime = toZonedTime(startTime, eventTimezone);
+    const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+    const sessionTime = format(zonedTime, 'h:mm a');
+    const timezoneAbbr = getTimezoneAbbr(eventTimezone);
+
+    // Build booking page URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    const bookingPageUrl = event?.slug ? `${appUrl}/book/${event.slug}` : undefined;
+
     for (const booking of slot.bookings || []) {
       if (booking.cancelled_at) continue;
       if (booking.recording_sent_at) continue;
 
       try {
-        const htmlBody = `
-          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-            <h2>Session Recording Available</h2>
-            <p>Hi ${booking.first_name},</p>
-            <p>The recording for <strong>${slot.event.name}</strong> is now available!</p>
-            <div style="margin: 24px 0;">
-              <a href="${slot.recording_link}" style="background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-                Watch Recording
-              </a>
-            </div>
-            <p>Best,<br>${slot.event.host_name}</p>
-          </div>
-        `;
+        const htmlBody = generateRecordingEmailHtml({
+          recipientFirstName: booking.first_name,
+          eventName: event?.name || 'Session',
+          hostName: event?.host_name || 'Your Host',
+          sessionDate,
+          sessionTime,
+          timezoneAbbr,
+          recordingLink: slot.recording_link,
+          deckLink: slot.deck_link,
+          sharedLinks: slot.shared_links,
+          bookingPageUrl,
+        });
 
         await sendEmail(
           admin.google_access_token,
@@ -426,6 +413,7 @@ export async function GET() {
             to: booking.email,
             subject: `Recording: ${slot.event.name}`,
             replyTo: slot.event.host_email,
+            from: slot.event.host_email,
             htmlBody,
           }
         );

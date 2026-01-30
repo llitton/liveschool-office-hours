@@ -299,9 +299,9 @@ tests/
 
 | Area | Tests | Files |
 |------|-------|-------|
+| Email HTML Templates | 77 | `email-html.ts` |
 | Timezone Utilities | 48 | `timezone.ts` |
 | SMS Utilities | 35 | `sms.ts` |
-| Email HTML Templates | 54 | `email-html.ts` |
 | Error Handling | 30 | `errors.ts` |
 | Lead Routing | 30 | `routing.ts` |
 | Booking Constraints | 29 | `booking-constraints.ts` |
@@ -315,9 +315,9 @@ tests/
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
-| **Total Unit Tests** | **428** | 15 lib modules + 1 component |
+| **Total Unit Tests** | **451** | 15 lib modules + 1 component |
 | **Integration Tests** | **40** | 3 API test files |
-| **Grand Total** | **551** | All test files (includes additional integration tests) |
+| **Grand Total** | **574** | All test files (includes additional integration tests) |
 
 ### Writing Tests
 
@@ -998,7 +998,12 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Contrast ratios:** White text on green (#417762) header meets WCAG AA standards
 
 ### Email Templates
-- **Modern HTML templates:** Use `generateConfirmationEmailHtml()`, `generateReminderEmailHtml()`, and `generateFollowupEmailHtml()` from `src/lib/email-html.ts`
+- **Modern HTML templates:** Use template functions from `src/lib/email-html.ts`:
+  - `generateConfirmationEmailHtml()` - Booking confirmations
+  - `generateReminderEmailHtml()` - Day-before and hour-before reminders
+  - `generateFollowupEmailHtml()` - Post-session thank you / we missed you
+  - `generateFeedbackEmailHtml()` - Feedback request emails
+  - `generateRecordingEmailHtml()` - Recording notification emails
 - **Unicode emoji for icons:** Gmail and many email clients block SVG data URIs - use Unicode characters (✓, 📅, 🎥, etc.) instead of images
 - **Table-based layout:** Use HTML tables for layout, not flexbox/grid - maximum compatibility across email clients
 - **Inline styles only:** All CSS must be inline - no `<style>` blocks or external stylesheets
@@ -1016,6 +1021,20 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Footer:** "Questions? Just reply to this email" prompt
 - **API:** `POST /api/slots/[id]/send-followup` uses this template
 - **Data passed:** recipientFirstName, eventName, hostName, sessionDate/Time, timezone, recordingLink, deckLink, sharedLinks, bookingPageUrl, isNoShow
+
+**Feedback request email template (`generateFeedbackEmailHtml`):**
+- **Purple header:** "How was your session?" with speech bubble emoji (💬)
+- **Session details card:** Date, time, timezone, host name
+- **Primary CTA:** Purple "Share Feedback" button with star emoji (⭐)
+- **Data passed:** recipientFirstName, eventName, hostName, sessionDate/Time, timezone, feedbackUrl
+
+**Recording notification email template (`generateRecordingEmailHtml`):**
+- **Green header:** "Your Recording is Ready!" with movie emoji (🎬)
+- **Session details card:** Date, time, timezone, host name
+- **Primary CTA:** Green "Watch Recording" button
+- **Optional resources:** Deck link and shared links if provided
+- **Optional booking link:** "Schedule a time" link if booking URL provided
+- **Data passed:** recipientFirstName, eventName, hostName, sessionDate/Time, timezone, recordingLink, deckLink, sharedLinks, bookingPageUrl
 
 ### Visual Consistency
 - **Same action = same color:** Similar interactive elements (e.g., all calendar buttons) should use the same color - brand purple (#6F71EE) for consistency

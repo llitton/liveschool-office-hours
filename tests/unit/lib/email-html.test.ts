@@ -3,6 +3,8 @@ import {
   generateConfirmationEmailHtml,
   generateReminderEmailHtml,
   generateFollowupEmailHtml,
+  generateFeedbackEmailHtml,
+  generateRecordingEmailHtml,
 } from '@/lib/email-html';
 
 describe('Email HTML Templates', () => {
@@ -524,6 +526,201 @@ describe('Email HTML Templates', () => {
       const html = generateFollowupEmailHtml(noShowData);
 
       expect(html).toContain('👋');
+    });
+  });
+
+  describe('generateFeedbackEmailHtml', () => {
+    const baseData = {
+      recipientFirstName: 'Laura',
+      eventName: 'LiveSchool Office Hours',
+      hostName: 'Hannah',
+      sessionDate: 'Friday, January 31',
+      sessionTime: '10:30 AM',
+      timezoneAbbr: 'CT',
+      feedbackUrl: 'https://liveschoolhelp.com/feedback/abc123',
+    };
+
+    it('generates valid HTML document', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<html');
+      expect(html).toContain('</html>');
+    });
+
+    it('includes recipient name in greeting', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('Hi Laura');
+    });
+
+    it('includes event name', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('LiveSchool Office Hours');
+    });
+
+    it('includes session date and time', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('Friday, January 31');
+      expect(html).toContain('10:30 AM');
+      expect(html).toContain('CT');
+    });
+
+    it('includes host name', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('Hannah');
+    });
+
+    it('includes feedback CTA button with link', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('Share Feedback');
+      expect(html).toContain('https://liveschoolhelp.com/feedback/abc123');
+    });
+
+    it('uses purple header for feedback requests', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('#6F71EE');
+      expect(html).toContain('How was your session?');
+    });
+
+    it('includes speech bubble emoji', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('💬');
+    });
+
+    it('includes star emoji for CTA', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('⭐');
+    });
+
+    it('uses table-based layout', () => {
+      const html = generateFeedbackEmailHtml(baseData);
+
+      expect(html).toContain('role="presentation"');
+      expect(html).toContain('<table');
+    });
+  });
+
+  describe('generateRecordingEmailHtml', () => {
+    const baseData = {
+      recipientFirstName: 'Laura',
+      eventName: 'LiveSchool Office Hours',
+      hostName: 'Hannah',
+      sessionDate: 'Friday, January 31',
+      sessionTime: '10:30 AM',
+      timezoneAbbr: 'CT',
+      recordingLink: 'https://fireflies.ai/recording/abc123',
+    };
+
+    it('generates valid HTML document', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<html');
+      expect(html).toContain('</html>');
+    });
+
+    it('includes recipient name in greeting', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('Hi Laura');
+    });
+
+    it('includes event name', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('LiveSchool Office Hours');
+    });
+
+    it('includes session date and time', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('Friday, January 31');
+      expect(html).toContain('10:30 AM');
+      expect(html).toContain('CT');
+    });
+
+    it('includes recording CTA button with link', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('Watch Recording');
+      expect(html).toContain('https://fireflies.ai/recording/abc123');
+    });
+
+    it('uses green header for recording notifications', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('#417762');
+      expect(html).toContain('Your Recording is Ready!');
+    });
+
+    it('includes movie emoji', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('🎬');
+    });
+
+    it('includes camera emoji for button', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('🎥');
+    });
+
+    it('includes additional resources when provided', () => {
+      const dataWithResources = {
+        ...baseData,
+        deckLink: 'https://docs.google.com/deck',
+        sharedLinks: [
+          { title: 'Guide', url: 'https://example.com/guide' },
+        ],
+      };
+      const html = generateRecordingEmailHtml(dataWithResources);
+
+      expect(html).toContain('Additional Resources');
+      expect(html).toContain('View Slides');
+      expect(html).toContain('https://docs.google.com/deck');
+      expect(html).toContain('Guide');
+      expect(html).toContain('https://example.com/guide');
+    });
+
+    it('omits resources section when no additional resources', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      // Should not contain the visible heading or slides link (comment text is ok)
+      expect(html).not.toContain('📎 Additional Resources');
+      expect(html).not.toContain('View Slides →');
+    });
+
+    it('includes book another session link when URL provided', () => {
+      const dataWithBooking = {
+        ...baseData,
+        bookingPageUrl: 'https://liveschoolhelp.com/book/office-hours',
+      };
+      const html = generateRecordingEmailHtml(dataWithBooking);
+
+      expect(html).toContain('Want to book another session?');
+      expect(html).toContain('Schedule a time');
+      expect(html).toContain('https://liveschoolhelp.com/book/office-hours');
+    });
+
+    it('omits booking section when no URL', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).not.toContain('Want to book another session?');
+    });
+
+    it('uses table-based layout', () => {
+      const html = generateRecordingEmailHtml(baseData);
+
+      expect(html).toContain('role="presentation"');
+      expect(html).toContain('<table');
     });
   });
 });

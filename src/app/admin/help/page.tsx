@@ -671,10 +671,11 @@ const helpSections: HelpSection[] = [
           {
             label: 'Automated emails (when enabled)',
             items: [
-              'Thank you emails sent to attended bookings (2-3 hours after)',
-              'No-show re-engagement emails (if enabled for the event)',
-              'Feedback request emails (1-2 hours after)',
-              'Recording link emails (when you add a recording)',
+              'Thank you emails — branded purple header with session resources (2-3 hours after)',
+              'No-show emails — branded amber header with "Book a Session" button',
+              'Feedback request emails — purple header with star-rated feedback link',
+              'Recording notification emails — green header when you add a recording',
+              'All automated emails use the same professional styling as manual emails',
             ],
           },
           {

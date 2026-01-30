@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-unified-styled-emails',
+    date: '2026-01-30',
+    title: 'Unified Styled Email Templates',
+    description: 'All automated emails now use professionally styled HTML templates matching your manual emails.',
+    category: 'improvement',
+    details: [
+      'Follow-up emails to attendees now have branded purple headers with session details',
+      'No-show emails have amber headers and prominent "Book a Session" buttons',
+      'Feedback request emails include session recap and star-rated feedback button',
+      'Recording notification emails feature green headers and resource links',
+      'All emails include session date/time, host name, and are mobile-responsive',
+      'Automated and manual emails now look identical for a consistent brand experience',
+    ],
+  },
+  {
     id: '2026-01-30-event-details-ux',
     date: '2026-01-30',
     title: 'Improved Event Details Page',

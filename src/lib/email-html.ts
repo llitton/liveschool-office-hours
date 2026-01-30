@@ -657,3 +657,298 @@ export function generateFollowupEmailHtml(data: FollowupEmailData): string {
 </html>
   `.trim();
 }
+
+/**
+ * Generate a styled feedback request email
+ */
+export interface FeedbackEmailData {
+  recipientFirstName: string;
+  eventName: string;
+  hostName: string;
+  sessionDate: string;
+  sessionTime: string;
+  timezoneAbbr: string;
+  feedbackUrl: string;
+}
+
+export function generateFeedbackEmailHtml(data: FeedbackEmailData): string {
+  const {
+    recipientFirstName,
+    eventName,
+    hostName,
+    sessionDate,
+    sessionTime,
+    timezoneAbbr,
+    feedbackUrl,
+  } = data;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How was your session?</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, sans-serif !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Hero Section -->
+          <tr>
+            <td style="background: ${COLORS.purple}; border-radius: 16px 16px 0 0; padding: 40px 32px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+              <h1 style="color: white; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">
+                How was your session?
+              </h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
+                We'd love to hear your thoughts!
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="background: white; padding: 32px;">
+              <p style="color: ${COLORS.navy}; font-size: 16px; margin: 0 0 24px 0; line-height: 1.6;">
+                Hi ${recipientFirstName},
+              </p>
+              <p style="color: ${COLORS.navy}; font-size: 16px; margin: 0 0 24px 0; line-height: 1.6;">
+                Thanks for joining <strong>${eventName}</strong>! Your feedback helps us make future sessions even better.
+              </p>
+
+              <!-- Session Details -->
+              <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding-bottom: 8px;">
+                      <span style="font-size: 16px; margin-right: 8px;">📅</span>
+                      <span style="color: ${COLORS.navy}; font-size: 15px;">${sessionDate} at ${sessionTime} ${timezoneAbbr}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span style="font-size: 16px; margin-right: 8px;">👤</span>
+                      <span style="color: ${COLORS.gray}; font-size: 14px;">with ${hostName}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Primary CTA -->
+              <div style="text-align: center; margin-bottom: 24px;">
+                <a href="${feedbackUrl}" style="display: inline-block; background: ${COLORS.purple}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                  ⭐ Share Feedback
+                </a>
+              </div>
+
+              <p style="color: ${COLORS.gray}; font-size: 14px; margin: 0; text-align: center;">
+                Takes less than a minute!
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: ${COLORS.navy}; border-radius: 0 0 16px 16px; padding: 24px 32px; text-align: center;">
+              <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin: 0 0 8px 0;">
+                Your input makes a real difference.
+              </p>
+              <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Generate a styled recording notification email
+ */
+export interface RecordingEmailData {
+  recipientFirstName: string;
+  eventName: string;
+  hostName: string;
+  sessionDate: string;
+  sessionTime: string;
+  timezoneAbbr: string;
+  recordingLink: string;
+  deckLink?: string | null;
+  sharedLinks?: Array<{ title: string; url: string }> | null;
+  bookingPageUrl?: string;
+}
+
+export function generateRecordingEmailHtml(data: RecordingEmailData): string {
+  const {
+    recipientFirstName,
+    eventName,
+    hostName,
+    sessionDate,
+    sessionTime,
+    timezoneAbbr,
+    recordingLink,
+    deckLink,
+    sharedLinks,
+    bookingPageUrl,
+  } = data;
+
+  // Build additional resources section
+  const hasAdditionalResources = deckLink || (sharedLinks && sharedLinks.length > 0);
+
+  const additionalResourcesSection = hasAdditionalResources ? `
+    <tr>
+      <td style="background: white; padding: 0 32px 24px 32px;">
+        <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 20px;">
+          <h3 style="margin: 0 0 12px 0; color: ${COLORS.navy}; font-size: 15px; font-weight: 600;">
+            📎 Additional Resources
+          </h3>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            ${deckLink ? `
+            <tr>
+              <td style="padding: 6px 0;">
+                <a href="${deckLink}" style="color: ${COLORS.purple}; text-decoration: none; font-size: 14px;">
+                  📊 View Slides →
+                </a>
+              </td>
+            </tr>
+            ` : ''}
+            ${sharedLinks && sharedLinks.length > 0 ? sharedLinks.map(link => `
+            <tr>
+              <td style="padding: 6px 0;">
+                <a href="${link.url}" style="color: ${COLORS.purple}; text-decoration: none; font-size: 14px;">
+                  📎 ${link.title} →
+                </a>
+              </td>
+            </tr>
+            `).join('') : ''}
+          </table>
+        </div>
+      </td>
+    </tr>
+  ` : '';
+
+  // Book another session CTA (if booking URL provided)
+  const bookingCta = bookingPageUrl ? `
+    <tr>
+      <td style="background: white; padding: 0 32px 32px 32px;">
+        <div style="border-top: 1px solid ${COLORS.border}; padding-top: 24px; text-align: center;">
+          <p style="color: ${COLORS.gray}; margin: 0 0 12px 0; font-size: 14px;">
+            Want to book another session?
+          </p>
+          <a href="${bookingPageUrl}" style="color: ${COLORS.purple}; font-size: 14px; font-weight: 500; text-decoration: none;">
+            Schedule a time →
+          </a>
+        </div>
+      </td>
+    </tr>
+  ` : '';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Recording Available</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, sans-serif !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Hero Section -->
+          <tr>
+            <td style="background: ${COLORS.green}; border-radius: 16px 16px 0 0; padding: 40px 32px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
+              <h1 style="color: white; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">
+                Your Recording is Ready!
+              </h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
+                Catch up on ${eventName}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="background: white; padding: 32px;">
+              <p style="color: ${COLORS.navy}; font-size: 16px; margin: 0 0 24px 0; line-height: 1.6;">
+                Hi ${recipientFirstName},
+              </p>
+              <p style="color: ${COLORS.navy}; font-size: 16px; margin: 0 0 24px 0; line-height: 1.6;">
+                The recording from your session is now available. Watch it anytime to review what we covered.
+              </p>
+
+              <!-- Session Details -->
+              <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding-bottom: 8px;">
+                      <span style="font-size: 16px; margin-right: 8px;">📅</span>
+                      <span style="color: ${COLORS.navy}; font-size: 15px;">${sessionDate} at ${sessionTime} ${timezoneAbbr}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span style="font-size: 16px; margin-right: 8px;">👤</span>
+                      <span style="color: ${COLORS.gray}; font-size: 14px;">with ${hostName}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Primary CTA -->
+              <div style="text-align: center;">
+                <a href="${recordingLink}" style="display: inline-block; background: ${COLORS.green}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                  🎥 Watch Recording
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Additional Resources -->
+          ${additionalResourcesSection}
+
+          <!-- Book Another Session -->
+          ${bookingCta}
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: ${COLORS.navy}; border-radius: 0 0 16px 16px; padding: 24px 32px; text-align: center;">
+              <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin: 0 0 8px 0;">
+                Questions? Just reply to this email.
+              </p>
+              <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
