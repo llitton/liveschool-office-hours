@@ -625,11 +625,13 @@ export function matchParticipantsToBookings(
 
   for (const booking of bookings) {
     const bookingEmail = booking.email.toLowerCase();
-    const bookingName = `${booking.first_name} ${booking.last_name}`.toLowerCase();
+    const bookingFirstName = booking.first_name.toLowerCase().trim();
+    const bookingLastName = booking.last_name.toLowerCase().trim();
+    const bookingFullName = `${bookingFirstName} ${bookingLastName}`;
 
     // Try to find a matching participant
     const matchedParticipant = participants.find((p) => {
-      // Match by email
+      // Match by email (if Google provides it)
       if (p.email && p.email.toLowerCase() === bookingEmail) {
         return true;
       }
@@ -637,14 +639,41 @@ export function matchParticipantsToBookings(
       if (p.displayName && p.displayName.toLowerCase().includes(bookingEmail)) {
         return true;
       }
-      // Match by display name matching booking name
-      if (p.displayName && p.displayName.toLowerCase().includes(bookingName)) {
+
+      if (!p.displayName) return false;
+      const displayName = p.displayName.toLowerCase().trim();
+      const displayNameParts = displayName.split(/\s+/);
+
+      // Exact full name match
+      if (displayName === bookingFullName) {
         return true;
       }
-      // Match by booking name containing display name
-      if (p.displayName && bookingName.includes(p.displayName.toLowerCase())) {
+
+      // Match by first name AND last name appearing in display name
+      // This handles "Alicia Gunn" matching "Alicia L Gunn" (booking has middle initial)
+      if (displayName.includes(bookingFirstName) && displayName.includes(bookingLastName)) {
         return true;
       }
+
+      // Match by display name first+last appearing in booking name
+      // This handles "Alicia L Gunn" (Meet) matching "Alicia Gunn" (booking)
+      if (displayNameParts.length >= 2) {
+        const displayFirst = displayNameParts[0];
+        const displayLast = displayNameParts[displayNameParts.length - 1];
+        if (bookingFullName.includes(displayFirst) && bookingFullName.includes(displayLast)) {
+          return true;
+        }
+      }
+
+      // Match if first name matches exactly and last names share a common part
+      // This handles cases like "Gunn" matching "L Gunn" or vice versa
+      if (displayNameParts[0] === bookingFirstName) {
+        const displayLastPart = displayNameParts[displayNameParts.length - 1];
+        if (bookingLastName.includes(displayLastPart) || displayLastPart.includes(bookingLastName)) {
+          return true;
+        }
+      }
+
       return false;
     });
 

@@ -156,6 +156,37 @@ describe('Google Meet - matchParticipantsToBookings', () => {
       // May or may not match depending on implementation - check it works without error
       expect(matches).toHaveLength(1);
     });
+
+    it('matches when booking has middle initial but Meet display name does not', () => {
+      // Real scenario: Booking is "Alicia L Gunn", Meet shows "Alicia Gunn"
+      const participants = [
+        { email: null, displayName: 'Alicia Gunn', durationMinutes: 10 },
+      ];
+
+      const bookings = [
+        { id: 'b1', email: 'agunn@example.com', first_name: 'Alicia', last_name: 'L Gunn' },
+      ];
+
+      const matches = matchParticipantsToBookings(participants, bookings, 5);
+
+      expect(matches[0].attended).toBe(true);
+      expect(matches[0].matchedBy).toBe('name');
+    });
+
+    it('matches when Meet display name has middle initial but booking does not', () => {
+      const participants = [
+        { email: null, displayName: 'John M Smith', durationMinutes: 10 },
+      ];
+
+      const bookings = [
+        { id: 'b1', email: 'john@example.com', first_name: 'John', last_name: 'Smith' },
+      ];
+
+      const matches = matchParticipantsToBookings(participants, bookings, 5);
+
+      expect(matches[0].attended).toBe(true);
+      expect(matches[0].matchedBy).toBe('name');
+    });
   });
 
   describe('edge cases', () => {
