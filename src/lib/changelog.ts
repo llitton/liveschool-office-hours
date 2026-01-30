@@ -12,17 +12,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
-    id: '2026-01-30-styled-email-preview',
+    id: '2026-01-30-live-email-preview',
     date: '2026-01-30',
-    title: 'Styled Email Preview in Templates',
-    description: 'See exactly how your emails will look before sending with the new Styled Preview feature.',
+    title: 'Live Side-by-Side Email Preview',
+    description: 'See exactly how your emails will look as you type with the new live preview editor.',
     category: 'feature',
     details: [
-      'New "Styled Preview" button in Email Templates page',
-      'See the actual branded HTML email with your custom text',
-      'Preview shows confirmation, reminder, no-show, and cancellation emails with full styling',
-      'Helpful tips explain which templates have branded styling',
-      'Sample attendee data shows how variables get replaced',
+      'Side-by-side layout: editor on left, live styled preview on right',
+      'Preview updates instantly as you type — no need to switch tabs',
+      'Subject line preview shows rendered text above the email',
+      'Compact variable chips for quick insertion while editing',
+      'Full branded HTML preview for confirmation, reminder, no-show, and cancellation emails',
     ],
   },
   {

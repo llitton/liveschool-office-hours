@@ -56,6 +56,7 @@ const featureCategories = [
       { name: 'Per-session email toggle', desc: 'Skip automated emails for specific sessions in Wrap Up modal' },
       { name: 'Email sent status badges', desc: 'See which emails have been sent per attendee (Follow-up, Missed you, Feedback)' },
       { name: 'Unified styled emails', desc: 'All automated and manual emails (follow-up, feedback, recording, cancellation) use matching branded templates' },
+      { name: 'Live email preview', desc: 'Side-by-side editor with instant preview that updates as you type' },
     ],
   },
   {

@@ -310,11 +310,12 @@ const helpSections: HelpSection[] = [
             ],
           },
           {
-            label: 'Preview modes',
+            label: 'Live preview editor',
             items: [
-              'Edit — write your custom message with template variables',
-              'Text Preview — see your text with variables replaced by sample data',
-              'Styled Preview — see exactly how the email will look in inboxes',
+              'Side-by-side layout — editor on left, styled preview on right',
+              'Preview updates instantly as you type',
+              'Subject line preview shows rendered text above the email',
+              'Compact variable chips for quick insertion',
             ],
           },
           {

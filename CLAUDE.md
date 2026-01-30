@@ -1004,6 +1004,7 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
   - `generateFollowupEmailHtml()` - Post-session thank you / we missed you
   - `generateFeedbackEmailHtml()` - Feedback request emails
   - `generateRecordingEmailHtml()` - Recording notification emails
+  - `generateCancellationEmailHtml()` - Booking cancellation notifications
 - **Unicode emoji for icons:** Gmail and many email clients block SVG data URIs - use Unicode characters (✓, 📅, 🎥, etc.) instead of images
 - **Table-based layout:** Use HTML tables for layout, not flexbox/grid - maximum compatibility across email clients
 - **Inline styles only:** All CSS must be inline - no `<style>` blocks or external stylesheets
@@ -1035,6 +1036,23 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Optional resources:** Deck link and shared links if provided
 - **Optional booking link:** "Schedule a time" link if booking URL provided
 - **Data passed:** recipientFirstName, eventName, hostName, sessionDate/Time, timezone, recordingLink, deckLink, sharedLinks, bookingPageUrl
+
+**Cancellation email template (`generateCancellationEmailHtml`):**
+- **Gray header:** "Booking Cancelled" with calendar emoji (📅)
+- **Strikethrough date/time:** Visual indicator that session was cancelled
+- **Session details card:** Shows original date, time, timezone, host name
+- **Optional custom message:** Admin can include a personalized note
+- **Primary CTA:** Purple "Book Another Session" button
+- **Data passed:** recipientFirstName, eventName, hostName, sessionDate/Time, timezone, bookingPageUrl, customMessage
+
+### Email Templates Page UX
+The Email Templates page (`/admin/events/[id]/emails`) uses a **live side-by-side editor**:
+- **Left panel:** Edit subject line and body text with template variables
+- **Right panel:** Live styled preview that updates instantly as you type
+- **Subject preview:** Rendered subject line shown above the email preview
+- **Variable chips:** Compact clickable chips for quick variable insertion
+- **No mode switching:** Preview is always visible - no tabs to switch between
+- **Full HTML preview:** Shows exact email including header, buttons, footer
 
 ### Visual Consistency
 - **Same action = same color:** Similar interactive elements (e.g., all calendar buttons) should use the same color - brand purple (#6F71EE) for consistency
