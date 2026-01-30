@@ -425,8 +425,31 @@ export default function ManageEventPage({
 
   // Calculate quick stats
   const upcomingSlots = slots.filter(s => !isPast(parseISO(s.end_time)));
+  const pastSlots = slots.filter(s => isPast(parseISO(s.end_time)));
   const totalBookings = upcomingSlots.reduce((sum, s) => sum + (s.booking_count || 0), 0);
   const totalCapacity = upcomingSlots.length * event.max_attendees;
+
+  // Calculate session health metrics
+  const pastBookings = pastSlots.flatMap(s => bookings[s.id] || []);
+  const feedbackBookings = pastBookings.filter(b => b.feedback_rating);
+  const avgRating = feedbackBookings.length > 0
+    ? (feedbackBookings.reduce((sum, b) => sum + (b.feedback_rating || 0), 0) / feedbackBookings.length).toFixed(1)
+    : null;
+  const attendedCount = pastBookings.filter(b => b.attended_at && !b.cancelled_at).length;
+  const noShowCount = pastBookings.filter(b => b.no_show_at && !b.cancelled_at).length;
+  const attendanceRate = (attendedCount + noShowCount) > 0
+    ? Math.round((attendedCount / (attendedCount + noShowCount)) * 100)
+    : null;
+
+  // State for collapsible past sessions
+  const [expandedPastSlots, setExpandedPastSlots] = useState<Set<string>>(new Set());
+
+  // Expand most recent past slot by default
+  useEffect(() => {
+    if (pastSlots.length > 0 && expandedPastSlots.size === 0) {
+      setExpandedPastSlots(new Set([pastSlots[0].id]));
+    }
+  }, [pastSlots.length]);
 
   return (
     <div className="min-h-screen bg-[#F6F6F9]">
@@ -435,19 +458,49 @@ export default function ManageEventPage({
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Image
-                src="https://info.whyliveschool.com/hubfs/Brand/liveschool-logo.png"
-                alt="LiveSchool"
-                width={120}
-                height={32}
-              />
-              <Breadcrumb
-                items={[
-                  { label: 'Dashboard', href: '/admin' },
-                  { label: event.name },
-                ]}
-                size="base"
-              />
+              {/* Back Button */}
+              <Link
+                href="/admin"
+                className="flex items-center gap-1.5 text-[#667085] hover:text-[#101E57] transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="text-sm font-medium">Back</span>
+              </Link>
+              <div className="h-6 w-px bg-gray-200" />
+              {/* Event Title & Status */}
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-bold text-[#101E57]">{event.name}</h1>
+                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                  event.is_active
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                    : 'bg-gray-100 text-gray-600 border border-gray-300'
+                }`}>
+                  {event.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+            {/* Session Health Metrics */}
+            <div className="flex items-center gap-4">
+              {avgRating && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <svg className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  <span className="font-semibold text-[#101E57]">{avgRating}</span>
+                  <span className="text-[#667085]">avg</span>
+                </div>
+              )}
+              {attendanceRate !== null && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <svg className="w-4 h-4 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-semibold text-[#101E57]">{attendanceRate}%</span>
+                  <span className="text-[#667085]">attended</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1453,28 +1506,135 @@ export default function ManageEventPage({
           )}
         </div>
 
-        {/* Past Slots (with attendance tracking) */}
-        {slots.filter(s => isPast(parseISO(s.end_time))).length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-[#101E57] mb-4">Past Sessions</h2>
-            <p className="text-sm text-[#667085] mb-4">
-              Mark attendance and add recording links for past sessions.
-            </p>
-            <div className="space-y-4">
-              {slots
-                .filter(s => isPast(parseISO(s.end_time)))
-                .slice(0, 10) // Show last 10
-                .map((slot) => (
-                  <SlotCard
-                    key={slot.id}
-                    slot={slot}
-                    event={event}
-                    bookings={bookings[slot.id] || []}
-                    onDeleteSlot={handleDeleteSlot}
-                    onRefresh={fetchData}
-                  />
-                ))}
+        {/* Past Slots (with attendance tracking) - Collapsible Accordions */}
+        {pastSlots.length > 0 && (
+          <div className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-[#101E57]">Past Sessions</h2>
+                <p className="text-sm text-[#667085]">
+                  {pastSlots.length} session{pastSlots.length !== 1 ? 's' : ''} · Click to expand
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (expandedPastSlots.size === pastSlots.slice(0, 10).length) {
+                    setExpandedPastSlots(new Set());
+                  } else {
+                    setExpandedPastSlots(new Set(pastSlots.slice(0, 10).map(s => s.id)));
+                  }
+                }}
+                className="text-sm text-[#6F71EE] hover:text-[#5a5cd0] font-medium"
+              >
+                {expandedPastSlots.size === pastSlots.slice(0, 10).length ? 'Collapse All' : 'Expand All'}
+              </button>
             </div>
+            <div className="space-y-3">
+              {pastSlots
+                .slice(0, 10) // Show last 10
+                .map((slot, index) => {
+                  const slotBookings = bookings[slot.id] || [];
+                  const isExpanded = expandedPastSlots.has(slot.id);
+                  const attendedBookings = slotBookings.filter(b => b.attended_at && !b.cancelled_at);
+                  const noShowBookings = slotBookings.filter(b => b.no_show_at && !b.cancelled_at);
+                  const allMarked = slotBookings.filter(b => !b.cancelled_at).every(b => b.attended_at || b.no_show_at);
+                  const hasBookings = slotBookings.filter(b => !b.cancelled_at).length > 0;
+
+                  return (
+                    <div key={slot.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                      {/* Collapsed Header - Always Visible */}
+                      <button
+                        onClick={() => {
+                          setExpandedPastSlots(prev => {
+                            const next = new Set(prev);
+                            if (next.has(slot.id)) {
+                              next.delete(slot.id);
+                            } else {
+                              next.add(slot.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                      >
+                        <div className="flex items-center gap-4">
+                          <svg
+                            className={`w-4 h-4 text-[#667085] transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <div className="text-left">
+                            <p className="font-medium text-[#101E57]">
+                              {format(parseISO(slot.start_time), 'EEEE, MMM d')} at {format(parseISO(slot.start_time), 'h:mm a')}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {/* Attendance Summary Pills */}
+                          {hasBookings && (
+                            <div className="flex items-center gap-2">
+                              {attendedBookings.length > 0 && (
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full border border-emerald-200">
+                                  {attendedBookings.length} attended
+                                </span>
+                              )}
+                              {noShowBookings.length > 0 && (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full border border-red-200">
+                                  {noShowBookings.length} no-show
+                                </span>
+                              )}
+                              {!allMarked && slotBookings.filter(b => !b.cancelled_at).length > 0 && (
+                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
+                                  {slotBookings.filter(b => !b.cancelled_at && !b.attended_at && !b.no_show_at).length} unmarked
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {!hasBookings && (
+                            <span className="text-xs text-[#667085]">No bookings</span>
+                          )}
+                          {/* Wrap Up Status */}
+                          {allMarked && hasBookings ? (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full border border-gray-200 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Complete
+                            </span>
+                          ) : hasBookings ? (
+                            <span className="px-2 py-0.5 bg-[#6F71EE]/10 text-[#6F71EE] text-xs font-medium rounded-full border border-[#6F71EE]/20">
+                              Needs wrap-up
+                            </span>
+                          ) : null}
+                        </div>
+                      </button>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-100">
+                          <SlotCard
+                            key={slot.id}
+                            slot={slot}
+                            event={event}
+                            bookings={slotBookings}
+                            onDeleteSlot={handleDeleteSlot}
+                            onRefresh={fetchData}
+                            isCollapsible={true}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+            {pastSlots.length > 10 && (
+              <p className="text-sm text-[#667085] mt-4 text-center">
+                Showing 10 of {pastSlots.length} past sessions. <Link href="/admin/past" className="text-[#6F71EE] hover:underline">View all</Link>
+              </p>
+            )}
           </div>
         )}
       </main>

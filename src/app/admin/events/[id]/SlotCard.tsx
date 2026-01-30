@@ -48,6 +48,7 @@ interface SlotCardProps {
   bookings: OHBooking[];
   onDeleteSlot: (slotId: string) => void;
   onRefresh: () => void;
+  isCollapsible?: boolean; // When true, rendered inside accordion without outer border
 }
 
 export default function SlotCard({
@@ -56,6 +57,7 @@ export default function SlotCard({
   bookings,
   onDeleteSlot,
   onRefresh,
+  isCollapsible = false,
 }: SlotCardProps) {
   const [recordingLink, setRecordingLink] = useState(slot.recording_link || '');
   const [deckLink, setDeckLink] = useState(slot.deck_link || '');
@@ -877,15 +879,20 @@ export default function SlotCard({
     });
   };
 
+  // For collapsible mode (used in accordions), we skip the outer border since parent provides container
   return (
     <div
-      ref={cardRef}
       id={`slot-${slot.id}`}
-      className={`border rounded-lg overflow-hidden scroll-mt-24 transition-all duration-300 ${isPastSlot ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}
+      ref={cardRef}
+      className={
+        isCollapsible
+          ? 'p-4' // No outer styling - parent accordion provides container
+          : 'bg-white rounded-lg border border-gray-200 shadow-sm scroll-mt-20 p-4'
+      }
     >
-      <div className="p-4">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          {!isCollapsible && (
             <div className="flex items-center gap-3">
               <p className="font-medium text-[#101E57]">
                 {format(parseISO(slot.start_time), 'EEEE, MMMM d, yyyy')}
@@ -896,11 +903,12 @@ export default function SlotCard({
                 </span>
               )}
               {!isPastSlot && capacityPercent >= 100 && (
-                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700 border border-red-200">
                   Full
                 </span>
               )}
             </div>
+          )}
             <p className="text-[#667085]">
               {format(parseISO(slot.start_time), 'h:mm a')} –{' '}
               {format(parseISO(slot.end_time), 'h:mm a')}
@@ -987,7 +995,6 @@ export default function SlotCard({
             )}
           </div>
         </div>
-      </div>
 
       {/* HubSpot Sync Toast */}
       {hubspotSyncMessage && (
