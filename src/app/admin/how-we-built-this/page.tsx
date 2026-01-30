@@ -55,7 +55,7 @@ const featureCategories = [
       { name: 'Confirmation page UX', desc: 'Email pill, calendar buttons, copy link as primary action' },
       { name: 'Per-session email toggle', desc: 'Skip automated emails for specific sessions in Wrap Up modal' },
       { name: 'Email sent status badges', desc: 'See which emails have been sent per attendee (Follow-up, Missed you, Feedback)' },
-      { name: 'Unified styled emails', desc: 'All automated and manual emails (follow-up, feedback, recording) use matching branded templates' },
+      { name: 'Unified styled emails', desc: 'All automated and manual emails (follow-up, feedback, recording, cancellation) use matching branded templates' },
     ],
   },
   {
@@ -117,7 +117,7 @@ const featureCategories = [
       { name: 'Attendee feedback', desc: 'Star ratings, comments, and topic suggestions from attendees' },
       { name: 'Feedback visibility', desc: 'See ratings in Past Sessions, event details, and daily summaries' },
       { name: 'CSV export', desc: 'Download analytics and booking data' },
-      { name: 'Automated test suite', desc: '570+ tests covering auth, email templates, validation, routing, iCal, SMS, Slack, and booking logic' },
+      { name: 'Automated test suite', desc: '580+ tests covering auth, email templates, validation, routing, iCal, SMS, Slack, and booking logic' },
       { name: 'URL handling tests', desc: 'Automated checks prevent hardcoded URLs in emails and API routes' },
       { name: 'System status dashboard', desc: 'Real-time monitoring of database, integrations, and system health' },
       { name: 'Migration verification', desc: 'API endpoint to verify all database migrations are applied' },
