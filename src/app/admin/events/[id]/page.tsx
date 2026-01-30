@@ -85,6 +85,9 @@ export default function ManageEventPage({
   // Co-hosts for combined availability (webinars)
   const [coHostIds, setCoHostIds] = useState<string[]>([]);
 
+  // State for collapsible past sessions
+  const [expandedPastSlots, setExpandedPastSlots] = useState<Set<string>>(new Set());
+
   const slotsRef = useRef<HTMLDivElement>(null);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -95,6 +98,18 @@ export default function ManageEventPage({
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  // Expand most recent past slot by default when slots are loaded
+  useEffect(() => {
+    if (!loading && slots.length > 0) {
+      const pastSlotIds = slots
+        .filter(s => isPast(parseISO(s.end_time)))
+        .map(s => s.id);
+      if (pastSlotIds.length > 0 && expandedPastSlots.size === 0) {
+        setExpandedPastSlots(new Set([pastSlotIds[0]]));
+      }
+    }
+  }, [loading, slots]);
 
   // Preview slots to be created
   useEffect(() => {
@@ -440,16 +455,6 @@ export default function ManageEventPage({
   const attendanceRate = (attendedCount + noShowCount) > 0
     ? Math.round((attendedCount / (attendedCount + noShowCount)) * 100)
     : null;
-
-  // State for collapsible past sessions
-  const [expandedPastSlots, setExpandedPastSlots] = useState<Set<string>>(new Set());
-
-  // Expand most recent past slot by default
-  useEffect(() => {
-    if (pastSlots.length > 0 && expandedPastSlots.size === 0) {
-      setExpandedPastSlots(new Set([pastSlots[0].id]));
-    }
-  }, [pastSlots.length]);
 
   return (
     <div className="min-h-screen bg-[#F6F6F9]">
