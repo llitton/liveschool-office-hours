@@ -465,10 +465,13 @@ const helpSections: HelpSection[] = [
           {
             label: 'Page layout',
             items: [
-              'Sticky header keeps event title and booking link visible while scrolling',
-              'Larger breadcrumb navigation for easy wayfinding',
+              'Sticky header with back button, event title, status badge, and session health metrics',
+              'Session health metrics show average rating and attendance rate from past sessions',
               'Visual distinction between configuration (Add Time Slots) and content sections',
               'Add Time Slots section has a dashed border and "Configuration" badge',
+              'Past sessions are collapsible accordions — only most recent is expanded by default',
+              'Expand All / Collapse All toggle for past sessions',
+              'Semantic status pills: green=Attended, red=No-show, amber=Unmarked',
             ],
           },
           {

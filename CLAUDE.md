@@ -929,11 +929,20 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **AttendeeListModal:** Scrollable modal following QRCodeModal pattern with fixed overlay and close button
 
 ### Event Details Page (`/admin/events/[id]`)
-- **Sticky header:** Event title, breadcrumb, and quick actions remain visible while scrolling with `sticky top-0 z-30`
-- **Larger breadcrumb:** Use `size="base"` prop on Breadcrumb component for better wayfinding
+- **Sticky header:** Event title, status badge, and quick actions remain visible while scrolling with `sticky top-0 z-30`
+- **Back button:** Left arrow with "Back" text provides quick navigation to dashboard
+- **Session health metrics:** Header shows average rating (star icon) and attendance rate (checkmark icon) calculated from past sessions
 - **Visual section distinction:** "Add Time Slots" configuration uses dashed border and gradient background (`bg-gradient-to-br from-[#F6F6F9] to-white border-dashed`) with "Configuration" badge to separate from content
 - **Primary action buttons:** "Join Meet" is a prominent purple button with video icon for upcoming slots; past slots show smaller text link
 - **Secondary/danger actions:** "Cancel Slot" has red hover state (`text-red-600 hover:bg-red-50`); "Export" is neutral hover
+- **Collapsible past sessions:** Past sessions are rendered as accordions with only the most recent expanded by default
+- **Expand/Collapse All:** Button toggles all past session accordions open or closed
+- **Semantic attendance pills:** Color-coded summary badges on each collapsed past session header:
+  - Green "X attended" for confirmed attendees
+  - Red "X no-show" for no-shows
+  - Amber "X unmarked" for attendees not yet marked
+- **Complete status badge:** Gray checkmark badge indicates all attendees have been marked
+- **Needs wrap-up badge:** Purple badge indicates session needs attendance tracking
 - **Attendee status badges:** Color-coded pills indicate attendee type:
   - Blue "New" badge for first-time attendees (`totalBookings === 1`)
   - Purple "Returning" for repeat attendees
@@ -942,6 +951,7 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Attendee search:** Search input appears when >5 attendees; filters by name or email; shows "No results" message when empty
 - **Session topics display:** "Topics to Discuss" section shows each attendee's responses to topic-related questions directly on the slot card; detects questions containing "topic", "discuss", "help", "question", "cover", or textarea type; only shows for upcoming (non-past) slots
 - **Mobile-responsive cards:** Attendee rows use `flex flex-col sm:flex-row` to stack info above actions on mobile; action buttons wrap with `flex-wrap`
+- **SlotCard isCollapsible prop:** When `isCollapsible=true`, SlotCard omits outer border/shadow since parent accordion provides container
 
 ### Event Settings Page
 - **Sidebar navigation:** Left sidebar with section links that highlights active section on scroll (General, Questions, Team Settings, Booking Rules, HubSpot, SMS, etc.)

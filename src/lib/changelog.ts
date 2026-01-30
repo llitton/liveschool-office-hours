@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-event-details-ux',
+    date: '2026-01-30',
+    title: 'Improved Event Details Page',
+    description: 'The event details page now has collapsible past sessions, session health metrics, and better navigation.',
+    category: 'improvement',
+    details: [
+      'Past sessions are now collapsible accordions - only the most recent is expanded by default',
+      'New session health metrics in header showing average rating and attendance rate',
+      'Semantic status pills: green=Attended, red=No-show, amber=Unmarked',
+      'Quick "Expand All" / "Collapse All" toggle for past sessions',
+      'Back button for easy navigation to the dashboard',
+      'Visual distinction between upcoming and past sections',
+    ],
+  },
+  {
     id: '2026-01-30-per-slot-email-toggle',
     date: '2026-01-30',
     title: 'Per-Session Automated Email Controls',
