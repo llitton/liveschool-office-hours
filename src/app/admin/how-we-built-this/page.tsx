@@ -55,6 +55,7 @@ const featureCategories = [
       { name: 'Confirmation page UX', desc: 'Email pill, calendar buttons, copy link as primary action' },
       { name: 'Per-session email toggle', desc: 'Skip automated emails for specific sessions in Wrap Up modal' },
       { name: 'Email sent status badges', desc: 'See which emails have been sent per attendee (Follow-up, Missed you, Feedback)' },
+      { name: 'Styled follow-up emails', desc: 'Branded thank-you and no-show emails with resources and Book Another Session CTA' },
     ],
   },
   {
@@ -116,7 +117,7 @@ const featureCategories = [
       { name: 'Attendee feedback', desc: 'Star ratings, comments, and topic suggestions from attendees' },
       { name: 'Feedback visibility', desc: 'See ratings in Past Sessions, event details, and daily summaries' },
       { name: 'CSV export', desc: 'Download analytics and booking data' },
-      { name: 'Automated test suite', desc: '409+ tests covering auth, email validation, routing, iCal, SMS, Slack, and booking logic' },
+      { name: 'Automated test suite', desc: '550+ tests covering auth, email validation, routing, iCal, SMS, Slack, and booking logic' },
       { name: 'URL handling tests', desc: 'Automated checks prevent hardcoded URLs in emails and API routes' },
       { name: 'System status dashboard', desc: 'Real-time monitoring of database, integrations, and system health' },
       { name: 'Migration verification', desc: 'API endpoint to verify all database migrations are applied' },
@@ -188,7 +189,7 @@ const tools = [
   },
   {
     name: 'Vitest & Playwright',
-    description: '248+ automated tests verify every feature works. Like a robot QA team checking for bugs.',
+    description: '550+ automated tests verify every feature works. Like a robot QA team checking for bugs.',
     color: '#729B1B',
     bgColor: '#F7FEE7',
     icon: (

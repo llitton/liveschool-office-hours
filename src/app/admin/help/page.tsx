@@ -643,8 +643,10 @@ const helpSections: HelpSection[] = [
           {
             label: 'Follow-up email options',
             items: [
-              'Thank You Email — send to attendees who joined (includes resources)',
-              'We Missed You — send to no-shows for re-engagement',
+              'Thank You Email — branded email with purple header ("Thanks for joining!")',
+              'We Missed You — branded email with amber header for no-shows',
+              'Includes session resources: recording link, deck, and shared links',
+              '"Book Another Session" button links directly to the event booking page',
               'Emails come from YOU, not the primary host',
               'Success toast shows "Sent from: [email]" so you know which account sent',
               'Manual follow-ups prevent automated emails from duplicating',

@@ -273,7 +273,7 @@ tests/
 │       ├── auth.test.ts              # Session management, token refresh (21 tests)
 │       ├── availability.test.ts      # Slot generation logic (14 tests)
 │       ├── booking-constraints.test.ts # Validation rules (29 tests)
-│       ├── email-html.test.ts        # HTML email templates (33 tests)
+│       ├── email-html.test.ts        # HTML email templates (54 tests)
 │       ├── email-validation.test.ts  # Email format/MX/disposable (21 tests)
 │       ├── errors.test.ts            # Error sanitization, user-friendly messages (30 tests)
 │       ├── hubspot.test.ts           # HubSpot API integration (25 tests)
@@ -301,7 +301,7 @@ tests/
 |------|-------|-------|
 | Timezone Utilities | 48 | `timezone.ts` |
 | SMS Utilities | 35 | `sms.ts` |
-| Email HTML Templates | 33 | `email-html.ts` |
+| Email HTML Templates | 54 | `email-html.ts` |
 | Error Handling | 30 | `errors.ts` |
 | Lead Routing | 30 | `routing.ts` |
 | Booking Constraints | 29 | `booking-constraints.ts` |
@@ -315,9 +315,9 @@ tests/
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
-| **Total Unit Tests** | **407** | 15 lib modules + 1 component |
+| **Total Unit Tests** | **428** | 15 lib modules + 1 component |
 | **Integration Tests** | **40** | 3 API test files |
-| **Grand Total** | **447** | All test files |
+| **Grand Total** | **551** | All test files (includes additional integration tests) |
 
 ### Writing Tests
 
@@ -998,7 +998,7 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Contrast ratios:** White text on green (#417762) header meets WCAG AA standards
 
 ### Email Templates
-- **Modern HTML templates:** Use `generateConfirmationEmailHtml()` and `generateReminderEmailHtml()` from `src/lib/email-html.ts`
+- **Modern HTML templates:** Use `generateConfirmationEmailHtml()`, `generateReminderEmailHtml()`, and `generateFollowupEmailHtml()` from `src/lib/email-html.ts`
 - **Unicode emoji for icons:** Gmail and many email clients block SVG data URIs - use Unicode characters (✓, 📅, 🎥, etc.) instead of images
 - **Table-based layout:** Use HTML tables for layout, not flexbox/grid - maximum compatibility across email clients
 - **Inline styles only:** All CSS must be inline - no `<style>` blocks or external stylesheets
@@ -1006,6 +1006,16 @@ const url = `https://connect.liveschool.io/book/${slug}`;  // Don't do this!
 - **Visual hierarchy:** Hero section with confirmation badge, prominent session details with icons
 - **Calendar buttons:** Text-based Google, Outlook, Apple buttons linking to their respective calendar URLs
 - **Prep checklist:** If prep_materials exist, displayed as checkable items
+
+**Follow-up email template (`generateFollowupEmailHtml`):**
+- **Two variants:** "Thanks for joining!" (attended) and "We missed you!" (no-show)
+- **Header colors:** Purple (`#6F71EE`) for attended, amber (`#F59E0B`) for no-shows
+- **Resources section:** Recording link, deck link, shared links (only for attended, not no-shows)
+- **Primary CTA:** Green "Watch Recording" button (if recording exists)
+- **Secondary CTA:** "Book Another Session" linking to `/book/{event-slug}`
+- **Footer:** "Questions? Just reply to this email" prompt
+- **API:** `POST /api/slots/[id]/send-followup` uses this template
+- **Data passed:** recipientFirstName, eventName, hostName, sessionDate/Time, timezone, recordingLink, deckLink, sharedLinks, bookingPageUrl, isNoShow
 
 ### Visual Consistency
 - **Same action = same color:** Similar interactive elements (e.g., all calendar buttons) should use the same color - brand purple (#6F71EE) for consistency
