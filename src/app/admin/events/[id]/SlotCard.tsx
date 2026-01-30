@@ -737,32 +737,14 @@ export default function SlotCard({
   const openBulkFollowup = (recipients: 'attended' | 'no_show') => {
     setFollowupRecipients(recipients);
     const defaultSubject = recipients === 'attended'
-      ? `Thanks for attending: ${event.name}`
-      : `We missed you at ${event.name}`;
+      ? `Thanks for joining ${event.name}!`
+      : `We missed you at ${event.name}!`;
 
-    // Build resources section for attended emails
-    let resourcesSection = '';
-    if (recipients === 'attended') {
-      const resources: string[] = [];
-      if (recordingLink) {
-        resources.push(`Recording: ${recordingLink}`);
-      }
-      if (deckLink) {
-        resources.push(`Deck/Slides: ${deckLink}`);
-      }
-      if (sharedLinks.length > 0) {
-        sharedLinks.forEach(link => {
-          resources.push(`${link.title}: ${link.url}`);
-        });
-      }
-      if (resources.length > 0) {
-        resourcesSection = `\n\nHere are the resources from our session:\n${resources.map(r => `• ${r}`).join('\n')}`;
-      }
-    }
-
+    // Note: Resources (recording, deck, shared links) are automatically included
+    // in the styled email template with nice formatting - no need to list them here
     const defaultBody = recipients === 'attended'
-      ? `Hi there,\n\nThank you for attending ${event.name}!${resourcesSection}\n\nLet us know if you have any questions.\n\nBest,\n${event.host_name}`
-      : `Hi there,\n\nWe noticed you weren't able to make it to ${event.name}. No worries - life happens!\n\nIf you'd like to reschedule for another time, you can do so from your booking confirmation email.\n\nHope to see you soon!\n\n${event.host_name}`;
+      ? `Thanks so much for joining today! It was great chatting with you.\n\nLet me know if you have any questions about what we covered.`
+      : `We're sorry we couldn't connect! Life happens, and we'd love to reschedule.\n\nClick the button below to book another time that works for you.`;
     setFollowupSubject(defaultSubject);
     setFollowupBody(defaultBody);
     setShowBulkFollowup(true);
@@ -1876,6 +1858,58 @@ export default function SlotCard({
                     : bookings?.filter(b => b.no_show_at).length} recipient(s)
                 </p>
               </div>
+
+              {/* Email Preview - What's Automatically Included */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                  <span className="text-xs font-medium text-[#667085] uppercase tracking-wide">
+                    Email Preview
+                  </span>
+                </div>
+                <div className="p-3 space-y-2 text-sm">
+                  {/* Header preview */}
+                  <div className={`px-3 py-2 rounded text-white text-center ${
+                    followupRecipients === 'attended' ? 'bg-[#6F71EE]' : 'bg-amber-500'
+                  }`}>
+                    <span className="text-lg mr-1">{followupRecipients === 'attended' ? '🎉' : '👋'}</span>
+                    <span className="font-medium">
+                      {followupRecipients === 'attended'
+                        ? 'Thanks for joining!'
+                        : 'We missed you!'}
+                    </span>
+                  </div>
+                  {/* Session details */}
+                  <div className="px-3 py-2 bg-[#F6F6F9] rounded text-[#667085] text-xs">
+                    📅 {format(parseISO(slot.start_time), 'EEEE, MMMM d')} at {format(parseISO(slot.start_time), 'h:mm a')}
+                    <br />
+                    👤 Hosted by {event.host_name}
+                  </div>
+                  {/* Your message */}
+                  <div className="px-3 py-2 text-[#101E57] text-xs italic border-l-2 border-[#6F71EE]">
+                    Your message appears here...
+                  </div>
+                  {/* Resources (if attended) */}
+                  {followupRecipients === 'attended' && (recordingLink || deckLink || sharedLinks.length > 0) && (
+                    <div className="px-3 py-2 bg-[#F6F6F9] rounded">
+                      <p className="text-xs font-medium text-[#101E57] mb-1">📚 Session Resources</p>
+                      <div className="text-xs text-[#667085] space-y-0.5">
+                        {recordingLink && <div>🎥 Watch Recording</div>}
+                        {deckLink && <div>📊 View Slides</div>}
+                        {sharedLinks.map((link, i) => (
+                          <div key={i}>📎 {link.title}</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Book another session CTA */}
+                  <div className="text-center">
+                    <span className="inline-block px-3 py-1 border border-[#6F71EE] text-[#6F71EE] rounded text-xs">
+                      {followupRecipients === 'attended' ? 'Book Another Session' : 'Book a Session'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-[#101E57] mb-2">
                   Subject
@@ -1889,19 +1923,17 @@ export default function SlotCard({
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#101E57] mb-2">
-                  Message
+                  Your Message
                 </label>
                 <textarea
                   value={followupBody}
                   onChange={(e) => setFollowupBody(e.target.value)}
-                  rows={10}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono"
+                  rows={6}
+                  placeholder="Add a personal note..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                 />
                 <p className="text-xs text-[#667085] mt-1">
-                  {followupRecipients === 'attended' && recordingLink && (
-                    <>Recording link included. </>
-                  )}
-                  Line breaks will be preserved in the email.
+                  Session details, resources, and booking button are added automatically.
                 </p>
               </div>
             </div>
