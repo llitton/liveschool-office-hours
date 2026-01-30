@@ -52,4 +52,59 @@ describe('Automated Emails Toggle Tests', () => {
       expect(matches?.length).toBeGreaterThanOrEqual(4);
     });
   });
+
+  describe('Per-slot skip_automated_emails flag logic', () => {
+    // Test the logic for per-slot email skipping
+    function shouldSendSlotEmails(slot: { skip_automated_emails?: boolean }): boolean {
+      // The cron uses: if (slot.skip_automated_emails === true) continue;
+      // This means undefined/null/false all allow emails, only explicit true blocks them
+      return slot.skip_automated_emails !== true;
+    }
+
+    it('allows emails when skip_automated_emails is false', () => {
+      const slot = { skip_automated_emails: false };
+      expect(shouldSendSlotEmails(slot)).toBe(true);
+    });
+
+    it('blocks emails when skip_automated_emails is true', () => {
+      const slot = { skip_automated_emails: true };
+      expect(shouldSendSlotEmails(slot)).toBe(false);
+    });
+
+    it('allows emails when skip_automated_emails is undefined (backward compatibility)', () => {
+      const slot = {};
+      expect(shouldSendSlotEmails(slot)).toBe(true);
+    });
+  });
+
+  describe('Post-session cron checks per-slot flag', () => {
+    it('cron source code contains the skip_automated_emails check', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const cronPath = path.join(process.cwd(), 'src/app/api/cron/post-session/route.ts');
+      const cronSource = fs.readFileSync(cronPath, 'utf-8');
+
+      // Verify the per-slot check exists
+      expect(cronSource).toContain('skip_automated_emails === true');
+
+      // Count how many times the check appears (should be 4 - one for each email type)
+      const matches = cronSource.match(/skip_automated_emails === true/g);
+      expect(matches?.length).toBeGreaterThanOrEqual(4);
+    });
+  });
+
+  describe('Slots API accepts skip_automated_emails', () => {
+    it('slots API route allows skip_automated_emails in PATCH', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const routePath = path.join(process.cwd(), 'src/app/api/slots/[id]/route.ts');
+      const routeSource = fs.readFileSync(routePath, 'utf-8');
+
+      // Verify the skip_automated_emails field is handled
+      expect(routeSource).toContain('skip_automated_emails');
+      expect(routeSource).toContain('body.skip_automated_emails');
+    });
+  });
 });

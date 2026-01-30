@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-per-slot-email-toggle',
+    date: '2026-01-30',
+    title: 'Per-Session Automated Email Controls',
+    description: 'You can now disable automated emails for specific sessions without affecting the entire event.',
+    category: 'feature',
+    details: [
+      'New toggle in Wrap Up Session modal to skip auto emails for just that session',
+      'See which emails have already been sent with status badges per attendee',
+      'Green "Follow-up", amber "Missed you", and blue "Feedback" badges show sent emails',
+      'Perfect when you\'ve already sent manual follow-ups and don\'t want duplicates',
+      'Manual emails via Thank You and We Missed You buttons still work when toggle is on',
+    ],
+  },
+  {
     id: '2026-01-30-google-reconnect-integrations',
     date: '2026-01-30',
     title: 'Google Disconnect/Reconnect on Integrations Page',

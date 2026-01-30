@@ -53,6 +53,8 @@ const featureCategories = [
       { name: 'Email validation', desc: 'Block fake/disposable emails with MX check' },
       { name: 'Phone pre-fill', desc: 'Auto-fill from HubSpot contacts' },
       { name: 'Confirmation page UX', desc: 'Email pill, calendar buttons, copy link as primary action' },
+      { name: 'Per-session email toggle', desc: 'Skip automated emails for specific sessions in Wrap Up modal' },
+      { name: 'Email sent status badges', desc: 'See which emails have been sent per attendee (Follow-up, Missed you, Feedback)' },
     ],
   },
   {
