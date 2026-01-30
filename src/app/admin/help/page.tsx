@@ -310,6 +310,14 @@ const helpSections: HelpSection[] = [
             ],
           },
           {
+            label: 'Preview modes',
+            items: [
+              'Edit — write your custom message with template variables',
+              'Text Preview — see your text with variables replaced by sample data',
+              'Styled Preview — see exactly how the email will look in inboxes',
+            ],
+          },
+          {
             label: 'Available variables',
             items: [
               '{{first_name}} — attendee\'s first name',

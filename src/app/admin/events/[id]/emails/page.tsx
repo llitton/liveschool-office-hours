@@ -6,8 +6,14 @@ import Image from 'next/image';
 import type { OHEvent } from '@/types';
 import { defaultTemplates } from '@/lib/email-templates';
 import Breadcrumb from '@/components/Breadcrumb';
+import {
+  generateConfirmationEmailHtml,
+  generateReminderEmailHtml,
+  generateFollowupEmailHtml,
+} from '@/lib/email-html';
 
 type TemplateType = 'confirmation' | 'reminder' | 'cancellation' | 'no_show';
+type PreviewMode = 'edit' | 'text' | 'styled';
 
 export default function EmailTemplatesPage({
   params,
@@ -22,7 +28,7 @@ export default function EmailTemplatesPage({
   const [success, setSuccess] = useState('');
 
   const [activeTab, setActiveTab] = useState<TemplateType>('confirmation');
-  const [showPreview, setShowPreview] = useState(false);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('edit');
   const [showVariables, setShowVariables] = useState(true);
 
   // Sample data for preview
@@ -152,6 +158,100 @@ export default function EmailTemplatesPage({
     return result;
   };
 
+  // Generate styled HTML preview for the active template type
+  const getStyledPreviewHtml = (): string => {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://liveschoolhelp.com';
+
+    switch (activeTab) {
+      case 'confirmation':
+        return generateConfirmationEmailHtml({
+          firstName: sampleData.first_name,
+          eventName: sampleData.event_name,
+          hostName: sampleData.host_name,
+          date: sampleData.date,
+          time: '2:00 PM',
+          timezoneAbbr: 'CT',
+          timezone: 'Central Time',
+          meetLink: sampleData.meet_link,
+          manageUrl: `${appUrl}/manage/sample-token`,
+          googleCalUrl: 'https://calendar.google.com/calendar/render?action=TEMPLATE',
+          outlookUrl: 'https://outlook.live.com/calendar/0/deeplink/compose',
+          icalUrl: `${appUrl}/api/ical/sample`,
+          customBodyHtml: templates.confirmation_body
+            ? `<div style="white-space: pre-wrap;">${getPreviewContent(templates.confirmation_body)}</div>`
+            : undefined,
+        });
+
+      case 'reminder':
+        return generateReminderEmailHtml({
+          firstName: sampleData.first_name,
+          eventName: sampleData.event_name,
+          hostName: sampleData.host_name,
+          date: sampleData.date,
+          time: '2:00 PM',
+          timezoneAbbr: 'CT',
+          meetLink: sampleData.meet_link,
+          manageUrl: `${appUrl}/manage/sample-token`,
+          reminderTiming: sampleData.reminder_timing,
+        });
+
+      case 'no_show':
+        return generateFollowupEmailHtml({
+          recipientFirstName: sampleData.first_name,
+          eventName: sampleData.event_name,
+          hostName: sampleData.host_name,
+          sessionDate: 'Tuesday, January 21',
+          sessionTime: '2:00 PM',
+          timezoneAbbr: 'CT',
+          bookingPageUrl: sampleData.rebook_link,
+          isNoShow: true,
+          customMessage: templates.no_show_body
+            ? getPreviewContent(templates.no_show_body)
+            : undefined,
+        });
+
+      case 'cancellation':
+        // Cancellation doesn't have a styled template yet, show plain text with basic styling
+        return `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px 20px; background: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; }
+    .header { background: #667085; color: white; padding: 40px 32px; text-align: center; }
+    .header h1 { margin: 0 0 8px 0; font-size: 24px; }
+    .header p { margin: 0; opacity: 0.9; }
+    .content { padding: 32px; color: #101E57; line-height: 1.6; white-space: pre-wrap; }
+    .footer { background: #101E57; padding: 24px 32px; text-align: center; }
+    .footer p { color: rgba(255,255,255,0.6); font-size: 12px; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+      <h1>Session Cancelled</h1>
+      <p>${sampleData.event_name}</p>
+    </div>
+    <div class="content">${getPreviewContent(templates.cancellation_body)}</div>
+    <div class="footer">
+      <p>Sent from Connect with LiveSchool</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      default:
+        return '';
+    }
+  };
+
+  // Check if this template type has a styled version
+  const hasStyledTemplate = (type: TemplateType): boolean => {
+    return ['confirmation', 'reminder', 'no_show'].includes(type);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
@@ -234,45 +334,115 @@ export default function EmailTemplatesPage({
 
                 {/* Preview Toggle */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                     <button
-                      onClick={() => setShowPreview(false)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                        !showPreview
-                          ? 'bg-[#6F71EE] text-white'
-                          : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+                      onClick={() => setPreviewMode('edit')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                        previewMode === 'edit'
+                          ? 'bg-white text-[#101E57] shadow-sm'
+                          : 'text-[#667085] hover:text-[#101E57]'
                       }`}
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => setShowPreview(true)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${
-                        showPreview
-                          ? 'bg-[#6F71EE] text-white'
-                          : 'bg-gray-100 text-[#667085] hover:bg-gray-200'
+                      onClick={() => setPreviewMode('text')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                        previewMode === 'text'
+                          ? 'bg-white text-[#101E57] shadow-sm'
+                          : 'text-[#667085] hover:text-[#101E57]'
                       }`}
                     >
-                      Preview
+                      Text Preview
+                    </button>
+                    <button
+                      onClick={() => setPreviewMode('styled')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                        previewMode === 'styled'
+                          ? 'bg-white text-[#101E57] shadow-sm'
+                          : 'text-[#667085] hover:text-[#101E57]'
+                      }`}
+                    >
+                      📧 Styled Preview
                     </button>
                   </div>
-                  {showPreview && (
+                  {previewMode !== 'edit' && (
                     <span className="text-xs text-[#667085] bg-[#F6F6F9] px-2 py-1 rounded">
-                      Showing sample attendee: {sampleData.first_name} {sampleData.last_name}
+                      Sample: {sampleData.first_name} {sampleData.last_name}
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      Subject Line
-                    </label>
-                    {showPreview ? (
+                {/* Styled Preview Mode */}
+                {previewMode === 'styled' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Subject Line
+                      </label>
                       <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57]">
                         {getPreviewContent(templates[`${activeTab}_subject`])}
                       </div>
-                    ) : (
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-[#101E57]">
+                          Email Preview
+                        </label>
+                        {hasStyledTemplate(activeTab) && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            ✓ Styled Template
+                          </span>
+                        )}
+                      </div>
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-[#F6F6F9]">
+                        <iframe
+                          srcDoc={getStyledPreviewHtml()}
+                          className="w-full h-[600px] bg-white"
+                          title="Email Preview"
+                          sandbox="allow-same-origin"
+                        />
+                      </div>
+                      <p className="text-xs text-[#667085] mt-2">
+                        {hasStyledTemplate(activeTab)
+                          ? '👆 This is exactly how the email will appear in recipients\' inboxes.'
+                          : '👆 This template uses basic styling. A branded template is coming soon.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Text Preview Mode */}
+                {previewMode === 'text' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Subject Line
+                      </label>
+                      <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57]">
+                        {getPreviewContent(templates[`${activeTab}_subject`])}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Email Body (Plain Text)
+                      </label>
+                      <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57] whitespace-pre-wrap min-h-[200px]">
+                        {getPreviewContent(templates[`${activeTab}_body`])}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Edit Mode */}
+                {previewMode === 'edit' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-[#101E57] mb-1">
+                        Subject Line
+                      </label>
                       <input
                         type="text"
                         value={templates[`${activeTab}_subject`]}
@@ -284,18 +454,19 @@ export default function EmailTemplatesPage({
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
                       />
-                    )}
-                  </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-[#101E57] mb-1">
-                      Email Body
-                    </label>
-                    {showPreview ? (
-                      <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57] whitespace-pre-wrap min-h-[200px]">
-                        {getPreviewContent(templates[`${activeTab}_body`])}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-[#101E57]">
+                          {activeTab === 'no_show' ? 'Custom Message' : 'Email Body'}
+                        </label>
+                        {hasStyledTemplate(activeTab) && (
+                          <span className="text-xs text-[#667085]">
+                            Your text is wrapped in a styled template
+                          </span>
+                        )}
                       </div>
-                    ) : (
                       <textarea
                         value={templates[`${activeTab}_body`]}
                         onChange={(e) =>
@@ -307,9 +478,14 @@ export default function EmailTemplatesPage({
                         rows={12}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono text-sm"
                       />
-                    )}
+                      {hasStyledTemplate(activeTab) && (
+                        <p className="text-xs text-[#667085] mt-2">
+                          💡 Tip: Click &ldquo;Styled Preview&rdquo; to see how this looks in the final email with branding, buttons, and formatting.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex items-center gap-4 mt-6">
                   <button

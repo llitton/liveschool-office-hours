@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-styled-email-preview',
+    date: '2026-01-30',
+    title: 'Styled Email Preview in Templates',
+    description: 'See exactly how your emails will look before sending with the new Styled Preview feature.',
+    category: 'feature',
+    details: [
+      'New "Styled Preview" button in Email Templates page',
+      'See the actual branded HTML email with your custom text',
+      'Preview shows confirmation, reminder, and no-show emails with full styling',
+      'Helpful tips explain which templates have branded styling',
+      'Sample attendee data shows how variables get replaced',
+    ],
+  },
+  {
     id: '2026-01-30-unified-styled-emails',
     date: '2026-01-30',
     title: 'Unified Styled Email Templates',
