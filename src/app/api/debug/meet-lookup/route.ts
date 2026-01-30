@@ -18,11 +18,11 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // Get current user's Google credentials
+  // Get current user's Google credentials (session IS the admin object)
   const { data: admin } = await supabase
     .from('oh_admins')
     .select('google_access_token, google_refresh_token, email')
-    .eq('id', session.adminId)
+    .eq('id', session.id)
     .single();
 
   if (!admin?.google_refresh_token) {
