@@ -952,3 +952,150 @@ export function generateRecordingEmailHtml(data: RecordingEmailData): string {
 </html>
   `.trim();
 }
+
+/**
+ * Generate a styled cancellation confirmation email
+ */
+export interface CancellationEmailData {
+  recipientFirstName: string;
+  eventName: string;
+  hostName: string;
+  sessionDate: string;
+  sessionTime: string;
+  timezoneAbbr: string;
+  bookingPageUrl: string;
+  customMessage?: string;
+}
+
+export function generateCancellationEmailHtml(data: CancellationEmailData): string {
+  const {
+    recipientFirstName,
+    eventName,
+    hostName,
+    sessionDate,
+    sessionTime,
+    timezoneAbbr,
+    bookingPageUrl,
+    customMessage,
+  } = data;
+
+  // Custom message section
+  const customMessageSection = customMessage ? `
+    <tr>
+      <td style="background: white; padding: 0 32px 24px 32px;">
+        <div style="color: ${COLORS.navy}; font-size: 15px; line-height: 1.6;">
+          ${customMessage.split('\n').map(line => `<p style="margin: 0 0 12px 0;">${line}</p>`).join('')}
+        </div>
+      </td>
+    </tr>
+  ` : '';
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Cancelled</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: Arial, sans-serif !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Hero Section -->
+          <tr>
+            <td style="background: ${COLORS.gray}; border-radius: 16px 16px 0 0; padding: 40px 32px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
+              <h1 style="color: white; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">
+                Booking Cancelled
+              </h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">
+                Your session has been cancelled
+              </p>
+            </td>
+          </tr>
+
+          <!-- Session Details Card -->
+          <tr>
+            <td style="background: white; padding: 0 32px;">
+              <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 20px; margin: -20px 0 24px 0; border: 2px solid ${COLORS.border};">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding-bottom: 12px;">
+                      <p style="color: ${COLORS.gray}; margin: 0 0 4px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Cancelled Session</p>
+                      <p style="color: ${COLORS.navy}; margin: 0; font-size: 18px; font-weight: 600;">${eventName}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-bottom: 8px;">
+                      <span style="font-size: 16px; margin-right: 8px;">📅</span>
+                      <span style="color: ${COLORS.navy}; font-size: 15px; text-decoration: line-through;">${sessionDate} at ${sessionTime} ${timezoneAbbr}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span style="font-size: 16px; margin-right: 8px;">👤</span>
+                      <span style="color: ${COLORS.gray}; font-size: 14px;">with ${hostName}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="background: white; padding: 0 32px 24px 32px;">
+              <p style="color: ${COLORS.navy}; font-size: 16px; margin: 0 0 16px 0; line-height: 1.6;">
+                Hi ${recipientFirstName},
+              </p>
+              <p style="color: ${COLORS.navy}; font-size: 16px; margin: 0; line-height: 1.6;">
+                Your booking has been successfully cancelled. We've removed you from the calendar event.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Custom Message -->
+          ${customMessageSection}
+
+          <!-- Rebook CTA -->
+          <tr>
+            <td style="background: white; padding: 0 32px 32px 32px;">
+              <div style="background: ${COLORS.lightGray}; border-radius: 12px; padding: 24px; text-align: center;">
+                <p style="color: ${COLORS.navy}; margin: 0 0 16px 0; font-size: 15px; font-weight: 500;">
+                  Changed your mind? We'd love to see you!
+                </p>
+                <a href="${bookingPageUrl}" style="display: inline-block; background: ${COLORS.purple}; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
+                  Book Another Session
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background: ${COLORS.navy}; border-radius: 0 0 16px 16px; padding: 24px 32px; text-align: center;">
+              <p style="color: rgba(255,255,255,0.9); font-size: 13px; margin: 0 0 8px 0;">
+                Questions? Just reply to this email.
+              </p>
+              <p style="color: rgba(255,255,255,0.6); font-size: 12px; margin: 0;">
+                Sent from Connect with LiveSchool
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}

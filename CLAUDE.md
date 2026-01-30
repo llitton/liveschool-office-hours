@@ -299,7 +299,7 @@ tests/
 
 | Area | Tests | Files |
 |------|-------|-------|
-| Email HTML Templates | 77 | `email-html.ts` |
+| Email HTML Templates | 90 | `email-html.ts` |
 | Timezone Utilities | 48 | `timezone.ts` |
 | SMS Utilities | 35 | `sms.ts` |
 | Error Handling | 30 | `errors.ts` |
@@ -315,9 +315,9 @@ tests/
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
-| **Total Unit Tests** | **451** | 15 lib modules + 1 component |
+| **Total Unit Tests** | **464** | 15 lib modules + 1 component |
 | **Integration Tests** | **40** | 3 API test files |
-| **Grand Total** | **574** | All test files (includes additional integration tests) |
+| **Grand Total** | **587** | All test files (includes additional integration tests) |
 
 ### Writing Tests
 

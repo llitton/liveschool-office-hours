@@ -10,6 +10,7 @@ import {
   generateConfirmationEmailHtml,
   generateReminderEmailHtml,
   generateFollowupEmailHtml,
+  generateCancellationEmailHtml,
 } from '@/lib/email-html';
 
 type TemplateType = 'confirmation' | 'reminder' | 'cancellation' | 'no_show';
@@ -211,36 +212,18 @@ export default function EmailTemplatesPage({
         });
 
       case 'cancellation':
-        // Cancellation doesn't have a styled template yet, show plain text with basic styling
-        return `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 40px 20px; background: #f5f5f5; }
-    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; }
-    .header { background: #667085; color: white; padding: 40px 32px; text-align: center; }
-    .header h1 { margin: 0 0 8px 0; font-size: 24px; }
-    .header p { margin: 0; opacity: 0.9; }
-    .content { padding: 32px; color: #101E57; line-height: 1.6; white-space: pre-wrap; }
-    .footer { background: #101E57; padding: 24px 32px; text-align: center; }
-    .footer p { color: rgba(255,255,255,0.6); font-size: 12px; margin: 0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div style="font-size: 48px; margin-bottom: 16px;">📅</div>
-      <h1>Session Cancelled</h1>
-      <p>${sampleData.event_name}</p>
-    </div>
-    <div class="content">${getPreviewContent(templates.cancellation_body)}</div>
-    <div class="footer">
-      <p>Sent from Connect with LiveSchool</p>
-    </div>
-  </div>
-</body>
-</html>`;
+        return generateCancellationEmailHtml({
+          recipientFirstName: sampleData.first_name,
+          eventName: sampleData.event_name,
+          hostName: sampleData.host_name,
+          sessionDate: 'Tuesday, January 21',
+          sessionTime: '2:00 PM',
+          timezoneAbbr: 'CT',
+          bookingPageUrl: sampleData.rebook_link,
+          customMessage: templates.cancellation_body
+            ? getPreviewContent(templates.cancellation_body)
+            : undefined,
+        });
 
       default:
         return '';
@@ -249,7 +232,7 @@ export default function EmailTemplatesPage({
 
   // Check if this template type has a styled version
   const hasStyledTemplate = (type: TemplateType): boolean => {
-    return ['confirmation', 'reminder', 'no_show'].includes(type);
+    return ['confirmation', 'reminder', 'no_show', 'cancellation'].includes(type);
   };
 
   if (loading) {

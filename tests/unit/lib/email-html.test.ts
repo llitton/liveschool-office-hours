@@ -5,6 +5,7 @@ import {
   generateFollowupEmailHtml,
   generateFeedbackEmailHtml,
   generateRecordingEmailHtml,
+  generateCancellationEmailHtml,
 } from '@/lib/email-html';
 
 describe('Email HTML Templates', () => {
@@ -721,6 +722,109 @@ describe('Email HTML Templates', () => {
 
       expect(html).toContain('role="presentation"');
       expect(html).toContain('<table');
+    });
+  });
+
+  describe('generateCancellationEmailHtml', () => {
+    const baseData = {
+      recipientFirstName: 'Laura',
+      eventName: 'LiveSchool Office Hours',
+      hostName: 'Hannah',
+      sessionDate: 'Friday, January 31',
+      sessionTime: '10:30 AM',
+      timezoneAbbr: 'CT',
+      bookingPageUrl: 'https://liveschoolhelp.com/book/office-hours',
+    };
+
+    it('generates valid HTML document', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<html');
+      expect(html).toContain('</html>');
+    });
+
+    it('includes recipient name in greeting', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('Hi Laura');
+    });
+
+    it('includes event name', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('LiveSchool Office Hours');
+    });
+
+    it('includes session date and time with strikethrough', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('Friday, January 31');
+      expect(html).toContain('10:30 AM');
+      expect(html).toContain('CT');
+      expect(html).toContain('text-decoration: line-through');
+    });
+
+    it('includes host name', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('Hannah');
+    });
+
+    it('uses gray header for cancellations', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('#667085'); // Gray color
+      expect(html).toContain('Booking Cancelled');
+    });
+
+    it('includes calendar emoji', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('📅');
+    });
+
+    it('includes book another session CTA', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('Book Another Session');
+      expect(html).toContain('https://liveschoolhelp.com/book/office-hours');
+    });
+
+    it('includes custom message when provided', () => {
+      const dataWithMessage = {
+        ...baseData,
+        customMessage: 'Sorry for the short notice. Hope to see you soon!',
+      };
+      const html = generateCancellationEmailHtml(dataWithMessage);
+
+      expect(html).toContain('Sorry for the short notice. Hope to see you soon!');
+    });
+
+    it('uses table-based layout', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('role="presentation"');
+      expect(html).toContain('<table');
+    });
+
+    it('uses inline styles', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('style="');
+      expect(html).not.toContain('<link rel="stylesheet"');
+    });
+
+    it('includes footer with LiveSchool branding', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('Connect with LiveSchool');
+    });
+
+    it('includes reply prompt in footer', () => {
+      const html = generateCancellationEmailHtml(baseData);
+
+      expect(html).toContain('Questions? Just reply to this email.');
     });
   });
 });

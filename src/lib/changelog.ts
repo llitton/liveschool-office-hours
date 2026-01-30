@@ -20,7 +20,7 @@ export const changelog: ChangelogEntry[] = [
     details: [
       'New "Styled Preview" button in Email Templates page',
       'See the actual branded HTML email with your custom text',
-      'Preview shows confirmation, reminder, and no-show emails with full styling',
+      'Preview shows confirmation, reminder, no-show, and cancellation emails with full styling',
       'Helpful tips explain which templates have branded styling',
       'Sample attendee data shows how variables get replaced',
     ],
@@ -34,6 +34,7 @@ export const changelog: ChangelogEntry[] = [
     details: [
       'Follow-up emails to attendees now have branded purple headers with session details',
       'No-show emails have amber headers and prominent "Book a Session" buttons',
+      'Cancellation emails have clean gray headers with strikethrough date and rebook CTA',
       'Feedback request emails include session recap and star-rated feedback button',
       'Recording notification emails feature green headers and resource links',
       'All emails include session date/time, host name, and are mobile-responsive',

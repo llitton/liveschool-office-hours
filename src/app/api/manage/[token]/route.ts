@@ -8,8 +8,12 @@ import {
   defaultTemplates,
   htmlifyEmailBody,
 } from '@/lib/email-templates';
+import { generateCancellationEmailHtml } from '@/lib/email-html';
 import { updateMeetingOutcome } from '@/lib/hubspot';
 import { calendarLogger } from '@/lib/logger';
+import { format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { getTimezoneAbbr } from '@/lib/timezone';
 
 // GET booking by manage token
 export async function GET(
@@ -275,17 +279,37 @@ export async function DELETE(
         : booking.slot.event.host_name;
 
       const bookingLink = `${process.env.NEXT_PUBLIC_APP_URL}/book/${booking.slot.event.slug}`;
-      const htmlBody = `
-        <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-          <h2>${wasWaitlisted ? 'Waitlist Spot Removed' : 'Booking Cancelled'}</h2>
-          <p>Hi ${booking.first_name},</p>
-          <p>Your ${wasWaitlisted ? 'waitlist spot' : 'booking'} for <strong>${booking.slot.event.name}</strong> has been cancelled as requested.</p>
-          ${!wasWaitlisted ? '<p>The calendar event has been removed from your calendar.</p>' : ''}
-          <p>If you'd like to book another time, I'd love to still connect with you:</p>
-          <p><a href="${bookingLink}" style="color: #6F71EE; text-decoration: none;">${bookingLink}</a></p>
-          <p>Best,<br>${hostName}</p>
-        </div>
-      `;
+
+      // Format session date/time in event's timezone
+      const event = booking.slot.event;
+      const eventTimezone = event?.timezone || 'America/Chicago';
+      const startTime = parseISO(booking.slot.start_time);
+      const zonedTime = toZonedTime(startTime, eventTimezone);
+      const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+      const sessionTime = format(zonedTime, 'h:mm a');
+      const timezoneAbbr = getTimezoneAbbr(eventTimezone);
+
+      // Use styled template for confirmed bookings, simple text for waitlist
+      const htmlBody = wasWaitlisted
+        ? `
+          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+            <h2>Waitlist Spot Removed</h2>
+            <p>Hi ${booking.first_name},</p>
+            <p>Your waitlist spot for <strong>${booking.slot.event.name}</strong> has been removed as requested.</p>
+            <p>If you'd like to book another time, we'd love to connect with you:</p>
+            <p><a href="${bookingLink}" style="color: #6F71EE; text-decoration: none;">${bookingLink}</a></p>
+            <p>Best,<br>${hostName}</p>
+          </div>
+        `
+        : generateCancellationEmailHtml({
+            recipientFirstName: booking.first_name,
+            eventName: event?.name || 'Session',
+            hostName: hostName || 'Your Host',
+            sessionDate,
+            sessionTime,
+            timezoneAbbr,
+            bookingPageUrl: bookingLink,
+          });
 
       await sendEmail(
         admin.google_access_token,
@@ -294,6 +318,7 @@ export async function DELETE(
           to: booking.email,
           subject: `Cancelled: ${booking.slot.event.name}`,
           replyTo: booking.slot.event.host_email,
+          from: booking.slot.event.host_email,
           htmlBody,
         }
       );
