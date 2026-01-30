@@ -14,7 +14,6 @@ import {
 } from '@/lib/email-html';
 
 type TemplateType = 'confirmation' | 'reminder' | 'cancellation' | 'no_show';
-type PreviewMode = 'edit' | 'text' | 'styled';
 
 export default function EmailTemplatesPage({
   params,
@@ -29,8 +28,7 @@ export default function EmailTemplatesPage({
   const [success, setSuccess] = useState('');
 
   const [activeTab, setActiveTab] = useState<TemplateType>('confirmation');
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('edit');
-  const [showVariables, setShowVariables] = useState(true);
+  const [showVariables, setShowVariables] = useState(false);
 
   // Sample data for preview
   const sampleData = {
@@ -230,11 +228,6 @@ export default function EmailTemplatesPage({
     }
   };
 
-  // Check if this template type has a styled version
-  const hasStyledTemplate = (type: TemplateType): boolean => {
-    return ['confirmation', 'reminder', 'no_show', 'cancellation'].includes(type);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F6F6F9] flex items-center justify-center">
@@ -289,263 +282,194 @@ export default function EmailTemplatesPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Editor */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              {/* Tabs */}
-              <div className="flex border-b border-gray-200">
-                {(['confirmation', 'reminder', 'cancellation', 'no_show'] as TemplateType[]).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-                      activeTab === tab
-                        ? 'text-[#6F71EE] border-b-2 border-[#6F71EE] -mb-px'
-                        : 'text-[#667085] hover:text-[#101E57]'
-                    }`}
-                  >
-                    {templateInfo[tab].title}
-                  </button>
-                ))}
-              </div>
-
-              <div className="p-6">
-                <p className="text-sm text-[#667085] mb-4">
-                  {templateInfo[activeTab].description}
-                </p>
-
-                {/* Preview Toggle */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                    <button
-                      onClick={() => setPreviewMode('edit')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                        previewMode === 'edit'
-                          ? 'bg-white text-[#101E57] shadow-sm'
-                          : 'text-[#667085] hover:text-[#101E57]'
-                      }`}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setPreviewMode('text')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                        previewMode === 'text'
-                          ? 'bg-white text-[#101E57] shadow-sm'
-                          : 'text-[#667085] hover:text-[#101E57]'
-                      }`}
-                    >
-                      Text Preview
-                    </button>
-                    <button
-                      onClick={() => setPreviewMode('styled')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition ${
-                        previewMode === 'styled'
-                          ? 'bg-white text-[#101E57] shadow-sm'
-                          : 'text-[#667085] hover:text-[#101E57]'
-                      }`}
-                    >
-                      📧 Styled Preview
-                    </button>
-                  </div>
-                  {previewMode !== 'edit' && (
-                    <span className="text-xs text-[#667085] bg-[#F6F6F9] px-2 py-1 rounded">
-                      Sample: {sampleData.first_name} {sampleData.last_name}
-                    </span>
-                  )}
-                </div>
-
-                {/* Styled Preview Mode */}
-                {previewMode === 'styled' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Subject Line
-                      </label>
-                      <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57]">
-                        {getPreviewContent(templates[`${activeTab}_subject`])}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-[#101E57]">
-                          Email Preview
-                        </label>
-                        {hasStyledTemplate(activeTab) && (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                            ✓ Styled Template
-                          </span>
-                        )}
-                      </div>
-                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-[#F6F6F9]">
-                        <iframe
-                          srcDoc={getStyledPreviewHtml()}
-                          className="w-full h-[600px] bg-white"
-                          title="Email Preview"
-                          sandbox="allow-same-origin"
-                        />
-                      </div>
-                      <p className="text-xs text-[#667085] mt-2">
-                        {hasStyledTemplate(activeTab)
-                          ? '👆 This is exactly how the email will appear in recipients\' inboxes.'
-                          : '👆 This template uses basic styling. A branded template is coming soon.'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Text Preview Mode */}
-                {previewMode === 'text' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Subject Line
-                      </label>
-                      <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57]">
-                        {getPreviewContent(templates[`${activeTab}_subject`])}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Email Body (Plain Text)
-                      </label>
-                      <div className="w-full px-3 py-2 bg-[#F6F6F9] border border-gray-200 rounded-lg text-[#101E57] whitespace-pre-wrap min-h-[200px]">
-                        {getPreviewContent(templates[`${activeTab}_body`])}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Edit Mode */}
-                {previewMode === 'edit' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-[#101E57] mb-1">
-                        Subject Line
-                      </label>
-                      <input
-                        type="text"
-                        value={templates[`${activeTab}_subject`]}
-                        onChange={(e) =>
-                          setTemplates((prev) => ({
-                            ...prev,
-                            [`${activeTab}_subject`]: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-[#101E57]">
-                          {activeTab === 'no_show' ? 'Custom Message' : 'Email Body'}
-                        </label>
-                        {hasStyledTemplate(activeTab) && (
-                          <span className="text-xs text-[#667085]">
-                            Your text is wrapped in a styled template
-                          </span>
-                        )}
-                      </div>
-                      <textarea
-                        value={templates[`${activeTab}_body`]}
-                        onChange={(e) =>
-                          setTemplates((prev) => ({
-                            ...prev,
-                            [`${activeTab}_body`]: e.target.value,
-                          }))
-                        }
-                        rows={12}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono text-sm"
-                      />
-                      {hasStyledTemplate(activeTab) && (
-                        <p className="text-xs text-[#667085] mt-2">
-                          💡 Tip: Click &ldquo;Styled Preview&rdquo; to see how this looks in the final email with branding, buttons, and formatting.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-4 mt-6">
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
-                  >
-                    {saving ? 'Saving...' : 'Save All Templates'}
-                  </button>
-                  <button
-                    onClick={() => handleReset(activeTab)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
-                  >
-                    Reset to Default
-                  </button>
-                  {success && (
-                    <div className="flex items-center gap-2 bg-green-50 text-green-700 text-sm px-3 py-1.5 rounded-lg">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {success}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* Template Tabs */}
+        <div className="bg-white rounded-t-lg shadow-sm border border-gray-200 border-b-0">
+          <div className="flex">
+            {(['confirmation', 'reminder', 'cancellation', 'no_show'] as TemplateType[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition ${
+                  activeTab === tab
+                    ? 'text-[#6F71EE] border-b-2 border-[#6F71EE] bg-white'
+                    : 'text-[#667085] hover:text-[#101E57] bg-gray-50'
+                }`}
+              >
+                {templateInfo[tab].title}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Variables Reference */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 sticky top-8 overflow-hidden">
+        {/* Main Content - Side by Side */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-0">
+          {/* Left: Editor */}
+          <div className="bg-white border border-gray-200 border-r-0 xl:rounded-bl-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-[#101E57]">Edit Template</h3>
+                <p className="text-sm text-[#667085]">{templateInfo[activeTab].description}</p>
+              </div>
               <button
                 onClick={() => setShowVariables(!showVariables)}
-                className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition"
+                className="text-sm text-[#6F71EE] hover:text-[#5a5cd0] flex items-center gap-1"
               >
-                <h3 className="font-semibold text-[#101E57]">Available Variables</h3>
-                <svg
-                  className={`w-5 h-5 text-[#667085] transition-transform ${showVariables ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <span>{showVariables ? 'Hide' : 'Show'} Variables</span>
+                <svg className={`w-4 h-4 transition-transform ${showVariables ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+            </div>
 
-              {showVariables && (
-                <div className="px-6 pb-6">
-                  <p className="text-sm text-[#667085] mb-4">
-                    Click to copy. Variables are replaced with actual values when emails are sent.
-                  </p>
-                  <div className="space-y-2">
-                    {availableVariables.map((v) => (
-                      <button
-                        key={v.var}
-                        onClick={() => {
-                          navigator.clipboard.writeText(v.var);
-                        }}
-                        className="w-full text-left p-2 rounded-lg hover:bg-[#F6F6F9] transition group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <code className="bg-[#F6F6F9] group-hover:bg-white px-2 py-0.5 rounded text-[#6F71EE] font-mono text-sm">
-                            {v.var}
-                          </code>
-                          <span className="text-xs text-[#667085] opacity-0 group-hover:opacity-100 transition">
-                            Click to copy
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#667085] mt-1">{v.desc}</p>
-                      </button>
-                    ))}
-                  </div>
+            {/* Collapsible Variables */}
+            {showVariables && (
+              <div className="mb-4 p-3 bg-[#F6F6F9] rounded-lg">
+                <p className="text-xs text-[#667085] mb-2">Click to copy a variable:</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableVariables.slice(0, 6).map((v) => (
+                    <button
+                      key={v.var}
+                      onClick={() => navigator.clipboard.writeText(v.var)}
+                      className="px-2 py-1 bg-white border border-gray-200 rounded text-xs font-mono text-[#6F71EE] hover:bg-[#6F71EE] hover:text-white transition"
+                      title={v.desc}
+                    >
+                      {v.var}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setShowVariables(true)}
+                    className="px-2 py-1 text-xs text-[#667085] hover:text-[#101E57]"
+                  >
+                    +{availableVariables.length - 6} more
+                  </button>
                 </div>
-              )}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Subject Line
+                </label>
+                <input
+                  type="text"
+                  value={templates[`${activeTab}_subject`]}
+                  onChange={(e) =>
+                    setTemplates((prev) => ({
+                      ...prev,
+                      [`${activeTab}_subject`]: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  {activeTab === 'no_show' ? 'Custom Message' : 'Email Body'}
+                </label>
+                <textarea
+                  value={templates[`${activeTab}_body`]}
+                  onChange={(e) =>
+                    setTemplates((prev) => ({
+                      ...prev,
+                      [`${activeTab}_body`]: e.target.value,
+                    }))
+                  }
+                  rows={14}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono text-sm"
+                  placeholder="Write your message here..."
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-[#6F71EE] text-white px-5 py-2.5 rounded-lg hover:bg-[#5a5cd0] transition disabled:opacity-50 font-medium"
+                >
+                  {saving ? 'Saving...' : 'Save Templates'}
+                </button>
+                <button
+                  onClick={() => handleReset(activeTab)}
+                  className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-[#667085] font-medium"
+                >
+                  Reset
+                </button>
+                {success && (
+                  <span className="text-sm text-green-600 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Saved!
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Right: Live Preview */}
+          <div className="bg-[#F6F6F9] border border-gray-200 xl:rounded-br-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-[#101E57] flex items-center gap-2">
+                  Live Preview
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-normal">
+                    Updates as you type
+                  </span>
+                </h3>
+                <p className="text-sm text-[#667085]">
+                  Showing preview for: {sampleData.first_name} {sampleData.last_name}
+                </p>
+              </div>
+            </div>
+
+            {/* Subject Preview */}
+            <div className="mb-3">
+              <div className="bg-white border border-gray-200 rounded-t-lg px-4 py-3">
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="text-[#667085]">Subject:</span>
+                  <span className="text-[#101E57] font-medium">
+                    {getPreviewContent(templates[`${activeTab}_subject`])}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Email Preview in iframe */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+              <iframe
+                srcDoc={getStyledPreviewHtml()}
+                className="w-full h-[500px]"
+                title="Email Preview"
+                sandbox="allow-same-origin"
+              />
+            </div>
+
+            <p className="text-xs text-[#667085] mt-3 text-center">
+              This is exactly how the email will appear in your recipients&apos; inbox
+            </p>
+          </div>
         </div>
+
+        {/* Full Variables Reference (expandable) */}
+        {showVariables && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="font-semibold text-[#101E57] mb-4">All Available Variables</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {availableVariables.map((v) => (
+                <button
+                  key={v.var}
+                  onClick={() => navigator.clipboard.writeText(v.var)}
+                  className="text-left p-3 rounded-lg border border-gray-200 hover:border-[#6F71EE] hover:bg-[#F6F6F9] transition group"
+                >
+                  <code className="text-[#6F71EE] font-mono text-sm block mb-1">{v.var}</code>
+                  <p className="text-xs text-[#667085]">{v.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
