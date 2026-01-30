@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, parseISO, isPast } from 'date-fns';
 import type { OHEvent, OHBooking, OHSlot, OHTaskTemplate } from '@/types';
 import HubSpotContactCard from '@/components/HubSpotContactCard';
@@ -159,10 +159,27 @@ export default function SlotCard({
   }>>({});
   const [contextDataPortalId, setContextDataPortalId] = useState<string | undefined>();
 
+  const cardRef = useRef<HTMLDivElement>(null);
   const isPastSlot = isPast(parseISO(slot.end_time));
   const confirmedBookings = bookings.filter((b) => !b.is_waitlisted && !b.cancelled_at);
   const waitlistedBookings = bookings.filter((b) => b.is_waitlisted && !b.cancelled_at);
   const capacityPercent = Math.round((confirmedBookings.length / event.max_attendees) * 100);
+
+  // Scroll into view if URL hash matches this slot
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === `#slot-${slot.id}` && cardRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Add highlight effect
+        cardRef.current?.classList.add('ring-2', 'ring-[#6F71EE]', 'ring-offset-2');
+        setTimeout(() => {
+          cardRef.current?.classList.remove('ring-2', 'ring-[#6F71EE]', 'ring-offset-2');
+        }, 3000);
+      }, 100);
+    }
+  }, [slot.id]);
 
   // Auto-sync from Google Meet when wrap-up modal opens
   useEffect(() => {
@@ -862,8 +879,9 @@ export default function SlotCard({
 
   return (
     <div
+      ref={cardRef}
       id={`slot-${slot.id}`}
-      className={`border rounded-lg overflow-hidden scroll-mt-24 ${isPastSlot ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}
+      className={`border rounded-lg overflow-hidden scroll-mt-24 transition-all duration-300 ${isPastSlot ? 'border-gray-200 bg-gray-50' : 'border-gray-200'}`}
     >
       <div className="p-4">
         <div className="flex justify-between items-start">

@@ -109,6 +109,7 @@ export async function POST(
   const sent = await sendDetailedSessionSummary({
     eventName: eventData.name,
     eventId: eventData.id,
+    slotId: slotId,
     startTime: slot.start_time,
     timezone: eventData.display_timezone,
     attendees,

@@ -396,6 +396,7 @@ export async function sendSessionSummary(session: {
 export async function sendDetailedSessionSummary(session: {
   eventName: string;
   eventId?: string;
+  slotId?: string;
   startTime: string;
   timezone?: string | null;
   attendees: Array<{
@@ -510,7 +511,9 @@ export async function sendDetailedSessionSummary(session: {
 
   // Add link to view full details
   if (session.eventId) {
-    const detailsUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/events/${session.eventId}`;
+    // Include slot ID as anchor to scroll directly to the slot
+    const anchor = session.slotId ? `#slot-${session.slotId}` : '';
+    const detailsUrl = `${process.env.NEXT_PUBLIC_APP_URL}/admin/events/${session.eventId}${anchor}`;
     message.blocks!.push({
       type: 'context',
       elements: [
