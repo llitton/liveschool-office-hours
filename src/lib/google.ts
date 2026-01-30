@@ -475,13 +475,11 @@ export async function getMeetParticipants(
     // We'll use the REST API directly with the OAuth token
     const meetApiBase = 'https://meet.googleapis.com/v2';
 
-    // First, find conference records for this space within the time window
-    // The space name format is "spaces/{meetCode}"
-    const spaceName = `spaces/${meetCode}`;
-
-    // List conference records (meeting sessions) for this space
+    // First, find conference records for this meeting
+    // The meeting code in the URL is different from the internal space name
+    // We need to query by space.meeting_code, not space.name
     const conferenceRecordsUrl = new URL(`${meetApiBase}/conferenceRecords`);
-    conferenceRecordsUrl.searchParams.set('filter', `space.name="${spaceName}"`);
+    conferenceRecordsUrl.searchParams.set('filter', `space.meeting_code="${meetCode.toLowerCase()}"`);
 
     const recordsResponse = await fetch(conferenceRecordsUrl.toString(), {
       headers: {
