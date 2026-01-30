@@ -130,6 +130,10 @@ export default function SlotCard({
   const [slackSummarySent, setSlackSummarySent] = useState(false);
   const [slackSummaryError, setSlackSummaryError] = useState<string | null>(null);
 
+  // Skip automated emails toggle state
+  const [skipAutomatedEmails, setSkipAutomatedEmails] = useState(slot.skip_automated_emails || false);
+  const [savingSkipEmails, setSavingSkipEmails] = useState(false);
+
   // HubSpot sync feedback state
   const [hubspotSyncMessage, setHubspotSyncMessage] = useState<{
     text: string;
@@ -431,6 +435,25 @@ export default function SlotCard({
       setSlackSummaryError('Failed to send to Slack');
     } finally {
       setSendingSlackSummary(false);
+    }
+  };
+
+  const handleToggleSkipEmails = async (value: boolean) => {
+    setSkipAutomatedEmails(value);
+    setSavingSkipEmails(true);
+    try {
+      await fetch(`/api/slots/${slot.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skip_automated_emails: value }),
+      });
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to update skip_automated_emails:', err);
+      // Revert on error
+      setSkipAutomatedEmails(!value);
+    } finally {
+      setSavingSkipEmails(false);
     }
   };
 
@@ -1952,9 +1975,38 @@ export default function SlotCard({
                             {booking.first_name} {booking.last_name}
                           </p>
                           <p className="text-xs text-[#667085]">{booking.email}</p>
+                          {/* Email sent status indicators */}
+                          {(booking.followup_sent_at || booking.no_show_email_sent_at || booking.feedback_sent_at) && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {booking.followup_sent_at && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] rounded-full">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Follow-up
+                                </span>
+                              )}
+                              {booking.no_show_email_sent_at && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] rounded-full">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Missed you
+                                </span>
+                              )}
+                              {booking.feedback_sent_at && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] rounded-full">
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Feedback
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-shrink-0">
                         {booking.attended_at ? (
                           <div className="relative group">
                             <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium cursor-pointer hover:bg-[#417762]/30">
@@ -2301,24 +2353,76 @@ export default function SlotCard({
                 </div>
               </div>
 
-              {/* Section 6: What Happens Next */}
-              <div className="border border-blue-200 rounded-lg overflow-hidden bg-blue-50/50">
-                <div className="px-4 py-3 bg-blue-100/50 border-b border-blue-200 flex items-center gap-2">
-                  <span className="text-lg">🔮</span>
-                  <span className="font-medium text-blue-900">What Happens Next</span>
+              {/* Section 5: Skip Automated Emails Toggle */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🔕</span>
+                    <span className="font-medium text-[#101E57]">Automated Emails</span>
+                  </div>
+                  {skipAutomatedEmails && (
+                    <span className="text-xs text-amber-600 flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      Disabled
+                    </span>
+                  )}
                 </div>
-                <div className="p-4 space-y-3">
+                <div className="p-4">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <p className="text-sm font-medium text-[#101E57]">Skip automated emails for this session</p>
+                      <p className="text-xs text-[#667085] mt-0.5">
+                        Prevents follow-up, no-show, and feedback emails from being sent automatically
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSkipEmails(!skipAutomatedEmails)}
+                      disabled={savingSkipEmails}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6F71EE] focus:ring-offset-2 ${
+                        skipAutomatedEmails ? 'bg-amber-500' : 'bg-gray-200'
+                      } ${savingSkipEmails ? 'opacity-50' : ''}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          skipAutomatedEmails ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </label>
+                  {skipAutomatedEmails && (
+                    <p className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">
+                      Manual emails via &quot;Thank You Email&quot; and &quot;We Missed You&quot; buttons above still work.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Section 6: What Happens Next */}
+              <div className={`border rounded-lg overflow-hidden ${skipAutomatedEmails ? 'border-gray-200 bg-gray-50/50' : 'border-blue-200 bg-blue-50/50'}`}>
+                <div className={`px-4 py-3 border-b flex items-center gap-2 ${skipAutomatedEmails ? 'bg-gray-100/50 border-gray-200' : 'bg-blue-100/50 border-blue-200'}`}>
+                  <span className="text-lg">🔮</span>
+                  <span className={`font-medium ${skipAutomatedEmails ? 'text-gray-600' : 'text-blue-900'}`}>What Happens Next</span>
+                  {skipAutomatedEmails && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Auto emails off</span>
+                  )}
+                </div>
+                <div className={`p-4 space-y-3 ${skipAutomatedEmails ? 'opacity-60' : ''}`}>
                   {/* Feedback Emails */}
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-3 h-3 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${skipAutomatedEmails ? 'bg-gray-200' : 'bg-blue-200'}`}>
+                      <svg className={`w-3 h-3 ${skipAutomatedEmails ? 'text-gray-500' : 'text-blue-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Feedback Request</p>
-                      <p className="text-xs text-blue-700">
-                        {bookings.filter(b => b.attended_at && !b.feedback_sent_at).length > 0
+                      <p className={`text-sm font-medium ${skipAutomatedEmails ? 'text-gray-600' : 'text-blue-900'}`}>Feedback Request</p>
+                      <p className={`text-xs ${skipAutomatedEmails ? 'text-gray-500' : 'text-blue-700'}`}>
+                        {skipAutomatedEmails
+                          ? 'Skipped for this session'
+                          : bookings.filter(b => b.attended_at && !b.feedback_sent_at).length > 0
                           ? `Will be sent to ${bookings.filter(b => b.attended_at && !b.feedback_sent_at).length} attendee(s) automatically`
                           : bookings.filter(b => b.feedback_sent_at).length > 0
                           ? `Already sent to ${bookings.filter(b => b.feedback_sent_at).length} attendee(s)`
@@ -2330,15 +2434,17 @@ export default function SlotCard({
                   {/* No-Show Re-engagement */}
                   {event.no_show_emails_enabled !== false && (
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${skipAutomatedEmails ? 'bg-gray-200' : 'bg-amber-200'}`}>
+                        <svg className={`w-3 h-3 ${skipAutomatedEmails ? 'text-gray-500' : 'text-amber-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-amber-900">No-Show Re-engagement</p>
-                        <p className="text-xs text-amber-700">
-                          {bookings.filter(b => b.no_show_at && !b.no_show_email_sent_at).length > 0
+                        <p className={`text-sm font-medium ${skipAutomatedEmails ? 'text-gray-600' : 'text-amber-900'}`}>No-Show Re-engagement</p>
+                        <p className={`text-xs ${skipAutomatedEmails ? 'text-gray-500' : 'text-amber-700'}`}>
+                          {skipAutomatedEmails
+                            ? 'Skipped for this session'
+                            : bookings.filter(b => b.no_show_at && !b.no_show_email_sent_at).length > 0
                             ? `Will be sent to ${bookings.filter(b => b.no_show_at && !b.no_show_email_sent_at).length} no-show(s) in ${event.no_show_email_delay_hours || 2} hours`
                             : bookings.filter(b => b.no_show_email_sent_at).length > 0
                             ? `Already sent to ${bookings.filter(b => b.no_show_email_sent_at).length} no-show(s)`

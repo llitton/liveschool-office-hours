@@ -86,6 +86,7 @@ export function createMockSlot(overrides: Partial<OHSlot> = {}): OHSlot {
     recording_link: null,
     deck_link: null,
     shared_links: null,
+    skip_automated_emails: false,
     ...overrides,
   };
 }

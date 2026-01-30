@@ -156,7 +156,7 @@ If migrations are missing, run the corresponding SQL files from `migrations/` in
 | 020-030 | Booking features (time increments, guest emails, analytics) |
 | 032-035 | Structural (constraints, atomic booking function) |
 | 036-040 | UI features (display order, Slack, changelog, feedback) |
-| 041-043 | Session resources, email tracking, auto-emails toggle |
+| 041-044 | Session resources, email tracking, auto-emails toggle, per-slot email skip |
 
 **Structural migrations (034, 035):** These add CHECK constraints and stored functions. The verify endpoint confirms the affected tables exist, but you should manually verify these were run if you see database constraint errors.
 
@@ -640,12 +640,21 @@ After a session ends, hosts can wrap up the session from the event details page.
 - The post-session cron (`/api/cron/post-session`) checks these flags before sending
 
 **Automated emails toggle (migration 043):**
-- `automated_emails_enabled` - When false, disables all automated post-session emails
+- `automated_emails_enabled` on `oh_events` - When false, disables all automated post-session emails for the event
 - Affects: follow-up emails, no-show emails, feedback requests, recording link emails
 - Manual emails via Wrap Up modal still work when disabled
 - Toggle in Event Settings → "Auto Emails" section
 - Defaults to true (enabled) for backward compatibility
 - Use case: Hosts who prefer to send all follow-up emails manually
+
+**Per-slot email toggle (migration 044):**
+- `skip_automated_emails` on `oh_slots` - When true, skips automated emails for just this one session
+- Toggle available in the Wrap Up Session modal under "Automated Emails" section
+- Useful when you've already sent manual follow-ups and don't want duplicates
+- Email sent status indicators show which emails have already been sent per attendee:
+  - Green "Follow-up" badge when followup_sent_at is set
+  - Amber "Missed you" badge when no_show_email_sent_at is set
+  - Blue "Feedback" badge when feedback_sent_at is set
 
 **Auto-attendance from Google Meet:**
 - Cron job at `/api/cron/auto-attendance` runs hourly (at :45)

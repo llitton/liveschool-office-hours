@@ -43,6 +43,9 @@ export async function PATCH(
       allowedUpdates.shared_links = [];
     }
   }
+  if (body.skip_automated_emails !== undefined) {
+    allowedUpdates.skip_automated_emails = Boolean(body.skip_automated_emails);
+  }
 
   if (Object.keys(allowedUpdates).length === 0) {
     return NextResponse.json({ error: 'No valid updates provided' }, { status: 400 });

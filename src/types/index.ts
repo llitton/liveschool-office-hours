@@ -119,6 +119,8 @@ export interface OHSlot {
   recording_link: string | null;
   deck_link: string | null;
   shared_links: Array<{ title: string; url: string }> | null;
+  // Per-slot email control (overrides event setting)
+  skip_automated_emails: boolean;
 }
 
 export interface OHBooking {

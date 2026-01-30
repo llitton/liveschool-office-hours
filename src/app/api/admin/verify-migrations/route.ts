@@ -95,6 +95,8 @@ const migrationChecks = [
   { migration: '042', table: 'oh_bookings', column: 'feedback_sent_at' },
   // 043 - Automated emails toggle
   { migration: '043', table: 'oh_events', column: 'automated_emails_enabled' },
+  // 044 - Per-slot skip automated emails
+  { migration: '044', table: 'oh_slots', column: 'skip_automated_emails' },
 ];
 
 export async function GET() {

@@ -37,8 +37,9 @@ export async function GET() {
     .gt('end_time', threeHoursAgo.toISOString());
 
   for (const slot of followupSlots || []) {
-    // Skip if automated emails are disabled for this event
+    // Skip if automated emails are disabled for this event or this slot
     if (slot.event.automated_emails_enabled === false) continue;
+    if (slot.skip_automated_emails === true) continue;
 
     const { data: admin } = await supabase
       .from('oh_admins')
@@ -173,8 +174,9 @@ export async function GET() {
   for (const slot of noShowSlots || []) {
     const event = slot.event;
 
-    // Skip if automated emails are disabled for this event
+    // Skip if automated emails are disabled for this event or this slot
     if (event.automated_emails_enabled === false) continue;
+    if (slot.skip_automated_emails === true) continue;
 
     // Skip if no-show emails are disabled for this event
     if (event.no_show_emails_enabled === false) continue;
@@ -309,8 +311,9 @@ export async function GET() {
     .gt('end_time', twoHoursAgo.toISOString());
 
   for (const slot of recentSlots || []) {
-    // Skip if automated emails are disabled for this event
+    // Skip if automated emails are disabled for this event or this slot
     if (slot.event.automated_emails_enabled === false) continue;
+    if (slot.skip_automated_emails === true) continue;
 
     // Get admin tokens
     const { data: admin } = await supabase
@@ -385,8 +388,9 @@ export async function GET() {
     .eq('is_cancelled', false);
 
   for (const slot of slotsWithRecordings || []) {
-    // Skip if automated emails are disabled for this event
+    // Skip if automated emails are disabled for this event or this slot
     if (slot.event.automated_emails_enabled === false) continue;
+    if (slot.skip_automated_emails === true) continue;
 
     const { data: admin } = await supabase
       .from('oh_admins')
