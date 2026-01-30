@@ -1219,13 +1219,33 @@ export default function SlotCard({
                       {isPastSlot && (
                         <div className="flex gap-1">
                           {booking.attended_at ? (
-                            <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium">
-                              Attended
-                            </span>
+                            <div className="relative group">
+                              <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium cursor-pointer hover:bg-[#417762]/30">
+                                Attended
+                              </span>
+                              <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-10">
+                                <button
+                                  onClick={() => handleMarkAttendance(booking.id, 'no_show')}
+                                  className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 whitespace-nowrap shadow-lg"
+                                >
+                                  Change to No-show
+                                </button>
+                              </div>
+                            </div>
                           ) : booking.no_show_at ? (
-                            <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded font-medium">
-                              No-show
-                            </span>
+                            <div className="relative group">
+                              <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded font-medium cursor-pointer hover:bg-red-200">
+                                No-show
+                              </span>
+                              <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-10">
+                                <button
+                                  onClick={() => handleMarkAttendance(booking.id, 'attended')}
+                                  className="px-2 py-1 bg-[#417762] text-white text-xs rounded hover:bg-[#355f4f] whitespace-nowrap shadow-lg"
+                                >
+                                  Change to Attended
+                                </button>
+                              </div>
+                            </div>
                           ) : (
                             <>
                               <button
@@ -1936,13 +1956,33 @@ export default function SlotCard({
                       </div>
                       <div className="flex gap-1">
                         {booking.attended_at ? (
-                          <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium">
-                            Attended
-                          </span>
+                          <div className="relative group">
+                            <span className="px-2 py-1 bg-[#417762]/20 text-[#417762] text-xs rounded font-medium cursor-pointer hover:bg-[#417762]/30">
+                              Attended
+                            </span>
+                            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-10">
+                              <button
+                                onClick={() => handleMarkAttendance(booking.id, 'no_show')}
+                                className="px-2 py-1 bg-amber-500 text-white text-xs rounded hover:bg-amber-600 whitespace-nowrap shadow-lg"
+                              >
+                                Change to No-show
+                              </button>
+                            </div>
+                          </div>
                         ) : booking.no_show_at ? (
-                          <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">
-                            No-show
-                          </span>
+                          <div className="relative group">
+                            <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium cursor-pointer hover:bg-amber-200">
+                              No-show
+                            </span>
+                            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-10">
+                              <button
+                                onClick={() => handleMarkAttendance(booking.id, 'attended')}
+                                className="px-2 py-1 bg-[#417762] text-white text-xs rounded hover:bg-[#355f4f] whitespace-nowrap shadow-lg"
+                              >
+                                Change to Attended
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <>
                             <button
