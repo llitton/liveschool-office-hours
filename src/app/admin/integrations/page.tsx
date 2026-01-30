@@ -22,12 +22,19 @@ interface SMSStatus {
   sender_phone?: string;
 }
 
+interface GoogleStatus {
+  googleConnected: boolean;
+  lastSynced: string | null;
+}
+
 function IntegrationsContent() {
   const searchParams = useSearchParams();
   const [hubspotStatus, setHubspotStatus] = useState<HubSpotStatus | null>(null);
   const [slackStatus, setSlackStatus] = useState<SlackStatus | null>(null);
+  const [googleStatus, setGoogleStatus] = useState<GoogleStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [disconnectingGoogle, setDisconnectingGoogle] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // HubSpot Private App token
@@ -74,10 +81,11 @@ function IntegrationsContent() {
 
   const fetchStatuses = async () => {
     try {
-      const [hubspotRes, slackRes, smsRes] = await Promise.all([
+      const [hubspotRes, slackRes, smsRes, googleRes] = await Promise.all([
         fetch('/api/hubspot/auth', { method: 'POST' }),
         fetch('/api/slack/status'),
         fetch('/api/sms/status'),
+        fetch('/api/availability/sync'),
       ]);
 
       if (hubspotRes.ok) {
@@ -103,6 +111,13 @@ function IntegrationsContent() {
         setSmsStatus(data);
       } else {
         setSmsStatus({ connected: false });
+      }
+
+      if (googleRes.ok) {
+        const data = await googleRes.json();
+        setGoogleStatus(data);
+      } else {
+        setGoogleStatus({ googleConnected: false, lastSynced: null });
       }
     } catch (err) {
       console.error('Failed to fetch integration statuses:', err);
@@ -239,6 +254,30 @@ function IntegrationsContent() {
       }
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to disconnect SMS provider' });
+    }
+  };
+
+  const disconnectGoogle = async () => {
+    if (!confirm('Disconnect your Google account? You will need to reconnect to use calendar, email, and Meet features.')) {
+      return;
+    }
+
+    setDisconnectingGoogle(true);
+    try {
+      const response = await fetch('/api/auth/disconnect-google', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        setGoogleStatus({ googleConnected: false, lastSynced: null });
+        setMessage({ type: 'success', text: 'Google account disconnected. Click "Reconnect Google" to re-authorize with updated permissions.' });
+      } else {
+        throw new Error('Failed to disconnect');
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to disconnect Google account' });
+    } finally {
+      setDisconnectingGoogle(false);
     }
   };
 
@@ -842,7 +881,7 @@ function IntegrationsContent() {
           </div>
         </div>
 
-        {/* Google Calendar (already connected via login) */}
+        {/* Google Calendar */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
@@ -854,20 +893,78 @@ function IntegrationsContent() {
               </svg>
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-[#101E57]">Google Calendar</h2>
-              <p className="text-sm text-[#667085] mt-1">
-                Calendar integration for scheduling and availability
-              </p>
-              <div className="mt-2 flex items-center gap-1 text-sm text-green-600">
-                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                Connected via Google Sign-In
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-[#101E57]">Google Calendar</h2>
+                  <p className="text-sm text-[#667085] mt-1">
+                    Calendar integration for scheduling, availability, and Google Meet
+                  </p>
+                </div>
+                {googleStatus?.googleConnected && (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-sm text-green-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                      Connected
+                    </span>
+                    <button
+                      onClick={disconnectGoogle}
+                      disabled={disconnectingGoogle}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium ml-4"
+                    >
+                      {disconnectingGoogle ? 'Disconnecting...' : 'Disconnect'}
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-[#667085] mt-2">
-                Manage availability settings in the{' '}
-                <a href="/admin/settings" className="text-[#6F71EE] hover:underline">
-                  Availability page
-                </a>
-              </p>
+
+              {googleStatus?.googleConnected ? (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-100 rounded-lg p-4">
+                    <h3 className="font-medium text-[#101E57] mb-3">Working for you:</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-600">&#10003;</span>
+                        <span className="text-[#667085]">Calendar sync</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-600">&#10003;</span>
+                        <span className="text-[#667085]">Google Meet links</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-600">&#10003;</span>
+                        <span className="text-[#667085]">Email confirmations</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-600">&#10003;</span>
+                        <span className="text-[#667085]">Meet auto-attendance</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#667085] mt-3">
+                    Manage availability settings in{' '}
+                    <a href="/admin/settings" className="text-[#6F71EE] hover:underline">
+                      Settings
+                    </a>
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-amber-800">
+                      Google is not connected. You need to reconnect to use calendar, email, and Meet features.
+                    </p>
+                    <p className="text-sm text-amber-700 mt-2">
+                      Reconnecting will grant access to the latest permissions, including Google Meet attendance tracking.
+                    </p>
+                  </div>
+                  <a
+                    href="/api/auth/login"
+                    className="inline-block bg-[#6F71EE] text-white px-4 py-2 rounded-lg hover:bg-[#5a5cd0] transition font-medium text-sm"
+                  >
+                    Reconnect Google
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

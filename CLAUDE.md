@@ -687,16 +687,23 @@ When you click "Send Summary to Slack" in the Wrap Up modal, it sends:
 - Upcoming sessions API: `src/app/api/admin/upcoming-sessions/route.ts`
 
 ### Google Disconnect & Reconnect
-Users can disconnect and reconnect their Google account from Settings to re-authorize with updated OAuth scopes.
+Users can disconnect and reconnect their Google account from **Settings** or **Integrations** to re-authorize with updated OAuth scopes.
 
 **When to reconnect:**
 - After new Google API scopes are added (e.g., Meet API for auto-attendance)
-- If experiencing authentication issues
+- If experiencing authentication issues or "permission denied" errors
 - To refresh credentials
 
-**How it works:**
+**How it works (two options):**
+
+*Option 1: Settings page*
 1. Go to Settings (top navigation)
 2. In "Google Calendar Sync" section, click "Disconnect"
+3. Click "Reconnect Google" to re-authorize
+
+*Option 2: Integrations page*
+1. Go to Integrations
+2. In the "Google Calendar" card, click "Disconnect"
 3. Click "Reconnect Google" to re-authorize
 
 **OAuth scopes requested (in `src/lib/google.ts`):**
@@ -706,8 +713,20 @@ Users can disconnect and reconnect their Google account from Settings to re-auth
 - `userinfo.email` and `userinfo.profile` - User info
 - `meetings.space.readonly` - Read Google Meet participant data (for auto-attendance)
 
+**Google Meet REST API requirement:**
+The `meetings.space.readonly` scope requires the **Google Meet REST API** to be enabled in Google Cloud Console:
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Select your project
+3. Go to APIs & Services → Library
+4. Search for "Google Meet REST API"
+5. Click Enable
+
+Without this API enabled, you'll see "Permission denied" or "API not enabled" errors when syncing attendance from Meet.
+
 **API endpoint:**
 - `POST /api/auth/disconnect-google` - Clears Google tokens for current user
+
+**Token refresh:** The `getMeetParticipants()` function automatically refreshes the access token before each API call to ensure the latest scopes are applied.
 
 **Note:** Each team member needs to disconnect and reconnect to get new scopes.
 

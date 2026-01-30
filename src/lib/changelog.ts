@@ -12,6 +12,32 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-google-reconnect-integrations',
+    date: '2026-01-30',
+    title: 'Google Disconnect/Reconnect on Integrations Page',
+    description: 'You can now disconnect and reconnect your Google account directly from the Integrations page.',
+    category: 'improvement',
+    details: [
+      'Go to Integrations to see all your connections in one place',
+      'Disconnect and Reconnect Google without leaving the page',
+      'Clear status showing what Google features are active',
+      'Helpful when you need to re-authorize for new features like Meet attendance',
+    ],
+  },
+  {
+    id: '2026-01-30-meet-api-improvements',
+    date: '2026-01-30',
+    title: 'Improved Google Meet Attendance Sync',
+    description: 'Better error handling and automatic token refresh for Google Meet attendance tracking.',
+    category: 'fix',
+    details: [
+      'Access tokens are now refreshed before each Meet API call',
+      'Clearer error messages when the Meet API needs to be enabled',
+      'Fixed permission denied errors after reconnecting Google',
+      'Ensures new OAuth scopes are properly applied',
+    ],
+  },
+  {
     id: '2026-01-29-migration-verification',
     date: '2026-01-29',
     title: 'Complete Migration Verification',

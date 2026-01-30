@@ -452,9 +452,21 @@ export async function getMeetParticipants(
     return { participants: [], error: 'Invalid Google Meet link' };
   }
 
+  // Always refresh the access token to ensure we have the latest scopes
+  let currentAccessToken = accessToken;
+  try {
+    const refreshedCredentials = await refreshAccessToken(refreshToken);
+    if (refreshedCredentials.access_token) {
+      currentAccessToken = refreshedCredentials.access_token;
+    }
+  } catch (refreshError) {
+    console.error('Failed to refresh access token for Meet API:', refreshError);
+    // Continue with the existing token - it might still work
+  }
+
   const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({
-    access_token: accessToken,
+    access_token: currentAccessToken,
     refresh_token: refreshToken,
   });
 
@@ -473,20 +485,38 @@ export async function getMeetParticipants(
 
     const recordsResponse = await fetch(conferenceRecordsUrl.toString(), {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${currentAccessToken}`,
         'Content-Type': 'application/json',
       },
     });
 
     if (!recordsResponse.ok) {
       const errorText = await recordsResponse.text();
-      console.error('Failed to fetch conference records:', errorText);
+      console.error('Failed to fetch conference records:', recordsResponse.status, errorText);
+
+      // Parse error for more specific messages
+      let errorDetails = '';
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          errorDetails = errorJson.error.message;
+        }
+        // Check if API is not enabled
+        if (errorDetails.includes('not been used') || errorDetails.includes('disabled') || errorDetails.includes('has not been enabled')) {
+          return {
+            participants: [],
+            error: 'The Google Meet REST API needs to be enabled in Google Cloud Console. Please contact your administrator.'
+          };
+        }
+      } catch {
+        // JSON parse failed, use raw text
+      }
 
       // If 403, likely need to re-authenticate with new scope
       if (recordsResponse.status === 403) {
         return {
           participants: [],
-          error: 'Permission denied. Please reconnect Google in Integrations to grant Meet access.'
+          error: 'Permission denied. Please reconnect Google in Settings to grant Meet access, or the Google Meet API may need to be enabled in Google Cloud Console.'
         };
       }
       return { participants: [], error: 'Failed to fetch meeting data from Google Meet' };
@@ -520,7 +550,7 @@ export async function getMeetParticipants(
     const participantsUrl = `${meetApiBase}/${relevantRecord.name}/participants`;
     const participantsResponse = await fetch(participantsUrl, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${currentAccessToken}`,
         'Content-Type': 'application/json',
       },
     });
