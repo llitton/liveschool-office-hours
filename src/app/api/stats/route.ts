@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { startOfMonth, endOfMonth, format, addHours } from 'date-fns';
+import { startOfMonth, endOfMonth, format, addHours, subDays } from 'date-fns';
 
 interface ActionItem {
   type: 'no_slots' | 'low_bookings' | 'missing_template' | 'upcoming_soon' | 'no_availability' | 'no_calendar';
@@ -161,13 +161,17 @@ export async function GET() {
   }
 
   // Get most popular time slots (day of week + hour)
+  // Only look at last 90 days for relevance, limit to 500 slots max
+  const ninetyDaysAgo = subDays(now, 90);
   const { data: allSlots } = await supabase
     .from('oh_slots')
     .select(`
       start_time,
       bookings:oh_bookings(count)
     `)
-    .eq('is_cancelled', false);
+    .eq('is_cancelled', false)
+    .gte('start_time', ninetyDaysAgo.toISOString())
+    .limit(500);
 
   const timeSlotPopularity: Record<string, { count: number; bookings: number }> = {};
   for (const slot of allSlots || []) {

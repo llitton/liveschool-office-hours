@@ -135,10 +135,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the event details
+    // Get the event details (only fields needed for dynamic slot creation)
     const { data: event, error: eventError } = await supabase
       .from('oh_events')
-      .select('*')
+      .select(`
+        id,
+        name,
+        description,
+        host_email,
+        meeting_type,
+        duration_minutes,
+        buffer_before,
+        buffer_after,
+        ignore_busy_blocks
+      `)
       .eq('id', event_id)
       .single();
 
@@ -241,11 +251,51 @@ export async function POST(request: NextRequest) {
   }
 
   // Get the slot with event and booking count
+  // Only select the event fields we actually use to reduce payload
   const { data: slot, error: slotError } = await supabase
     .from('oh_slots')
     .select(`
-      *,
-      event:oh_events(*),
+      id,
+      event_id,
+      start_time,
+      end_time,
+      is_cancelled,
+      google_event_id,
+      google_meet_link,
+      assigned_host_id,
+      event:oh_events(
+        id,
+        name,
+        slug,
+        description,
+        host_email,
+        host_name,
+        meeting_type,
+        duration_minutes,
+        max_attendees,
+        timezone,
+        display_timezone,
+        min_notice_hours,
+        booking_window_days,
+        max_daily_bookings,
+        max_weekly_bookings,
+        require_approval,
+        custom_questions,
+        prep_materials,
+        phone_required,
+        sms_phone_required,
+        sms_reminders_enabled,
+        round_robin_strategy,
+        round_robin_period,
+        ignore_busy_blocks,
+        slack_notifications_enabled,
+        confirmation_subject,
+        is_one_off,
+        single_use,
+        one_off_booked_at,
+        one_off_expires_at,
+        hubspot_meeting_type
+      ),
       bookings:oh_bookings(count)
     `)
     .eq('id', slot_id)
@@ -255,7 +305,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
   }
 
-  if (slot.is_cancelled) {
+  // Type assertion for the nested event object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const slotEvent = slot.event as any;
+  // Create a properly typed slot with event
+  const typedSlot = { ...slot, event: slotEvent };
+
+  if (typedSlot.is_cancelled) {
     return NextResponse.json(
       { error: 'This time slot is no longer available' },
       { status: 400 }
@@ -263,7 +319,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if this is a single-use one-off meeting that has already been booked
-  if (slot.event.is_one_off && slot.event.single_use && slot.event.one_off_booked_at) {
+  if (typedSlot.event.is_one_off && typedSlot.event.single_use && typedSlot.event.one_off_booked_at) {
     return NextResponse.json(
       { error: 'This meeting link has already been used' },
       { status: 400 }
@@ -271,8 +327,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if one-off meeting link has expired
-  if (slot.event.is_one_off && slot.event.one_off_expires_at) {
-    const expiresAt = new Date(slot.event.one_off_expires_at);
+  if (typedSlot.event.is_one_off && typedSlot.event.one_off_expires_at) {
+    const expiresAt = new Date(typedSlot.event.one_off_expires_at);
     if (expiresAt < new Date()) {
       return NextResponse.json(
         { error: 'This meeting link has expired' },
@@ -285,7 +341,7 @@ export async function POST(request: NextRequest) {
   let formattedPhone: string | null = null;
 
   // Check if phone is required for this event (either via phone_required OR sms requirement)
-  const isPhoneRequired = slot.event.phone_required || (slot.event.sms_phone_required && slot.event.sms_reminders_enabled);
+  const isPhoneRequired = typedSlot.event.phone_required || (typedSlot.event.sms_phone_required && typedSlot.event.sms_reminders_enabled);
   if (isPhoneRequired && !phone) {
     return NextResponse.json(
       { error: 'Phone number is required for this event' },
@@ -307,7 +363,7 @@ export async function POST(request: NextRequest) {
 
   // === CUSTOM QUESTION VALIDATION ===
   // Validate that all required questions have been answered
-  const customQuestions = slot.event.custom_questions as Array<{ id: string; label: string; required?: boolean }> | null;
+  const customQuestions = typedSlot.event.custom_questions as Array<{ id: string; label: string; required?: boolean }> | null;
   if (customQuestions && Array.isArray(customQuestions)) {
     for (const question of customQuestions) {
       if (question.required) {
@@ -326,7 +382,7 @@ export async function POST(request: NextRequest) {
   // === BOOKING CONSTRAINT VALIDATION ===
   const now = new Date();
   const slotStart = parseISO(slot.start_time);
-  const event = slot.event;
+  const event = typedSlot.event;
 
   // 1. Validate minimum notice
   const minNoticeHours = event.min_notice_hours ?? 24;
@@ -356,7 +412,7 @@ export async function POST(request: NextRequest) {
     const { count: dailyCount, error: dailyError } = await supabase
       .from('oh_bookings')
       .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
-      .eq('slot.event_id', event.id)
+      .eq('typedSlot.event_id', event.id)
       .gte('slot.start_time', dayStart.toISOString())
       .lte('slot.start_time', dayEnd.toISOString())
       .is('cancelled_at', null);
@@ -385,7 +441,7 @@ export async function POST(request: NextRequest) {
     const { count: weeklyCount, error: weeklyError } = await supabase
       .from('oh_bookings')
       .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
-      .eq('slot.event_id', event.id)
+      .eq('typedSlot.event_id', event.id)
       .gte('slot.start_time', weekStart.toISOString())
       .lte('slot.start_time', weekEnd.toISOString())
       .is('cancelled_at', null);
@@ -561,11 +617,11 @@ export async function POST(request: NextRequest) {
   // === END ATOMIC BOOKING CREATION ===
 
   // Mark single-use one-off meetings as booked (only for confirmed, non-waitlisted bookings)
-  if (slot.event.is_one_off && slot.event.single_use && !isWaitlisted) {
+  if (typedSlot.event.is_one_off && typedSlot.event.single_use && !isWaitlisted) {
     await supabase
       .from('oh_events')
       .update({ one_off_booked_at: new Date().toISOString() })
-      .eq('id', slot.event.id);
+      .eq('id', typedSlot.event.id);
   }
 
   // Track integration status to return to frontend
@@ -584,7 +640,7 @@ export async function POST(request: NextRequest) {
     const { data: eventAdmin } = await supabase
       .from('oh_admins')
       .select('*')
-      .eq('email', slot.event.host_email)
+      .eq('email', typedSlot.event.host_email)
       .single();
     admin = eventAdmin;
   }
@@ -632,7 +688,7 @@ export async function POST(request: NextRequest) {
     try {
       // Match prep resources based on booking question responses
       const matchedResources = await matchPrepResources(
-        slot.event_id,
+        typedSlot.event_id,
         question_responses || {}
       );
 
@@ -647,11 +703,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Use attendee's timezone for email formatting, fall back to event's display timezone
-      const emailTimezone = attendee_timezone || slot.event.display_timezone || 'America/New_York';
+      const emailTimezone = attendee_timezone || typedSlot.event.display_timezone || 'America/New_York';
 
       const variables = createEmailVariables(
         { first_name, last_name, email },
-        { ...slot.event, meeting_type: event.meeting_type },
+        { ...typedSlot.event, meeting_type: event.meeting_type },
         slot,
         emailTimezone,
         undefined,
@@ -668,7 +724,7 @@ export async function POST(request: NextRequest) {
 
       if (isWaitlisted) {
         // Waitlist confirmation email
-        subject = `You're on the waitlist for ${slot.event.name}`;
+        subject = `You're on the waitlist for ${typedSlot.event.name}`;
         const sessionTime = format(parseISO(slot.start_time), 'EEEE, MMMM d \'at\' h:mm a');
 
         htmlBody = `
@@ -685,7 +741,7 @@ export async function POST(request: NextRequest) {
             </p>
 
             <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-              The session <strong>${slot.event.name}</strong> on <strong>${sessionTime}</strong> is currently full,
+              The session <strong>${typedSlot.event.name}</strong> on <strong>${sessionTime}</strong> is currently full,
               but you've been added to the waitlist at position #${waitlistPosition}.
             </p>
 
@@ -720,14 +776,14 @@ export async function POST(request: NextRequest) {
       } else {
         // Regular confirmation email
         subject = processTemplate(
-          slot.event.confirmation_subject || defaultTemplates.confirmation_subject,
+          typedSlot.event.confirmation_subject || defaultTemplates.confirmation_subject,
           variables
         );
 
         // Generate calendar URLs
         const calendarEvent = {
-          title: slot.event.name,
-          description: `${slot.event.description || ''}\n\n${slot.google_meet_link ? `Join: ${slot.google_meet_link}` : ''}`.trim(),
+          title: typedSlot.event.name,
+          description: `${typedSlot.event.description || ''}\n\n${slot.google_meet_link ? `Join: ${slot.google_meet_link}` : ''}`.trim(),
           location: slot.google_meet_link || 'Google Meet',
           startTime: parseISO(slot.start_time),
           endTime: parseISO(slot.end_time),
@@ -740,7 +796,7 @@ export async function POST(request: NextRequest) {
         // Use the new modern email template
         htmlBody = generateConfirmationEmailHtml({
           firstName: first_name,
-          eventName: slot.event.name,
+          eventName: typedSlot.event.name,
           hostName: variables.host_name,
           date: variables.date,
           time: variables.time,
@@ -751,8 +807,8 @@ export async function POST(request: NextRequest) {
           googleCalUrl,
           outlookUrl,
           icalUrl,
-          eventDescription: slot.event.description,
-          prepMaterials: slot.event.prep_materials,
+          eventDescription: typedSlot.event.description,
+          prepMaterials: typedSlot.event.prep_materials,
           userTopic,
           prepResources: matchedResources.map(r => ({
             title: r.title,
@@ -768,7 +824,7 @@ export async function POST(request: NextRequest) {
         {
           to: email,
           subject,
-          replyTo: slot.event.host_email,
+          replyTo: typedSlot.event.host_email,
           htmlBody,
         }
       );
@@ -783,7 +839,7 @@ export async function POST(request: NextRequest) {
       // Send notification emails to guests (non-blocking, don't fail the booking)
       if (validatedGuestEmails.length > 0 && !isWaitlisted && bookingStatus === 'confirmed') {
         const sessionTime = format(parseISO(slot.start_time), 'EEEE, MMMM d \'at\' h:mm a');
-        const guestSubject = `You've been invited to: ${slot.event.name}`;
+        const guestSubject = `You've been invited to: ${typedSlot.event.name}`;
         const guestHtmlBody = `
           <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
             <div style="background: #E0F2FE; border-left: 4px solid #0EA5E9; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
@@ -794,9 +850,9 @@ export async function POST(request: NextRequest) {
             </div>
 
             <div style="background: #F6F6F9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-              <h3 style="margin: 0 0 8px 0; color: #101E57; font-size: 16px;">${slot.event.name}</h3>
+              <h3 style="margin: 0 0 8px 0; color: #101E57; font-size: 16px;">${typedSlot.event.name}</h3>
               <p style="margin: 0 0 4px 0; color: #667085;">${sessionTime}</p>
-              <p style="margin: 0; color: #667085;">Host: ${assignedHost?.name || slot.event.host_name}</p>
+              <p style="margin: 0; color: #667085;">Host: ${assignedHost?.name || typedSlot.event.host_name}</p>
             </div>
 
             ${slot.google_meet_link ? `
@@ -828,7 +884,7 @@ export async function POST(request: NextRequest) {
               {
                 to: guestEmail,
                 subject: guestSubject,
-                replyTo: slot.event.host_email,
+                replyTo: typedSlot.event.host_email,
                 htmlBody: guestHtmlBody,
               }
             );
@@ -845,12 +901,12 @@ export async function POST(request: NextRequest) {
   }
 
   // Sync with HubSpot (non-blocking)
-  syncBookingToHubSpot(booking, slot.event, slot, first_name, last_name, email, supabase).catch(
+  syncBookingToHubSpot(booking, typedSlot.event, slot, first_name, last_name, email, supabase).catch(
     (err) => console.error('HubSpot sync failed:', err)
   );
 
   // Send Slack notification (only if enabled for this event)
-  if (slot.event.slack_notifications_enabled) {
+  if (typedSlot.event.slack_notifications_enabled) {
     try {
       // Quick database check for first-time status
       const { count: previousBookingCount } = await supabase
@@ -868,10 +924,10 @@ export async function POST(request: NextRequest) {
           question_responses: question_responses,
         },
         {
-          name: slot.event.name,
-          slug: slot.event.slug,
-          custom_questions: slot.event.custom_questions as Array<{ id: string; question: string }> | null,
-          timezone: slot.event.timezone,
+          name: typedSlot.event.name,
+          slug: typedSlot.event.slug,
+          custom_questions: typedSlot.event.custom_questions as Array<{ id: string; question: string }> | null,
+          timezone: typedSlot.event.timezone,
         },
         {
           start_time: slot.start_time,
@@ -896,9 +952,9 @@ export async function POST(request: NextRequest) {
         await supabase.from('oh_booking_analytics').insert({
           session_id: analytics_session_id,
           event_type: 'booking_created',
-          event_id: slot.event_id,
-          event_slug: slot.event.slug,
-          event_name: slot.event.name,
+          event_id: typedSlot.event_id,
+          event_slug: typedSlot.event.slug,
+          event_name: typedSlot.event.name,
           slot_id: slot.id,
           booking_id: booking.id,
           selected_slot_time: slot.start_time,
@@ -913,7 +969,7 @@ export async function POST(request: NextRequest) {
   const response = {
     ...booking,
     booking, // Include nested booking object for analytics tracking
-    event: slot.event,
+    event: typedSlot.event,
     slot: {
       start_time: slot.start_time,
       end_time: slot.end_time,

@@ -73,7 +73,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Fetch session history for all emails in one query
+  // If all emails are cached, return early
+  if (emailsToFetch.length === 0) {
+    return NextResponse.json({
+      connected: true,
+      portalId,
+      contacts: result,
+    });
+  }
+
+  // Fetch session history only for uncached emails
   const supabase = getServiceSupabase();
   const { data: allBookings } = await supabase
     .from('oh_bookings')
@@ -88,7 +97,7 @@ export async function POST(request: NextRequest) {
         event:oh_events(name)
       )
     `)
-    .in('email', normalizedEmails)
+    .in('email', emailsToFetch)
     .is('cancelled_at', null)
     .order('created_at', { ascending: false });
 
@@ -102,11 +111,11 @@ export async function POST(request: NextRequest) {
     bookingsByEmail[email].push(booking);
   }
 
-  // Process session history for each email
+  // Process session history for uncached emails only
   const now = new Date();
   const sessionHistoryByEmail: Record<string, SessionHistory> = {};
 
-  for (const email of normalizedEmails) {
+  for (const email of emailsToFetch) {
     const bookings = bookingsByEmail[email] || [];
     const pastBookings: typeof bookings = [];
 
@@ -171,13 +180,6 @@ export async function POST(request: NextRequest) {
       // Cache the result
       cache.set(email, { data: contactData, timestamp: Date.now() });
       result[email] = contactData;
-    }
-  }
-
-  // Add session history for cached results that might not have been refetched
-  for (const email of Object.keys(result)) {
-    if (!result[email].sessionHistory.totalSessions && sessionHistoryByEmail[email]) {
-      result[email].sessionHistory = sessionHistoryByEmail[email];
     }
   }
 
