@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-performance-improvements',
+    date: '2026-01-30',
+    title: 'Dashboard Performance Improvements',
+    description: 'Faster page loads across the admin dashboard with optimized database queries and API calls.',
+    category: 'improvement',
+    details: [
+      'Today\'s Sessions page loads faster with parallel HubSpot requests and 3-second timeout',
+      'Public booking pages load faster with optimized round-robin availability calculation',
+      'Admin dashboard eliminates redundant database queries for event analytics',
+      'Booking API returns smaller payloads by selecting only needed columns',
+      'Stats endpoint now filters to recent data (90 days) instead of scanning all history',
+      'Attendee context data is cached more efficiently, reducing repeat API calls',
+    ],
+  },
+  {
     id: '2026-01-30-live-email-preview',
     date: '2026-01-30',
     title: 'Live Side-by-Side Email Preview',

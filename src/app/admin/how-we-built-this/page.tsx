@@ -118,10 +118,11 @@ const featureCategories = [
       { name: 'Attendee feedback', desc: 'Star ratings, comments, and topic suggestions from attendees' },
       { name: 'Feedback visibility', desc: 'See ratings in Past Sessions, event details, and daily summaries' },
       { name: 'CSV export', desc: 'Download analytics and booking data' },
-      { name: 'Automated test suite', desc: '580+ tests covering auth, email templates, validation, routing, iCal, SMS, Slack, and booking logic' },
+      { name: 'Automated test suite', desc: '587 tests covering auth, email templates, validation, routing, iCal, SMS, Slack, and booking logic' },
       { name: 'URL handling tests', desc: 'Automated checks prevent hardcoded URLs in emails and API routes' },
       { name: 'System status dashboard', desc: 'Real-time monitoring of database, integrations, and system health' },
       { name: 'Migration verification', desc: 'API endpoint to verify all database migrations are applied' },
+      { name: 'Performance optimizations', desc: 'Parallel API calls, query caching, and payload optimization for faster page loads' },
     ],
   },
 ];
@@ -190,7 +191,7 @@ const tools = [
   },
   {
     name: 'Vitest & Playwright',
-    description: '550+ automated tests verify every feature works. Like a robot QA team checking for bugs.',
+    description: '587 automated tests verify every feature works. Like a robot QA team checking for bugs.',
     color: '#729B1B',
     bgColor: '#F7FEE7',
     icon: (
