@@ -529,6 +529,76 @@ export async function sendDetailedSessionSummary(session: {
 }
 
 /**
+ * Send user feedback notification to Slack
+ */
+export async function notifyUserFeedback(feedback: {
+  name: string;
+  email: string;
+  category: 'bug' | 'suggestion' | 'question';
+  message: string;
+  pageUrl?: string;
+}): Promise<boolean> {
+  const config = await getSlackConfig();
+  if (!config || !config.webhook_url) {
+    return false;
+  }
+
+  const categoryEmoji = {
+    bug: '🐛',
+    suggestion: '💡',
+    question: '❓',
+  };
+
+  const categoryLabel = {
+    bug: 'Bug Report',
+    suggestion: 'Suggestion',
+    question: 'Question',
+  };
+
+  const message: SlackMessage = {
+    blocks: [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `${categoryEmoji[feedback.category]} ${categoryLabel[feedback.category]}`,
+          emoji: true,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `👤 *${feedback.name}*\n${feedback.email}`,
+        },
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `💬 ${feedback.message}`,
+        },
+      },
+    ],
+  };
+
+  // Add page URL if provided
+  if (feedback.pageUrl) {
+    message.blocks!.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `📍 Submitted from: ${feedback.pageUrl}`,
+        },
+      ],
+    } as SlackBlock);
+  }
+
+  return sendSlackMessage(message);
+}
+
+/**
  * Test Slack webhook connection
  */
 export async function testSlackWebhook(webhookUrl: string): Promise<boolean> {
