@@ -26,7 +26,7 @@ export default async function AdminPage({
   // Fetch events and admin data
   const supabase = getServiceSupabase();
 
-  const [eventsResult, adminResult, analyticsResult] = await Promise.all([
+  const [eventsResult, adminResult] = await Promise.all([
     supabase
       .from('oh_events')
       .select(`
@@ -52,42 +52,51 @@ export default async function AdminPage({
       .select('id, google_access_token, onboarding_progress')
       .eq('email', session.email)
       .single(),
-    // Aggregate booking analytics per event
-    supabase
-      .from('oh_bookings')
-      .select('slot:oh_slots!inner(event_id), created_at')
-      .is('cancelled_at', null)
   ]);
 
   const events = eventsResult.data;
   const admin = adminResult.data;
-  const bookings = analyticsResult.data;
 
-  // Compute analytics per event
-  const eventAnalytics = new Map<string, { total: number; lastBooked: string | null }>();
-  if (bookings) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    bookings.forEach((booking: any) => {
-      // Supabase returns join as object when using !inner
-      const eventId = booking.slot?.event_id;
-      if (!eventId) return;
+  // Get event IDs for targeted last_booked query
+  const eventIds = events?.map(e => e.id) || [];
 
-      const current = eventAnalytics.get(eventId) || { total: 0, lastBooked: null };
-      current.total++;
-      if (!current.lastBooked || booking.created_at > current.lastBooked) {
-        current.lastBooked = booking.created_at;
-      }
-      eventAnalytics.set(eventId, current);
-    });
+  // Fetch last_booked_at per event (only if we have events)
+  // This is much faster than fetching ALL bookings
+  let lastBookedMap = new Map<string, string>();
+  if (eventIds.length > 0) {
+    const { data: recentBookings } = await supabase
+      .from('oh_bookings')
+      .select('slot:oh_slots!inner(event_id), created_at')
+      .in('slot.event_id', eventIds)
+      .is('cancelled_at', null)
+      .order('created_at', { ascending: false })
+      .limit(500); // Only need recent bookings for "last booked" display
+
+    if (recentBookings) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recentBookings.forEach((booking: any) => {
+        const eventId = booking.slot?.event_id;
+        if (eventId && !lastBookedMap.has(eventId)) {
+          lastBookedMap.set(eventId, booking.created_at);
+        }
+      });
+    }
   }
 
-  // Enrich events with analytics
+  // Enrich events with analytics computed from already-fetched slot data
   const eventsWithAnalytics = events?.map((event) => {
-    const analytics = eventAnalytics.get(event.id);
+    // Compute total_bookings from slot booking counts (already fetched)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const slots = (event.slots as any[]) || [];
+    const total_bookings = slots.reduce((sum, slot) => {
+      const count = slot.bookings?.[0]?.count || 0;
+      return sum + count;
+    }, 0);
+
     return {
       ...event,
-      total_bookings: analytics?.total ?? 0,
-      last_booked_at: analytics?.lastBooked ?? null,
+      total_bookings,
+      last_booked_at: lastBookedMap.get(event.id) ?? null,
     };
   });
 

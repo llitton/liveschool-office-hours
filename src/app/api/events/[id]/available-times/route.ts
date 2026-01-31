@@ -156,27 +156,26 @@ export async function GET(
         event.ignore_busy_blocks ?? false
       );
     }
-  } else {
-    // One-on-one, group, round-robin, panel: Use primary host's availability
-    dynamicSlots = await getAvailableSlots(
-      admin.id,
-      event.duration_minutes,
-      bufferBefore,
-      bufferAfter,
-      earliestBookable,
-      latestBookable,
-      eventId,
-      startTimeIncrement,
-      event.ignore_busy_blocks ?? false
-    );
-  }
-
-  // For round-robin, we need to check availability across all participating hosts
-  // and find times when at least one host is available
-  if (event.meeting_type === 'round_robin') {
+  } else if (event.meeting_type === 'round_robin') {
+    // Round-robin: Check availability across all participating hosts
+    // Time is available if ANY host is free
     const participatingHosts = await getParticipatingHosts(eventId);
-    if (participatingHosts.length > 1) {
-      // Get availability for each host
+
+    if (participatingHosts.length === 0) {
+      // Fallback to primary host if no participating hosts configured
+      dynamicSlots = await getAvailableSlots(
+        admin.id,
+        event.duration_minutes,
+        bufferBefore,
+        bufferAfter,
+        earliestBookable,
+        latestBookable,
+        eventId,
+        startTimeIncrement,
+        event.ignore_busy_blocks ?? false
+      );
+    } else {
+      // Get availability for all hosts in parallel
       const allHostSlots = await Promise.all(
         participatingHosts.map(async (hostId) => {
           try {
@@ -211,6 +210,19 @@ export async function GET(
         (a, b) => a.start.getTime() - b.start.getTime()
       );
     }
+  } else {
+    // One-on-one, group, panel: Use primary host's availability
+    dynamicSlots = await getAvailableSlots(
+      admin.id,
+      event.duration_minutes,
+      bufferBefore,
+      bufferAfter,
+      earliestBookable,
+      latestBookable,
+      eventId,
+      startTimeIncrement,
+      event.ignore_busy_blocks ?? false
+    );
   }
 
   // Convert to API response format with unique IDs

@@ -139,29 +139,38 @@ export async function GET() {
     }
   }
 
-  // Batch fetch HubSpot data for all attendees
+  // Batch fetch HubSpot data for all attendees (with timeout for fast page loads)
   const hubspotData: Record<string, { company: string | null }> = {};
   if (hubspotConnected && allEmails.size > 0) {
-    // Fetch in parallel, limit concurrency
     const emailArray = Array.from(allEmails);
-    const batchSize = 5;
 
-    for (let i = 0; i < emailArray.length; i += batchSize) {
-      const batch = emailArray.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map(async (email) => {
-          try {
-            const contact = await getContactWithCompany(email);
-            return { email, company: contact?.company?.name || null };
-          } catch {
-            return { email, company: null };
-          }
-        })
-      );
-      for (const result of results) {
-        hubspotData[result.email] = { company: result.company };
+    // Run all requests in parallel with a 3-second timeout
+    // This ensures the dashboard loads quickly even if HubSpot is slow
+    const hubspotPromise = Promise.allSettled(
+      emailArray.map(async (email) => {
+        try {
+          const contact = await getContactWithCompany(email);
+          return { email, company: contact?.company?.name || null };
+        } catch {
+          return { email, company: null };
+        }
+      })
+    );
+
+    const timeoutPromise = new Promise<'timeout'>((resolve) =>
+      setTimeout(() => resolve('timeout'), 3000)
+    );
+
+    const result = await Promise.race([hubspotPromise, timeoutPromise]);
+
+    if (result !== 'timeout') {
+      for (const item of result) {
+        if (item.status === 'fulfilled') {
+          hubspotData[item.value.email] = { company: item.value.company };
+        }
       }
     }
+    // If timeout, hubspotData stays empty - page still loads, just without company names
   }
 
   // Check first-time attendees (have they booked before today?)
