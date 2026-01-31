@@ -1147,6 +1147,40 @@ Edit `src/lib/changelog.ts` and add entries at the TOP of the array:
 - API: `POST /api/changelog` marks as seen (updates timestamp)
 - Badge in header fetches status on mount (except on changelog page)
 
+### User Feedback
+Team members can report bugs, suggestions, or questions via a feedback button in the header.
+
+**User-facing:**
+- Chat bubble icon in header (between Help and user menu)
+- Opens modal with category selector (Bug / Suggestion / Question)
+- Text area for message, auto-captures current page URL
+- Success confirmation on submit
+
+**Database:** `oh_user_feedback` table (migration 045)
+- `admin_id`, `admin_email`, `admin_name` - Who submitted
+- `category` - 'bug', 'suggestion', or 'question'
+- `message` - The feedback text
+- `page_url` - Which page they were on
+- `created_at` - Timestamp
+
+**Slack notifications:**
+- Uses separate webhook (`feedback_webhook_url` on `oh_slack_config`, migration 046)
+- Configure at Settings → Integrations → Slack → Feedback Notifications
+- Allows feedback to go to a different channel/DM than booking notifications
+- If no feedback webhook configured, notification is skipped (feedback still saved to DB)
+
+**API endpoints:**
+- `POST /api/user-feedback` - Submit feedback (requires auth)
+- `POST /api/slack/feedback-webhook` - Save feedback webhook URL
+- `GET /api/slack/status` - Returns `feedback_webhook_url` status
+
+**Files:**
+- Modal component: `src/components/FeedbackModal.tsx`
+- Button in header: `src/components/AppShell.tsx`
+- API route: `src/app/api/user-feedback/route.ts`
+- Slack function: `src/lib/slack.ts` (`notifyUserFeedback`)
+- Webhook config: `src/app/admin/integrations/page.tsx`
+
 ## Current State
 
 Working features:
@@ -1164,5 +1198,6 @@ Working features:
 - Per-event Slack notifications
 - What's New changelog with badge
 - System status dashboard
+- User feedback collection
 
 See `SCHEDULING_PLATFORM_ROADMAP.md` for detailed feature roadmap.

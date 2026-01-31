@@ -107,6 +107,7 @@ const featureCategories = [
       { name: 'Session topics display', desc: 'See what each attendee wants to discuss directly on the slot card' },
       { name: 'Co-host visibility', desc: 'Today and Upcoming pages show only sessions where you are a host or co-host' },
       { name: 'Past session deep links', desc: 'Click Earlier sessions to jump directly to the slot on the event page' },
+      { name: 'Feedback button', desc: 'Report bugs, suggestions, or questions via chat bubble icon in header with Slack notifications' },
     ],
   },
   {
