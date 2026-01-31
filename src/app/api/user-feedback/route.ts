@@ -55,16 +55,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to save feedback' }, { status: 500 });
   }
 
-  // Send Slack notification (don't wait for it, don't fail if it errors)
-  notifyUserFeedback({
-    name: admin?.name || session.email.split('@')[0],
-    email: session.email,
-    category,
-    message: message.trim(),
-    pageUrl,
-  }).catch((err) => {
+  // Send Slack notification (await to ensure it completes before serverless function ends)
+  try {
+    await notifyUserFeedback({
+      name: admin?.name || session.email.split('@')[0],
+      email: session.email,
+      category,
+      message: message.trim(),
+      pageUrl,
+    });
+  } catch (err) {
     console.error('Failed to send Slack notification:', err);
-  });
+    // Don't fail the request if Slack fails
+  }
 
   return NextResponse.json({ success: true, id: feedback.id });
 }
