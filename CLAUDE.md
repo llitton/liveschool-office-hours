@@ -280,7 +280,7 @@ tests/
 │       ├── ical.test.ts              # iCal generation, calendar URLs (21 tests)
 │       ├── round-robin.test.ts       # Host selection strategies (16 tests)
 │       ├── routing.test.ts           # Lead routing rules, encoding (30 tests)
-│       ├── slack.test.ts             # Slack webhook integration (26 tests)
+│       ├── slack.test.ts             # Slack webhook integration (35 tests)
 │       ├── sms.test.ts               # Phone validation, templates (35 tests)
 │       ├── session-topics.test.ts    # Session topics extraction (21 tests)
 │       ├── timezone.test.ts          # Timezone formatting utilities (48 tests)
@@ -306,7 +306,7 @@ tests/
 | Lead Routing | 30 | `routing.ts` |
 | Booking Constraints | 29 | `booking-constraints.ts` |
 | URL Handling | 29 | `url-handling.ts` |
-| Slack Integration | 26 | `slack.ts` |
+| Slack Integration | 35 | `slack.ts` |
 | HubSpot Integration | 25 | `hubspot.ts` |
 | Auth & Sessions | 21 | `auth.ts` |
 | Email Validation | 21 | `email-validation.ts` |
@@ -315,9 +315,9 @@ tests/
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
-| **Total Unit Tests** | **464** | 15 lib modules + 1 component |
+| **Total Unit Tests** | **473** | 15 lib modules + 1 component |
 | **Integration Tests** | **40** | 3 API test files |
-| **Grand Total** | **587** | All test files (includes additional integration tests) |
+| **Grand Total** | **596** | All test files (includes additional integration tests) |
 
 ### Writing Tests
 

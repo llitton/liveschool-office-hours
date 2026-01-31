@@ -812,4 +812,182 @@ describe('Slack Integration', () => {
       expect(blocksStr).toContain('Resource Guide');
     });
   });
+
+  describe('notifyUserFeedback', () => {
+    const mockFeedback = {
+      name: 'John Doe',
+      email: 'john@example.com',
+      category: 'bug' as const,
+      message: 'The button is not working',
+      pageUrl: 'https://liveschoolhelp.com/admin/events',
+    };
+
+    it('returns false when feedback_webhook_url is not configured', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/XXX',
+        is_active: true,
+        // No feedback_webhook_url
+      };
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      const result = await notifyUserFeedback(mockFeedback);
+
+      expect(result).toBe(false);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('sends notification to feedback_webhook_url when configured', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      const result = await notifyUserFeedback(mockFeedback);
+
+      expect(result).toBe(true);
+      // Should use the feedback webhook, NOT the booking webhook
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
+    });
+
+    it('includes category emoji and label for bug reports', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      await notifyUserFeedback({ ...mockFeedback, category: 'bug' });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('🐛');
+      expect(blocksStr).toContain('Bug Report');
+    });
+
+    it('includes category emoji and label for suggestions', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      await notifyUserFeedback({ ...mockFeedback, category: 'suggestion' });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('💡');
+      expect(blocksStr).toContain('Suggestion');
+    });
+
+    it('includes category emoji and label for questions', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      await notifyUserFeedback({ ...mockFeedback, category: 'question' });
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('❓');
+      expect(blocksStr).toContain('Question');
+    });
+
+    it('includes user name, email, and message', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      await notifyUserFeedback(mockFeedback);
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('John Doe');
+      expect(blocksStr).toContain('john@example.com');
+      expect(blocksStr).toContain('The button is not working');
+    });
+
+    it('includes page URL when provided', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: true });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      await notifyUserFeedback(mockFeedback);
+
+      const fetchCall = mockFetch.mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
+      const blocksStr = JSON.stringify(body.blocks);
+
+      expect(blocksStr).toContain('https://liveschoolhelp.com/admin/events');
+      expect(blocksStr).toContain('Submitted from');
+    });
+
+    it('handles fetch errors gracefully', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockRejectedValue(new Error('Network error'));
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      const result = await notifyUserFeedback(mockFeedback);
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false when webhook returns error response', async () => {
+      mockSlackConfig = {
+        webhook_url: 'https://hooks.slack.com/services/T00/B00/BOOKING',
+        feedback_webhook_url: 'https://hooks.slack.com/services/T00/B00/FEEDBACK',
+        is_active: true,
+      };
+      mockFetch.mockResolvedValue({ ok: false, status: 500 });
+      vi.resetModules();
+      const { notifyUserFeedback } = await import('@/lib/slack');
+
+      const result = await notifyUserFeedback(mockFeedback);
+
+      expect(result).toBe(false);
+    });
+  });
 });

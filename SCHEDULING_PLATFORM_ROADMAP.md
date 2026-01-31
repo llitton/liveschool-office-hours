@@ -108,7 +108,7 @@ Low-priority items that could be added if specific needs arise:
 - 44 migrations applied
 
 ### Testing
-- 587 automated tests (Vitest + Playwright)
+- 596 automated tests (Vitest + Playwright)
 - Covers auth, email, validation, routing, SMS, Slack, booking logic
 
 ### Performance Optimizations (Jan 2026)
