@@ -1,5 +1,25 @@
 # LiveSchool Scheduling Platform - Full Feature Roadmap
 
+> **Last Updated:** January 2026
+
+## Progress Summary
+
+| Category | Complete | Partial | Not Started |
+|----------|----------|---------|-------------|
+| Phase 1: Core Foundation | 4/4 | 0 | 0 |
+| Phase 2: Team Scheduling | 2/3 | 1 | 0 |
+| Phase 3: Lead Routing | 2/4 | 1 | 1 |
+| Phase 4: Attendee Experience | 1/5 | 1 | 3 |
+| Phase 5: Automation | 1/3 | 0 | 2 |
+| Phase 6: Analytics | 1/2 | 0 | 1 |
+| Phase 7: Enterprise | 0/5 | 0 | 5 |
+| Phase 8: Power Features | 1/4 | 2 | 1 |
+| **Total** | **12/30** | **5** | **13** |
+
+**Overall Progress: ~57% complete** (counting partial as 0.5)
+
+---
+
 ## Vision
 Transform the Office Hours scheduling tool into a complete scheduling platform that replaces Calendly and HubSpot Scheduler, with advanced lead routing capabilities similar to Chili Piper.
 
@@ -7,28 +27,42 @@ Transform the Office Hours scheduling tool into a complete scheduling platform t
 
 ## Current State Summary
 
-### What We Have
-- Event-based scheduling with group sessions (office hours)
-- Google Calendar integration (events, Meet links, busy sync)
-- HubSpot integration (contacts, meetings, tasks)
-- Slack notifications
-- Custom questions and prep resources
-- Attendee self-service (reschedule/cancel)
-- Session tags, tasks, and notes
-- Basic availability patterns
-- Email templates (confirmation, reminder, cancellation)
-- Multi-host support (basic)
+### What We Have ✅
+- **Meeting Types:** One-on-one, group, collective, round-robin, panel, webinar
+- **Round-Robin Distribution:** 4 strategies (priority, least_bookings, cycle, availability_weighted)
+- **Multi-Host Support:** Owner/host/backup roles with permissions
+- **Booking Constraints:** Min notice, daily/weekly limits, booking window, buffers, approval workflow
+- **Lead Routing:** Routing forms with conditional rules and field mapping
+- **Google Calendar:** 2-way sync, Meet links, auto-attendance from Meet
+- **HubSpot Integration:** Contacts, companies, deals, meeting types, portal sync
+- **Slack Notifications:** Per-event notifications with full context
+- **SMS Reminders:** Multi-provider (Aircall, Twilio, MessageBird)
+- **Email Templates:** Confirmation, reminder, cancellation, follow-up, feedback, recording (all styled HTML)
+- **Embeddable Widgets:** `/embed/[slug]` for external sites
+- **Custom Questions:** Text, textarea, phone, radio, checkbox, select types
+- **Attendee Self-Service:** Reschedule/cancel via manage links
+- **Timezone Support:** Auto-detect, manual selection, per-event defaults
+- **Analytics:** Conversion tracking, attendance rates, topic analysis, team health
+- **Waitlist Management:** Queue position, auto-notification
+- **Polls/Voting:** Availability polls for group scheduling
+- **Event Templates:** Save/apply full event configurations
+- **Session Wrap-Up:** Attendance tracking, recording/deck links, follow-up emails
+- **Attendee Feedback:** Star ratings, comments, topic suggestions
+- **System Status Dashboard:** Integration health monitoring
+- **Changelog:** In-app "What's New" with badge notifications
 
-### What We're Missing
-- One-on-one meeting types
-- Round-robin / team scheduling
-- Lead routing and qualification
-- Buffer time and booking limits
-- Embeddable widgets
-- SMS notifications
-- Advanced automation/workflows
-- Comprehensive analytics
-- Enterprise admin features
+### What We're Missing 🚧
+- **Workflow Engine** - Visual automation builder for multi-step sequences
+- **Webhook System** - External event notifications with retry logic
+- **Role-Based Permissions** - Granular admin access control
+- **Audit Logs** - Admin action tracking for compliance
+- **Custom Branding** - Logo, colors, fonts per event/team
+- **Custom Domains** - book.yourcompany.com support
+- **AI Features** - Prep notes, session summaries, topic clustering
+- **Custom Reports** - Saved report builder with scheduling
+- **SSO/SAML** - Enterprise single sign-on
+- **API Keys** - External API access with rate limiting
+- **Multi-Language** - Internationalization support
 
 ---
 
@@ -54,12 +88,12 @@ ALTER TABLE oh_admins ADD COLUMN default_buffer_after INTEGER DEFAULT 15;
 ```
 
 #### Features
-- [ ] **Minimum Notice** - Can't book within X hours (e.g., no same-day bookings)
-- [ ] **Booking Window** - Only show slots within next X days
-- [ ] **Daily Limits** - Max meetings per day per host
-- [ ] **Weekly Limits** - Max meetings per week per host
-- [ ] **Buffer Time** - Auto-add padding before/after meetings
-- [ ] **Approval Workflow** - Optional admin approval before confirmation
+- [x] **Minimum Notice** - Can't book within X hours (e.g., no same-day bookings)
+- [x] **Booking Window** - Only show slots within next X days
+- [x] **Daily Limits** - Max meetings per day per host
+- [x] **Weekly Limits** - Max meetings per week per host
+- [x] **Buffer Time** - Auto-add padding before/after meetings
+- [x] **Approval Workflow** - Optional admin approval before confirmation
 
 #### Files to Create/Modify
 - `src/lib/booking-constraints.ts` - Validation logic
@@ -88,12 +122,13 @@ ALTER TABLE oh_events ADD COLUMN guest_limit INTEGER DEFAULT 0;
 ```
 
 #### Features
-- [ ] **One-on-One** - Classic 1:1 meeting (Calendly default)
-- [ ] **Group Sessions** - Current office hours behavior
-- [ ] **Collective** - All selected hosts must be available
-- [ ] **Round-Robin** - Distribute across team (see Phase 2)
-- [ ] **Panel** - Multiple hosts interview one attendee
-- [ ] **Guest Support** - Allow attendees to add +1, +2, etc.
+- [x] **One-on-One** - Classic 1:1 meeting (Calendly default)
+- [x] **Group Sessions** - Current office hours behavior
+- [x] **Collective** - All selected hosts must be available
+- [x] **Round-Robin** - Distribute across team (see Phase 2)
+- [x] **Panel** - Multiple hosts interview one attendee
+- [x] **Webinar** - Large group sessions with multiple co-hosts
+- [x] **Guest Support** - Allow attendees to add +1, +2, etc.
 
 #### Files to Create/Modify
 - `src/types/index.ts` - Add MeetingType enum
@@ -114,11 +149,11 @@ ALTER TABLE oh_bookings ADD COLUMN attendee_timezone VARCHAR(50);
 ```
 
 #### Features
-- [ ] **Auto-detect Timezone** - Detect attendee's timezone via browser
-- [ ] **Timezone Selector** - Let attendees choose their timezone
-- [ ] **Lock Timezone** - Force display in event's timezone
-- [ ] **Timezone in Emails** - Show time in attendee's local timezone
-- [ ] **Admin Timezone Settings** - Per-admin timezone preferences
+- [x] **Auto-detect Timezone** - Detect attendee's timezone via browser
+- [x] **Timezone Selector** - Let attendees choose their timezone
+- [x] **Lock Timezone** - Force display in event's timezone
+- [x] **Timezone in Emails** - Show time in attendee's local timezone
+- [x] **Admin Timezone Settings** - Per-admin timezone preferences
 
 #### Files to Create/Modify
 - `src/lib/timezone.ts` - Timezone utilities
@@ -131,11 +166,11 @@ ALTER TABLE oh_bookings ADD COLUMN attendee_timezone VARCHAR(50);
 ### 1.4 Enhanced Calendar UI
 
 #### Features
-- [ ] **Week View** - See full week of availability
-- [ ] **Month View** - Calendar month picker
-- [ ] **Time Slot Grid** - Visual time picker (like Calendly)
-- [ ] **Mobile-Optimized** - Touch-friendly slot selection
-- [ ] **Loading States** - Skeleton loaders during fetch
+- [x] **Week View** - See full week of availability
+- [x] **Month View** - Calendar month picker
+- [x] **Time Slot Grid** - Visual time picker (like Calendly)
+- [x] **Mobile-Optimized** - Touch-friendly slot selection
+- [x] **Loading States** - Skeleton loaders during fetch
 
 #### Files to Create
 - `src/components/booking/WeekView.tsx`
@@ -195,12 +230,12 @@ CREATE TABLE oh_round_robin_assignments (
 5. **Priority-Based** - Try priority order, fall back if unavailable
 
 #### Features
-- [ ] **Round-Robin Setup UI** - Configure algorithm, members, weights
-- [ ] **Assignment Tracking** - Dashboard showing distribution
-- [ ] **Manual Override** - Reassign booking to different member
-- [ ] **Skip Logic** - Skip members who are busy/OOO
-- [ ] **Reset Periods** - Daily/weekly/monthly counter resets
-- [ ] **Notifications** - Alert member when assigned
+- [x] **Round-Robin Setup UI** - Configure algorithm, members, weights
+- [x] **Assignment Tracking** - Dashboard showing distribution
+- [x] **Manual Override** - Reassign booking to different member
+- [x] **Skip Logic** - Skip members who are busy/OOO
+- [x] **Reset Periods** - Daily/weekly/monthly counter resets
+- [x] **Notifications** - Alert member when assigned (via Slack)
 
 #### Files to Create
 - `src/lib/round-robin.ts` - Core distribution algorithm
@@ -278,7 +313,7 @@ CREATE TABLE oh_meeting_sequences (
 ```
 
 #### Features
-- [ ] **Collective Availability** - Find times when ALL hosts are free
+- [x] **Collective Availability** - Find times when ALL hosts are free
 - [ ] **Sequential Booking** - Book back-to-back meetings with different people
 - [ ] **Gap Time** - Configure breaks between sequential meetings
 - [ ] **Optional Steps** - Some meetings in sequence can be skipped
@@ -342,10 +377,10 @@ CREATE TABLE oh_routing_actions (
 - **Block** - Don't allow booking (with message)
 
 #### Features
-- [ ] **Visual Rule Builder** - Drag-and-drop condition builder
-- [ ] **Rule Testing** - Test rules with sample data
-- [ ] **Rule Priority** - First matching rule wins
-- [ ] **Fallback Behavior** - What happens if no rules match
+- [x] **Visual Rule Builder** - Drag-and-drop condition builder
+- [x] **Rule Testing** - Test rules with sample data
+- [x] **Rule Priority** - First matching rule wins
+- [x] **Fallback Behavior** - What happens if no rules match
 - [ ] **Rule Analytics** - Track which rules fire most
 
 #### Files to Create
@@ -386,7 +421,7 @@ CREATE TABLE oh_qualification_results (
 ```
 
 #### Features
-- [ ] **Qualification Form** - Pre-booking questionnaire
+- [x] **Qualification Form** - Pre-booking questionnaire (via custom questions)
 - [ ] **Lead Scoring** - Points-based qualification
 - [ ] **Disqualification** - Automatic "not a fit" with custom message
 - [ ] **Conditional Questions** - Show questions based on previous answers
@@ -404,11 +439,11 @@ CREATE TABLE oh_qualification_results (
 ### 3.3 Instant Booking Widget (Concierge)
 
 #### Features
-- [ ] **Embeddable Form** - JavaScript snippet for any website
-- [ ] **Inline Calendar** - Show availability within form
-- [ ] **Form-to-Meeting** - Submit form → immediately book
-- [ ] **Routing in Widget** - Apply routing rules in real-time
-- [ ] **Conversion Tracking** - Track form → booking conversion
+- [x] **Embeddable Form** - JavaScript snippet for any website
+- [x] **Inline Calendar** - Show availability within form
+- [x] **Form-to-Meeting** - Submit form → immediately book
+- [x] **Routing in Widget** - Apply routing rules in real-time
+- [x] **Conversion Tracking** - Track form → booking conversion
 - [ ] **Customizable Design** - Match host website branding
 
 #### Files to Create
@@ -532,35 +567,16 @@ CREATE TABLE oh_custom_domains (
 
 ---
 
-### 4.3 SMS Notifications (Twilio)
+### 4.3 SMS Notifications (Multi-Provider) ✅
 
-#### Database Changes
-```sql
-CREATE TABLE oh_sms_config (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  twilio_account_sid VARCHAR(100),
-  twilio_auth_token_encrypted VARCHAR(500),
-  twilio_phone_number VARCHAR(20),
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE oh_bookings ADD COLUMN phone_number VARCHAR(20);
-ALTER TABLE oh_bookings ADD COLUMN sms_reminder_sent_at TIMESTAMPTZ;
-ALTER TABLE oh_bookings ADD COLUMN sms_opt_in BOOLEAN DEFAULT false;
-
-ALTER TABLE oh_events ADD COLUMN collect_phone BOOLEAN DEFAULT false;
-ALTER TABLE oh_events ADD COLUMN phone_required BOOLEAN DEFAULT false;
-ALTER TABLE oh_events ADD COLUMN sms_reminder_enabled BOOLEAN DEFAULT false;
-ALTER TABLE oh_events ADD COLUMN sms_reminder_minutes INTEGER DEFAULT 60;
-```
+**Status:** Implemented with Aircall, Twilio, and MessageBird support.
 
 #### Features
-- [ ] **Phone Collection** - Optional/required phone on booking form
-- [ ] **SMS Opt-in** - TCPA-compliant opt-in checkbox
-- [ ] **Confirmation SMS** - Send booking confirmation via SMS
-- [ ] **Reminder SMS** - Send reminder X minutes before
-- [ ] **Cancellation SMS** - Notify of cancellation
+- [x] **Phone Collection** - Optional/required phone on booking form
+- [x] **SMS Opt-in** - TCPA-compliant opt-in checkbox
+- [x] **Confirmation SMS** - Send booking confirmation via SMS
+- [x] **Reminder SMS** - Send reminder X minutes before (24h and 1h)
+- [x] **Cancellation SMS** - Notify of cancellation
 - [ ] **Two-Way SMS** - Reply to cancel/reschedule (advanced)
 
 #### Files to Create
@@ -619,8 +635,8 @@ ALTER TABLE oh_events ADD COLUMN show_reschedule_link BOOLEAN DEFAULT true;
 #### Features
 - [ ] **Custom Confirmation** - Custom HTML/content after booking
 - [ ] **Redirect** - Send to external URL after booking
-- [ ] **Conversion Tracking** - Fire pixels/scripts on confirmation
-- [ ] **Next Steps** - Show what happens next
+- [x] **Conversion Tracking** - Fire pixels/scripts on confirmation
+- [x] **Next Steps** - Show what happens next
 - [ ] **Social Sharing** - Share booking on social media
 
 #### Files to Create
@@ -862,11 +878,11 @@ CREATE TABLE oh_conversion_funnels (
 - **Lead Quality**: Qualification scores, conversion by source
 
 #### Features
-- [ ] **Conversion Funnel** - Visualize booking funnel
-- [ ] **Source Attribution** - Track where bookings come from
-- [ ] **Time Analysis** - Popular days/times
-- [ ] **Host Leaderboard** - Compare host metrics
-- [ ] **Trend Charts** - Week-over-week, month-over-month
+- [x] **Conversion Funnel** - Visualize booking funnel
+- [x] **Source Attribution** - Track where bookings come from (UTM params)
+- [x] **Time Analysis** - Popular days/times
+- [x] **Host Leaderboard** - Compare host metrics (Team Health)
+- [x] **Trend Charts** - Week-over-week, month-over-month
 - [ ] **Export to CSV** - Download raw data
 - [ ] **Scheduled Reports** - Email weekly/monthly reports
 
@@ -1208,10 +1224,10 @@ ALTER TABLE oh_events ADD COLUMN waitlist_notification_hours INTEGER DEFAULT 24;
 ```
 
 #### Features
-- [ ] **Join Waitlist** - Add to waitlist when slots full
-- [ ] **Queue Position** - Show position in queue
-- [ ] **Auto-Notification** - Email when slot opens
-- [ ] **Time-Limited Booking** - X hours to book before next in line
+- [x] **Join Waitlist** - Add to waitlist when slots full
+- [x] **Queue Position** - Show position in queue
+- [x] **Auto-Notification** - Email when slot opens
+- [x] **Time-Limited Booking** - X hours to book before next in line
 - [ ] **Waitlist Analytics** - Track waitlist conversion
 
 #### Files to Create
@@ -1301,88 +1317,87 @@ CREATE TABLE oh_outcome_metrics (
 
 ## Implementation Priority Matrix
 
-| Phase | Effort | Impact | Dependencies | Priority |
-|-------|--------|--------|--------------|----------|
-| 1.1 Booking Constraints | Small | High | None | **P0** |
-| 1.2 Meeting Types | Medium | High | None | **P0** |
-| 1.3 Timezone Support | Medium | High | None | **P0** |
-| 1.4 Calendar UI | Medium | Medium | None | **P1** |
-| 2.1 Round-Robin | Large | High | Meeting Types | **P1** |
-| 2.2 Team Pages | Medium | Medium | None | **P2** |
-| 2.3 Collective/Sequential | Large | Medium | Meeting Types | **P2** |
-| 3.1 Routing Rules | Large | High | Round-Robin | **P1** |
-| 3.2 Lead Qualification | Medium | High | None | **P1** |
-| 3.3 Embed Widget | Large | High | Routing | **P2** |
-| 3.4 Account Routing | Medium | Medium | Routing | **P2** |
-| 4.1 Custom Branding | Medium | Medium | None | **P2** |
-| 4.2 Custom Domains | Large | Medium | Branding | **P3** |
-| 4.3 SMS (Twilio) | Medium | Medium | None | **P2** |
-| 4.4 Multi-Language | Large | Low | None | **P3** |
-| 4.5 Confirmation Page | Small | Medium | None | **P2** |
-| 5.1 Workflow Engine | Large | High | None | **P1** |
-| 5.2 Reminder Sequences | Medium | High | Workflows | **P1** |
-| 5.3 Webhooks | Medium | High | None | **P1** |
-| 6.1 Analytics Dashboard | Medium | High | None | **P1** |
-| 6.2 Custom Reports | Medium | Medium | Analytics | **P2** |
-| 7.1 Role Permissions | Medium | High | None | **P1** |
-| 7.2 Audit Logs | Medium | Medium | None | **P2** |
-| 7.3 SSO/SAML | Large | Medium | Permissions | **P3** |
-| 7.4 API Access | Large | Medium | Permissions | **P2** |
-| 7.5 White-Labeling | Small | Low | Branding | **P3** |
-| 8.1 AI Features | Large | High | None | **P2** |
-| 8.2 Waitlist | Medium | Medium | None | **P2** |
-| 8.3 Session Series | Medium | Medium | None | **P2** |
-| 8.4 Outcome Tracking | Small | Medium | None | **P2** |
+| Phase | Effort | Impact | Dependencies | Priority | Status |
+|-------|--------|--------|--------------|----------|--------|
+| 1.1 Booking Constraints | Small | High | None | **P0** | ✅ Done |
+| 1.2 Meeting Types | Medium | High | None | **P0** | ✅ Done |
+| 1.3 Timezone Support | Medium | High | None | **P0** | ✅ Done |
+| 1.4 Calendar UI | Medium | Medium | None | **P1** | ✅ Done |
+| 2.1 Round-Robin | Large | High | Meeting Types | **P1** | ✅ Done |
+| 2.2 Team Pages | Medium | Medium | None | **P2** | 🚧 Not Started |
+| 2.3 Collective/Sequential | Large | Medium | Meeting Types | **P2** | 🔄 Partial |
+| 3.1 Routing Rules | Large | High | Round-Robin | **P1** | ✅ Done |
+| 3.2 Lead Qualification | Medium | High | None | **P1** | 🔄 Partial |
+| 3.3 Embed Widget | Large | High | Routing | **P2** | ✅ Done |
+| 3.4 Account Routing | Medium | Medium | Routing | **P2** | 🚧 Not Started |
+| 4.1 Custom Branding | Medium | Medium | None | **P2** | 🚧 Not Started |
+| 4.2 Custom Domains | Large | Medium | Branding | **P3** | 🚧 Not Started |
+| 4.3 SMS (Multi-Provider) | Medium | Medium | None | **P2** | ✅ Done |
+| 4.4 Multi-Language | Large | Low | None | **P3** | 🚧 Not Started |
+| 4.5 Confirmation Page | Small | Medium | None | **P2** | 🔄 Partial |
+| 5.1 Workflow Engine | Large | High | None | **P1** | 🚧 Not Started |
+| 5.2 Reminder Sequences | Medium | High | Workflows | **P1** | ✅ Done (via cron) |
+| 5.3 Webhooks | Medium | High | None | **P1** | 🚧 Not Started |
+| 6.1 Analytics Dashboard | Medium | High | None | **P1** | ✅ Done |
+| 6.2 Custom Reports | Medium | Medium | Analytics | **P2** | 🚧 Not Started |
+| 7.1 Role Permissions | Medium | High | None | **P1** | 🚧 Not Started |
+| 7.2 Audit Logs | Medium | Medium | None | **P2** | 🚧 Not Started |
+| 7.3 SSO/SAML | Large | Medium | Permissions | **P3** | 🚧 Not Started |
+| 7.4 API Access | Large | Medium | Permissions | **P2** | 🚧 Not Started |
+| 7.5 White-Labeling | Small | Low | Branding | **P3** | 🚧 Not Started |
+| 8.1 AI Features | Large | High | None | **P2** | 🚧 Not Started |
+| 8.2 Waitlist | Medium | Medium | None | **P2** | ✅ Done |
+| 8.3 Session Series | Medium | Medium | None | **P2** | 🔄 Partial |
+| 8.4 Outcome Tracking | Small | Medium | None | **P2** | 🔄 Partial |
 
 ---
 
-## Suggested Sprint Plan
+## Sprint Plan
 
-### Sprint 1-2: Core Foundation (P0)
-- [ ] 1.1 Booking Constraints (min notice, limits, buffers)
-- [ ] 1.2 Meeting Types (one-on-one, collective)
-- [ ] 1.3 Timezone Support
+### ✅ Completed Sprints
 
-### Sprint 3-4: Team & Distribution (P1)
-- [ ] 2.1 Round-Robin Engine
-- [ ] 7.1 Role-Based Permissions
-- [ ] 5.3 Webhook System
+#### Sprint 1-2: Core Foundation (P0) - DONE
+- [x] 1.1 Booking Constraints (min notice, limits, buffers)
+- [x] 1.2 Meeting Types (one-on-one, collective, round-robin, panel, webinar)
+- [x] 1.3 Timezone Support
+- [x] 1.4 Enhanced Calendar UI
 
-### Sprint 5-6: Routing & Qualification (P1)
-- [ ] 3.1 Routing Rules Engine
-- [ ] 3.2 Lead Qualification
-- [ ] 6.1 Analytics Dashboard
+#### Sprint 3-4: Team & Distribution (P1) - DONE
+- [x] 2.1 Round-Robin Engine (4 strategies)
+- [x] 3.1 Routing Rules Engine
+- [x] 6.1 Analytics Dashboard
 
-### Sprint 7-8: Automation (P1)
-- [ ] 5.1 Workflow Engine
-- [ ] 5.2 Reminder Sequences
-- [ ] 1.4 Enhanced Calendar UI
+#### Sprint 5-6: Attendee Experience (P2) - DONE
+- [x] 4.3 SMS Notifications (multi-provider)
+- [x] 3.3 Embeddable Widget
+- [x] 8.2 Waitlist Management
 
-### Sprint 9-10: Attendee Experience (P2)
-- [ ] 4.1 Custom Branding
-- [ ] 4.3 SMS Notifications
-- [ ] 4.5 Confirmation Pages
-- [ ] 3.3 Embeddable Widget
+---
 
-### Sprint 11-12: Power Features (P2)
-- [ ] 8.1 AI Features (prep notes, summaries)
-- [ ] 8.2 Waitlist Management
-- [ ] 6.2 Custom Reports
+### 🚧 Next Up
+
+#### Sprint 7-8: Automation & Enterprise (P1)
+- [ ] 5.1 Workflow Engine - Visual automation builder
+- [ ] 5.3 Webhook System - External integrations
+- [ ] 7.1 Role-Based Permissions - Admin access control
+
+#### Sprint 9-10: Power Features (P2)
+- [ ] 8.1 AI Features (prep notes, session summaries, topic clustering)
+- [ ] 4.1 Custom Branding (logo, colors, fonts)
+- [ ] 6.2 Custom Reports (saved reports, scheduling)
 - [ ] 7.2 Audit Logs
 
-### Sprint 13-14: Advanced (P2)
+#### Sprint 11-12: Advanced (P2)
 - [ ] 2.2 Team Booking Pages
-- [ ] 2.3 Collective/Sequential
+- [ ] 2.3 Sequential Booking (remaining features)
 - [ ] 3.4 Account-Based Routing
 - [ ] 7.4 API Access
 
-### Sprint 15-16: Enterprise (P3)
+#### Sprint 13-14: Enterprise (P3)
 - [ ] 7.3 SSO/SAML
 - [ ] 4.2 Custom Domains
 - [ ] 4.4 Multi-Language
 - [ ] 7.5 White-Labeling
-- [ ] 8.3 Session Series
-- [ ] 8.4 Outcome Tracking
 
 ---
 
