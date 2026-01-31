@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-01-30-feedback-button',
+    date: '2026-01-30',
+    title: 'Send Feedback Button',
+    description: 'Easily report bugs, share suggestions, or ask questions right from the app.',
+    category: 'feature',
+    details: [
+      'Click the chat bubble icon in the header (next to Help)',
+      'Choose a category: Bug, Suggestion, or Question',
+      'Your feedback is sent directly to the team via Slack',
+      'We\'ll see which page you were on when you submitted',
+    ],
+  },
+  {
     id: '2026-01-30-performance-improvements',
     date: '2026-01-30',
     title: 'Dashboard Performance Improvements',
