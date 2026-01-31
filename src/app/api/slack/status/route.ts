@@ -23,5 +23,6 @@ export async function GET() {
     notify_on_booking: config.notify_on_booking,
     daily_digest: config.daily_digest,
     post_session_summary: config.post_session_summary,
+    feedback_webhook_url: config.feedback_webhook_url ? '***configured***' : null,
   });
 }

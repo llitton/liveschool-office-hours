@@ -44,7 +44,9 @@ function IntegrationsContent() {
   // Slack webhook form
   const [slackWebhook, setSlackWebhook] = useState('');
   const [slackChannel, setSlackChannel] = useState('');
+  const [feedbackWebhook, setFeedbackWebhook] = useState('');
   const [savingSlack, setSavingSlack] = useState(false);
+  const [savingFeedbackWebhook, setSavingFeedbackWebhook] = useState(false);
   const [showSlackSetup, setShowSlackSetup] = useState(false);
   const [testingSlack, setTestingSlack] = useState(false);
 
@@ -101,6 +103,9 @@ function IntegrationsContent() {
         }
         if (data.default_channel) {
           setSlackChannel(data.default_channel);
+        }
+        if (data.feedback_webhook_url) {
+          setFeedbackWebhook(data.feedback_webhook_url);
         }
       } else {
         setSlackStatus({ connected: false });
@@ -209,6 +214,28 @@ function IntegrationsContent() {
       setMessage({ type: 'error', text: 'Failed to send test message' });
     } finally {
       setTestingSlack(false);
+    }
+  };
+
+  const saveFeedbackWebhook = async () => {
+    setSavingFeedbackWebhook(true);
+    try {
+      const response = await fetch('/api/slack/feedback-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback_webhook_url: feedbackWebhook || null }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: feedbackWebhook ? 'Feedback webhook saved!' : 'Feedback webhook removed.' });
+      } else {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'Failed to save feedback webhook' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Failed to save feedback webhook' });
+    } finally {
+      setSavingFeedbackWebhook(false);
     }
   };
 
@@ -587,7 +614,7 @@ function IntegrationsContent() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 mb-6">
                     <button
                       onClick={testSlackConnection}
                       disabled={testingSlack}
@@ -601,6 +628,36 @@ function IntegrationsContent() {
                     >
                       Update webhook
                     </button>
+                  </div>
+
+                  {/* Feedback Webhook */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-medium text-[#101E57] mb-2">Feedback Notifications</h4>
+                    <p className="text-xs text-[#667085] mb-3">
+                      Receive bug reports and suggestions from team members in a separate channel (or as a DM).
+                      Create a new incoming webhook in Slack for this.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="url"
+                        value={feedbackWebhook}
+                        onChange={(e) => setFeedbackWebhook(e.target.value)}
+                        placeholder="https://hooks.slack.com/services/..."
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57] font-mono text-sm"
+                      />
+                      <button
+                        onClick={saveFeedbackWebhook}
+                        disabled={savingFeedbackWebhook}
+                        className="bg-[#4A154B] text-white px-4 py-2 rounded-lg hover:bg-[#3c1040] transition disabled:opacity-50 font-medium text-sm whitespace-nowrap"
+                      >
+                        {savingFeedbackWebhook ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                    {feedbackWebhook && (
+                      <p className="text-xs text-green-600 mt-2">
+                        ✓ Feedback notifications will be sent to this webhook
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

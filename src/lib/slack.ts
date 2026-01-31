@@ -8,6 +8,7 @@ interface SlackConfig {
   daily_digest: boolean;
   post_session_summary: boolean;
   is_active: boolean;
+  feedback_webhook_url?: string | null;
 }
 
 interface SlackMessage {
@@ -529,7 +530,7 @@ export async function sendDetailedSessionSummary(session: {
 }
 
 /**
- * Send user feedback notification to Slack
+ * Send user feedback notification to Slack (uses separate feedback webhook)
  */
 export async function notifyUserFeedback(feedback: {
   name: string;
@@ -539,7 +540,9 @@ export async function notifyUserFeedback(feedback: {
   pageUrl?: string;
 }): Promise<boolean> {
   const config = await getSlackConfig();
-  if (!config || !config.webhook_url) {
+  // Use separate feedback webhook - if not configured, skip notification
+  if (!config || !config.feedback_webhook_url) {
+    slackLogger.debug('Feedback webhook not configured, skipping', { operation: 'notifyUserFeedback' });
     return false;
   }
 
@@ -595,7 +598,18 @@ export async function notifyUserFeedback(feedback: {
     } as SlackBlock);
   }
 
-  return sendSlackMessage(message);
+  // Send directly to feedback webhook (not the main booking webhook)
+  try {
+    const response = await fetch(config.feedback_webhook_url!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('[Slack] Failed to send feedback notification:', error);
+    return false;
+  }
 }
 
 /**
