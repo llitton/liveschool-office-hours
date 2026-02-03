@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 
 // POST submit votes (public - no auth required)
 export async function POST(
@@ -9,7 +9,10 @@ export async function POST(
 ) {
   const { id: pollId } = await params;
 
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
+  }
   const {
     voter_name,
     voter_email,

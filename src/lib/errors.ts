@@ -147,6 +147,20 @@ export function createApiError(
 }
 
 /**
+ * Safely parse JSON from a Request body.
+ * Returns the parsed body, or null if the body is missing/malformed.
+ */
+export async function safeParseJSON<T = Record<string, unknown>>(
+  request: Request
+): Promise<T | null> {
+  try {
+    return await request.json() as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Common user-friendly error messages for specific scenarios
  */
 export const CommonErrors = {

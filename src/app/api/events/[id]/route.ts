@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 
 // GET single event
 export async function GET(
@@ -101,7 +101,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
+  }
   const supabase = getServiceSupabase();
 
   // Filter body to only include allowed fields
@@ -151,6 +154,38 @@ export async function DELETE(
 
   const { id } = await params;
   const supabase = getServiceSupabase();
+
+  // Check for active (non-cancelled) bookings
+  const { data: slots } = await supabase
+    .from('oh_slots')
+    .select('id')
+    .eq('event_id', id);
+
+  if (slots && slots.length > 0) {
+    const slotIds = slots.map((s) => s.id);
+
+    const { count } = await supabase
+      .from('oh_bookings')
+      .select('id', { count: 'exact', head: true })
+      .in('slot_id', slotIds)
+      .is('cancelled_at', null);
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete event with ${count} active booking(s). Cancel them first.` },
+        { status: 400 }
+      );
+    }
+
+    // Delete bookings (cancelled ones) for these slots
+    await supabase.from('oh_bookings').delete().in('slot_id', slotIds);
+  }
+
+  // Clean up related data before deleting the event
+  await supabase.from('oh_slots').delete().eq('event_id', id);
+  await supabase.from('oh_event_hosts').delete().eq('event_id', id);
+  await supabase.from('oh_round_robin_state').delete().eq('event_id', id);
+  await supabase.from('oh_prep_resources').delete().eq('event_id', id);
 
   const { error } = await supabase.from('oh_events').delete().eq('id', id);
 

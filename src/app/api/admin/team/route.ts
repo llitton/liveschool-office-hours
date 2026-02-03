@@ -233,6 +233,38 @@ export async function DELETE(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // Check if admin is the sole host_email on any active events
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('email')
+    .eq('id', adminId)
+    .single();
+
+  if (!admin) {
+    return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+  }
+
+  const { data: ownedEvents } = await supabase
+    .from('oh_events')
+    .select('id, name')
+    .eq('host_email', admin.email)
+    .eq('is_active', true);
+
+  if (ownedEvents && ownedEvents.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Cannot remove team member who is the primary host of ${ownedEvents.length} active event(s). Reassign or deactivate them first.`,
+        events: ownedEvents.map((e) => e.name),
+      },
+      { status: 400 }
+    );
+  }
+
+  // Clean up related data
+  await supabase.from('oh_event_hosts').delete().eq('admin_id', adminId);
+  await supabase.from('oh_availability_patterns').delete().eq('admin_id', adminId);
+  await supabase.from('oh_busy_blocks').delete().eq('admin_id', adminId);
+
   const { error } = await supabase.from('oh_admins').delete().eq('id', adminId);
 
   if (error) {

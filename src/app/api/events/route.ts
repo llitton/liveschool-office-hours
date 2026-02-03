@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 
 // GET all events (public)
 export async function GET() {
@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
+  }
   const {
     name,
     slug,
@@ -97,6 +100,27 @@ export async function POST(request: NextRequest) {
   if (!name || !slug) {
     return NextResponse.json(
       { error: 'Name and slug are required' },
+      { status: 400 }
+    );
+  }
+
+  if (typeof name !== 'string' || name.length > 200) {
+    return NextResponse.json(
+      { error: 'Event name must be 200 characters or less' },
+      { status: 400 }
+    );
+  }
+
+  if (typeof slug !== 'string' || slug.length > 100) {
+    return NextResponse.json(
+      { error: 'Event slug must be 100 characters or less' },
+      { status: 400 }
+    );
+  }
+
+  if (description && (typeof description !== 'string' || description.length > 5000)) {
+    return NextResponse.json(
+      { error: 'Description must be 5000 characters or less' },
       { status: 400 }
     );
   }

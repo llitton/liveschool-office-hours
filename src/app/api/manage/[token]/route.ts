@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { sendEmail, removeAttendeeFromEvent } from '@/lib/google';
-import { CommonErrors } from '@/lib/errors';
+import { CommonErrors, safeParseJSON } from '@/lib/errors';
 import {
   processTemplate,
   createEmailVariables,
@@ -79,7 +79,10 @@ export async function PUT(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
+  }
   const { new_slot_id } = body;
 
   if (!new_slot_id) {
@@ -382,6 +385,25 @@ async function promoteFromWaitlist(
   admin: { google_access_token: string | null; google_refresh_token: string | null } | null,
   supabase: ReturnType<typeof getServiceSupabase>
 ) {
+  // Check that the slot still has capacity before promoting
+  const { count: activeCount } = await supabase
+    .from('oh_bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('slot_id', slotId)
+    .is('cancelled_at', null)
+    .eq('is_waitlisted', false);
+
+  const { data: slotEvent } = await supabase
+    .from('oh_slots')
+    .select('event:oh_events!event_id(max_attendees)')
+    .eq('id', slotId)
+    .single();
+
+  const maxAttendees = (slotEvent?.event as { max_attendees: number } | null)?.max_attendees ?? 1;
+  if ((activeCount ?? 0) >= maxAttendees) {
+    return; // Slot is full, don't promote
+  }
+
   // Get the first waitlisted booking
   const { data: nextInLine, error } = await supabase
     .from('oh_bookings')

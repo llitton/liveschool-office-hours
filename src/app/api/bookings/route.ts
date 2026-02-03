@@ -16,6 +16,7 @@ import { formatPhoneE164 } from '@/lib/sms';
 import { checkTimeAvailability } from '@/lib/availability';
 import { validateEmail } from '@/lib/email-validation';
 import { bookingLogger } from '@/lib/logger';
+import { CommonErrors, safeParseJSON } from '@/lib/errors';
 import type { OHAdmin } from '@/types';
 import { parseISO, format, addHours, addDays, addMinutes, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import crypto from 'crypto';
@@ -66,7 +67,10 @@ async function syncBookingToHubSpot(
 
 // POST create booking (public)
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
+  }
   let { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent, event_id, guest_emails, analytics_session_id } = body;
 
   // Validate guest_emails if provided

@@ -12,6 +12,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-data-integrity',
+    date: '2026-02-03',
+    title: 'Data Integrity & API Robustness',
+    description: 'Safer deletions, better input validation, and more resilient API endpoints.',
+    category: 'fix',
+    details: [
+      'Deleting events now properly cleans up all related data (slots, bookings, hosts, resources)',
+      'Removing a team member checks for active events first and cleans up related records',
+      'Deleting polls now removes all votes, options, and invitees',
+      'Public API endpoints now handle malformed request bodies gracefully',
+      'Waitlist promotions verify slot capacity before promoting to prevent overbooking',
+      'Bulk operations are capped at 50 events per request',
+      'Event creation validates name, slug, and description length limits',
+    ],
+  },
+  {
     id: '2026-02-03-performance-reliability',
     date: '2026-02-03',
     title: 'Performance & Reliability Improvements',

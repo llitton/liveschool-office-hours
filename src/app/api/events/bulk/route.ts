@@ -28,6 +28,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (eventIds.length > 50) {
+      return NextResponse.json(
+        { error: 'Maximum 50 events per bulk operation' },
+        { status: 400 }
+      );
+    }
+
     if (!['disable', 'enable', 'delete', 'duplicate'].includes(action)) {
       return NextResponse.json(
         { error: 'Invalid action. Allowed: disable, enable, delete, duplicate' },

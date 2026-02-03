@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { safeParseJSON } from '@/lib/errors';
 
 // GET feedback form data (public, uses manage token)
 export async function GET(
@@ -51,7 +52,10 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { rating, comment, topics_for_next_time } = body;
 
   const numRating = Number(rating);

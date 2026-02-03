@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 
 // GET poll details with all votes
 export async function GET(
@@ -91,7 +91,10 @@ export async function PATCH(
     return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
+  }
   const { action } = body;
 
   const supabase = getServiceSupabase();
@@ -194,12 +197,38 @@ export async function DELETE(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Verify ownership and delete
+  // Verify ownership
+  const { data: poll } = await supabase
+    .from('oh_polls')
+    .select('id, host_id')
+    .eq('id', id)
+    .eq('host_id', admin.id)
+    .single();
+
+  if (!poll) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
+  // Get option IDs for cascading vote deletion
+  const { data: options } = await supabase
+    .from('oh_poll_options')
+    .select('id')
+    .eq('poll_id', id);
+
+  if (options && options.length > 0) {
+    const optionIds = options.map((o) => o.id);
+    await supabase.from('oh_poll_votes').delete().in('option_id', optionIds);
+  }
+
+  // Clean up related data
+  await supabase.from('oh_poll_options').delete().eq('poll_id', id);
+  await supabase.from('oh_poll_invitees').delete().eq('poll_id', id);
+
+  // Delete the poll
   const { error } = await supabase
     .from('oh_polls')
     .delete()
-    .eq('id', id)
-    .eq('host_id', admin.id);
+    .eq('id', id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
