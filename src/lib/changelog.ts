@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-reliability-fixes',
+    date: '2026-02-03',
+    title: 'Reliability & Security Improvements',
+    description: 'Deployed 12 fixes to improve booking reliability, API timeouts, and input validation.',
+    category: 'fix',
+    details: [
+      'Fixed booking limits enforcement so daily/weekly caps work correctly',
+      'All external API calls (Slack, HubSpot, SMS) now have timeouts to prevent hangs',
+      'Booking page auto-refreshes slots every 60 seconds so you see the latest availability',
+      'Improved input validation on feedback ratings and reschedule requests',
+      'Cron jobs now report errors properly instead of silently succeeding',
+    ],
+  },
+  {
     id: '2026-02-02-booking-health-monitor',
     date: '2026-02-02',
     title: 'Booking Health Monitor',

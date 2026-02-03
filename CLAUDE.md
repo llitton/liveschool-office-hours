@@ -298,6 +298,7 @@ tests/
 │       ├── events.test.ts               # Event CRUD operations (13 tests)
 │       ├── feedback.test.ts             # Feedback submission (8 tests)
 │       ├── manage.test.ts               # Manage/cancel bookings (8 tests)
+│       ├── reliability.test.ts          # Reliability fixes validation (13 tests)
 │       ├── send-followup.test.ts        # Follow-up emails (10 tests)
 │       ├── slots.test.ts               # Slot generation API (11 tests)
 │       └── verify-migrations.test.ts    # Migration verification (6 tests)
@@ -374,10 +375,11 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-bo
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
+| Reliability Fixes | 13 | `reliability.ts` |
 | **Total Unit Tests** | **498** | 16 lib modules + 1 component |
-| **Integration Tests** | **98** | 12 API test files |
+| **Integration Tests** | **111** | 13 API test files |
 | **E2E Tests** | **9** | 1 critical flow test file |
-| **Grand Total** | **605** | All test files |
+| **Grand Total** | **618** | All test files |
 
 ### Writing Tests
 
@@ -831,7 +833,7 @@ When a booking is created, the API returns integration status:
 The booking confirmation page shows a warning banner if calendar/email failed.
 
 ### Serverless Background Tasks
-Vercel serverless functions terminate shortly after the response is returned. **"Fire and forget" patterns don't work reliably.**
+Vercel serverless functions terminate shortly after the response is returned. **All async operations must be awaited before returning the response.**
 
 **What doesn't work:**
 ```typescript
@@ -842,16 +844,64 @@ someAsyncTask().catch(console.error);  // fire and forget
 
 **What works:**
 ```typescript
-// DO THIS - await before returning response
-await someAsyncTask();  // runs synchronously
+// DO THIS - await with timeout to prevent blocking
+try {
+  await Promise.race([
+    externalApiCall(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+  ]);
+} catch (err) {
+  console.error('External API failed:', err);  // log but don't fail the request
+}
 return NextResponse.json(result);
 ```
 
 **Guidelines:**
-- Critical operations (Slack notifications, analytics) must complete before response
-- Non-critical operations (HubSpot sync) can use fire-and-forget but may fail silently
-- If an external API is slow (>2s), consider skipping enrichment rather than blocking
-- Add timeouts to prevent slow APIs from blocking the response
+- **All operations must be awaited** before returning the response — no fire-and-forget
+- Use `Promise.race` with a timeout for external APIs (HubSpot, Slack, etc.)
+- Slack webhooks: 5s timeout via `AbortController`
+- HubSpot sync: 5s timeout via `Promise.race`
+- SMS providers (Twilio, Aircall): 10s timeout via `AbortController`
+- Analytics tracking: awaited directly (fast DB insert, no timeout needed)
+- Non-critical failures should be caught and logged, not propagated to the user
+
+### External API Timeout Conventions
+All `fetch()` calls to external services **must** include a timeout:
+
+```typescript
+// Use AbortController for fetch-based calls
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 5000);
+const response = await fetch(url, { signal: controller.signal });
+clearTimeout(timeoutId);
+
+// Use Promise.race for non-fetch async calls
+await Promise.race([
+  asyncOperation(),
+  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+]);
+```
+
+**Standard timeouts:**
+| Service | Timeout | Method |
+|---------|---------|--------|
+| Slack webhooks | 5s | `AbortController` |
+| HubSpot API | 5s | `Promise.race` |
+| Twilio SMS | 10s | `AbortController` |
+| Aircall SMS | 10s | `AbortController` |
+
+### Cron Job Safety
+Cron jobs running on Vercel have execution time limits. Follow these patterns:
+- **Batch limits:** Process max 100 items per run to prevent timeout (e.g., reminder emails)
+- **Error reporting:** Return `503` when >50% of operations fail (not `{ success: true }`)
+- **Token refresh:** Google OAuth2 client handles refresh automatically when `refresh_token` is provided
+- **Idempotency:** Use sent-at timestamp fields to prevent duplicate sends
+
+### Input Validation
+Validate all user inputs at API boundaries:
+- **UUID fields:** Validate format with `/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i`
+- **Rating fields:** Must be integer 1-5 (`Number.isInteger(n) && n >= 1 && n <= 5`)
+- **Capacity checks:** Re-verify slot capacity immediately before booking/rescheduling updates
 
 ### Structured Logging
 Use `src/lib/logger.ts` for consistent logging instead of `console.log`:
@@ -910,7 +960,8 @@ CHECK constraints prevent invalid data at the database level:
 - API routes return `{ error: string }` on failure with appropriate status codes
 - Use `getUserFriendlyError()` or `CommonErrors` for error responses (not raw error.message)
 - Supabase queries use `getServiceSupabase()` for server-side operations
-- **Supabase foreign key joins must use explicit syntax:** `event:oh_events!event_id(*)` not `event:oh_events(*)` — implicit joins can fail silently
+- **Supabase foreign key joins must use explicit syntax:** `event:oh_events!event_id(*)` not `event:oh_events(*)` — implicit joins silently return null instead of failing, which caused a production booking outage on 2026-02-02. All 161 joins across the codebase now use explicit `!fk_column` syntax
+- **Supabase filter paths must use alias names:** When filtering on joined tables, use the alias from the select (e.g., `.eq('slot.event_id', id)` not `.eq('typedSlot.event_id', id)`) — JavaScript variable names don't work as PostgREST filter paths
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint) - use `/api/events/check-slug` to validate before creation
