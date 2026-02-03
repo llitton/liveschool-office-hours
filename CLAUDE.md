@@ -292,8 +292,55 @@ tests/
 │       └── slots.test.ts             # Slot generation API (11 tests)
 └── e2e/
     ├── booking-flow.spec.ts          # Public booking flows
+    ├── critical-booking-flow.spec.ts # Critical path monitoring (9 tests)
     └── round-robin-booking.spec.ts   # Team booking + admin UI
 ```
+
+### Critical Booking Flow Tests
+
+The `critical-booking-flow.spec.ts` file contains tests specifically designed to catch issues like the "slot not found" bug. These tests:
+
+1. **Test the exact database queries** used in booking creation
+2. **Verify slot-event joins** work correctly (the query that broke)
+3. **Test the full booking form submission** flow
+4. **Validate API error handling** for malformed inputs
+
+**Run locally:**
+```bash
+npm run test:e2e -- tests/e2e/critical-booking-flow.spec.ts
+```
+
+**Monitor production:**
+```bash
+MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-booking-flow.spec.ts
+```
+
+### Booking Health Check Endpoint
+
+`GET /api/health/booking` - Tests critical booking database queries.
+
+**What it checks:**
+- Slots table query
+- Slot-event foreign key join (the query that broke)
+- Bookings count query
+- Full booking slot query with all joins
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "checks": {
+    "slots_query": { "status": "ok", "latency_ms": 45 },
+    "slot_event_join": { "status": "ok", "latency_ms": 52 },
+    "bookings_count": { "status": "ok", "latency_ms": 38 },
+    "booking_slot_query": { "status": "ok", "latency_ms": 67 }
+  },
+  "latency_ms": 210,
+  "timestamp": "2026-02-03T03:30:00.000Z"
+}
+```
+
+**Use for monitoring:** Set up an external monitor (e.g., Uptime Robot, Pingdom) to hit this endpoint every 5-15 minutes. Alert if status is not `ok` or if latency exceeds thresholds.
 
 ### Test Coverage Areas
 
