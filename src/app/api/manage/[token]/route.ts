@@ -8,7 +8,7 @@ import {
   defaultTemplates,
   htmlifyEmailBody,
 } from '@/lib/email-templates';
-import { generateCancellationEmailHtml } from '@/lib/email-html';
+import { generateCancellationEmailHtml, escapeHtml } from '@/lib/email-html';
 import { updateMeetingOutcome } from '@/lib/hubspot';
 import { calendarLogger } from '@/lib/logger';
 import { format, parseISO } from 'date-fns';
@@ -180,8 +180,8 @@ export async function PUT(
       const htmlBody = `
         <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
           <h2>Your booking has been rescheduled</h2>
-          <p>Hi ${booking.first_name},</p>
-          <p>Your ${newSlot.event.name} session has been rescheduled to:</p>
+          <p>Hi ${escapeHtml(booking.first_name)},</p>
+          <p>Your ${escapeHtml(newSlot.event.name)} session has been rescheduled to:</p>
           <p><strong>${variables.date} at ${variables.time_with_timezone}</strong></p>
           ${newSlot.google_meet_link ? `
             <p>Join via Google Meet: <a href="${newSlot.google_meet_link}">${newSlot.google_meet_link}</a></p>
@@ -312,8 +312,8 @@ export async function DELETE(
         ? `
           <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
             <h2>Waitlist Spot Removed</h2>
-            <p>Hi ${booking.first_name},</p>
-            <p>Your waitlist spot for <strong>${booking.slot.event.name}</strong> has been removed as requested.</p>
+            <p>Hi ${escapeHtml(booking.first_name)},</p>
+            <p>Your waitlist spot for <strong>${escapeHtml(booking.slot.event.name)}</strong> has been removed as requested.</p>
             <p>If you'd like to book another time, we'd love to connect with you:</p>
             <p><a href="${bookingLink}" style="color: #6F71EE; text-decoration: none;">${bookingLink}</a></p>
             <p>Best,<br>${hostName}</p>
@@ -447,11 +447,11 @@ async function promoteFromWaitlist(
           </div>
 
           <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-            Hi ${nextInLine.first_name},
+            Hi ${escapeHtml(nextInLine.first_name)},
           </p>
 
           <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-            A spot has become available for <strong>${slot.event.name}</strong> and you've been moved from the waitlist to a confirmed booking!
+            A spot has become available for <strong>${escapeHtml(slot.event.name)}</strong> and you've been moved from the waitlist to a confirmed booking!
           </p>
 
           <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">

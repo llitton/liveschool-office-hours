@@ -101,6 +101,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate host_email belongs to a registered admin if provided
+  if (host_email && host_email !== session.email) {
+    const supabaseCheck = getServiceSupabase();
+    const { data: hostAdmin } = await supabaseCheck
+      .from('oh_admins')
+      .select('id')
+      .eq('email', host_email)
+      .single();
+
+    if (!hostAdmin) {
+      return NextResponse.json(
+        { error: 'host_email must belong to a registered team member' },
+        { status: 400 }
+      );
+    }
+  }
+
   // Validate round-robin requires at least 2 hosts
   if (meeting_type === 'round_robin' && round_robin_hosts.length < 2) {
     return NextResponse.json(

@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'emails array required' }, { status: 400 });
   }
 
+  if (emails.length > 100) {
+    return NextResponse.json({ error: 'Maximum 100 emails per request' }, { status: 400 });
+  }
+
   // Check HubSpot connection
   const hubspotConfig = await getHubSpotConfig();
   const hubspotConnected = hubspotConfig ? await isHubSpotConnected() : false;

@@ -30,6 +30,19 @@ interface ConfirmationEmailData {
   customBodyHtml?: string;
 }
 
+/**
+ * Escape HTML special characters to prevent XSS in email templates.
+ * Use this on ALL user-provided strings before embedding in HTML.
+ */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Brand colors
 const COLORS = {
   purple: '#6F71EE',
@@ -44,9 +57,6 @@ const COLORS = {
 
 export function generateConfirmationEmailHtml(data: ConfirmationEmailData): string {
   const {
-    firstName,
-    eventName,
-    hostName,
     date,
     time,
     timezoneAbbr,
@@ -56,13 +66,22 @@ export function generateConfirmationEmailHtml(data: ConfirmationEmailData): stri
     googleCalUrl,
     outlookUrl,
     icalUrl,
-    eventDescription,
-    prepMaterials,
-    userTopic,
-    prepResources,
-    schoolName,
     customBodyHtml,
   } = data;
+
+  // Escape user-provided strings to prevent XSS in HTML emails
+  const firstName = escapeHtml(data.firstName);
+  const eventName = escapeHtml(data.eventName);
+  const hostName = escapeHtml(data.hostName);
+  const eventDescription = data.eventDescription ? escapeHtml(data.eventDescription) : null;
+  const prepMaterials = data.prepMaterials ? escapeHtml(data.prepMaterials) : null;
+  const userTopic = data.userTopic ? escapeHtml(data.userTopic) : null;
+  const schoolName = data.schoolName ? escapeHtml(data.schoolName) : undefined;
+  const prepResources = data.prepResources?.map(r => ({
+    title: escapeHtml(r.title),
+    content: escapeHtml(r.content),
+    link: r.link,
+  }));
 
   // Generate preparation checklist if we have prep materials
   const prepChecklist = prepMaterials
@@ -348,7 +367,12 @@ export function generateReminderEmailHtml(data: {
   manageUrl: string;
   reminderTiming: string; // "tomorrow" or "in about 1 hour"
 }): string {
-  const { firstName, eventName, hostName, date, time, timezoneAbbr, meetLink, manageUrl, reminderTiming } = data;
+  const { date, time, timezoneAbbr, meetLink, manageUrl, reminderTiming } = data;
+
+  // Escape user-provided strings to prevent XSS
+  const firstName = escapeHtml(data.firstName);
+  const eventName = escapeHtml(data.eventName);
+  const hostName = escapeHtml(data.hostName);
 
   const isUrgent = reminderTiming.includes('hour');
   const headerColor = isUrgent ? '#F59E0B' : COLORS.purple;
@@ -436,19 +460,24 @@ export interface FollowupEmailData {
 
 export function generateFollowupEmailHtml(data: FollowupEmailData): string {
   const {
-    recipientFirstName,
-    eventName,
-    hostName,
     sessionDate,
     sessionTime,
     timezoneAbbr,
     recordingLink,
     deckLink,
-    sharedLinks,
     bookingPageUrl,
     isNoShow = false,
-    customMessage,
   } = data;
+
+  // Escape user-provided strings to prevent XSS
+  const recipientFirstName = escapeHtml(data.recipientFirstName);
+  const eventName = escapeHtml(data.eventName);
+  const hostName = escapeHtml(data.hostName);
+  const customMessage = data.customMessage ? escapeHtml(data.customMessage) : undefined;
+  const sharedLinks = data.sharedLinks?.map(l => ({
+    title: escapeHtml(l.title),
+    url: l.url,
+  }));
 
   const headerColor = isNoShow ? '#F59E0B' : COLORS.purple;
   const headerEmoji = isNoShow ? '👋' : '🎉';
@@ -672,15 +701,12 @@ export interface FeedbackEmailData {
 }
 
 export function generateFeedbackEmailHtml(data: FeedbackEmailData): string {
-  const {
-    recipientFirstName,
-    eventName,
-    hostName,
-    sessionDate,
-    sessionTime,
-    timezoneAbbr,
-    feedbackUrl,
-  } = data;
+  const { sessionDate, sessionTime, timezoneAbbr, feedbackUrl } = data;
+
+  // Escape user-provided strings to prevent XSS
+  const recipientFirstName = escapeHtml(data.recipientFirstName);
+  const eventName = escapeHtml(data.eventName);
+  const hostName = escapeHtml(data.hostName);
 
   return `
 <!DOCTYPE html>
@@ -794,17 +820,22 @@ export interface RecordingEmailData {
 
 export function generateRecordingEmailHtml(data: RecordingEmailData): string {
   const {
-    recipientFirstName,
-    eventName,
-    hostName,
     sessionDate,
     sessionTime,
     timezoneAbbr,
     recordingLink,
     deckLink,
-    sharedLinks,
     bookingPageUrl,
   } = data;
+
+  // Escape user-provided strings to prevent XSS
+  const recipientFirstName = escapeHtml(data.recipientFirstName);
+  const eventName = escapeHtml(data.eventName);
+  const hostName = escapeHtml(data.hostName);
+  const sharedLinks = data.sharedLinks?.map(l => ({
+    title: escapeHtml(l.title),
+    url: l.url,
+  }));
 
   // Build additional resources section
   const hasAdditionalResources = deckLink || (sharedLinks && sharedLinks.length > 0);
@@ -969,15 +1000,17 @@ export interface CancellationEmailData {
 
 export function generateCancellationEmailHtml(data: CancellationEmailData): string {
   const {
-    recipientFirstName,
-    eventName,
-    hostName,
     sessionDate,
     sessionTime,
     timezoneAbbr,
     bookingPageUrl,
-    customMessage,
   } = data;
+
+  // Escape user-provided strings to prevent XSS
+  const recipientFirstName = escapeHtml(data.recipientFirstName);
+  const eventName = escapeHtml(data.eventName);
+  const hostName = escapeHtml(data.hostName);
+  const customMessage = data.customMessage ? escapeHtml(data.customMessage) : undefined;
 
   // Custom message section
   const customMessageSection = customMessage ? `

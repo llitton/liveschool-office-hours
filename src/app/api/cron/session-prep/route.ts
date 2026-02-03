@@ -5,6 +5,7 @@ import { getContactWithCompany } from '@/lib/hubspot';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { cronLogger } from '@/lib/logger';
+import { escapeHtml } from '@/lib/email-html';
 
 // This cron job runs at 7am ET daily to send Hannah a morning digest
 // of all attendees for today's sessions
@@ -174,8 +175,8 @@ export async function GET() {
               <div style="background: #F6F6F9; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
                 <div style="display: flex; justify-content: space-between; align-items: start;">
                   <div>
-                    <strong style="color: #101E57;">${booking.first_name} ${booking.last_name}</strong>
-                    ${companyName ? `<span style="color: #667085;"> (${companyName})</span>` : ''}
+                    <strong style="color: #101E57;">${escapeHtml(booking.first_name)} ${escapeHtml(booking.last_name)}</strong>
+                    ${companyName ? `<span style="color: #667085;"> (${escapeHtml(companyName)})</span>` : ''}
                     ${
                       isReturning
                         ? `<span style="background: #6F71EE20; color: #6F71EE; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;">

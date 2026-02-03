@@ -982,6 +982,10 @@ CHECK constraints prevent invalid data at the database level:
 - **Supabase filter paths must use alias names:** When filtering on joined tables, use the alias from the select (e.g., `.eq('slot.event_id', id)` not `.eq('typedSlot.event_id', id)`) — JavaScript variable names don't work as PostgREST filter paths
 - **Always check Supabase query errors:** Every `supabase.from().select/insert/update/delete()` must destructure `error` and handle it. Use `const { data, error } = await ...` not `const { data } = await ...`. Unchecked errors caused silent failures in round-robin assignment, busy block sync, and email deduplication.
 - **Sent-at timestamp updates must be error-checked:** When marking emails as sent (`followup_sent_at`, `feedback_sent_at`, etc.), always check the update result. If the update fails but the email succeeded, the cron will resend the same email on every run.
+- **Escape user input in HTML emails:** Use `escapeHtml()` from `src/lib/email-html.ts` on ALL user-provided strings (names, topics, custom messages) before embedding in HTML. Template functions (`generateConfirmationEmailHtml`, etc.) escape internally. Inline HTML in API routes must call `escapeHtml()` explicitly.
+- **Escape user input in Slack messages:** User-provided text in Slack mrkdwn must go through `escapeSlackMarkdown()` in `src/lib/slack.ts` to prevent formatting manipulation via `<`, `>`, `&` characters.
+- **Batch API limits:** Endpoints accepting arrays of items (emails, IDs) must enforce a maximum size (100) to prevent resource exhaustion.
+- **Validate host_email:** When creating events, `host_email` must belong to a registered admin in `oh_admins`. This prevents impersonation and unauthorized use of another admin's Google credentials.
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint) - use `/api/events/check-slug` to validate before creation

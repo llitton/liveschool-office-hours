@@ -140,6 +140,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: pollError.message }, { status: 500 });
   }
 
+  // Validate time options
+  for (const opt of time_options) {
+    if (!opt.start || !opt.end) {
+      return NextResponse.json({ error: 'Each time option must have start and end' }, { status: 400 });
+    }
+    if (new Date(opt.start) >= new Date(opt.end)) {
+      return NextResponse.json({ error: 'Time option start must be before end' }, { status: 400 });
+    }
+  }
+
   // Create options
   const optionsToInsert = time_options.map((opt: { start: string; end: string }, index: number) => ({
     poll_id: poll.id,

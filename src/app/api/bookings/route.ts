@@ -10,7 +10,7 @@ import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
 import { findOrCreateContact, logMeetingActivity, getContactWithCompany } from '@/lib/hubspot';
 import { notifyNewBooking } from '@/lib/slack';
 import { matchPrepResources } from '@/lib/prep-matcher';
-import { generateConfirmationEmailHtml } from '@/lib/email-html';
+import { generateConfirmationEmailHtml, escapeHtml } from '@/lib/email-html';
 import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
 import { formatPhoneE164 } from '@/lib/sms';
 import { checkTimeAvailability } from '@/lib/availability';
@@ -747,11 +747,11 @@ export async function POST(request: NextRequest) {
             </div>
 
             <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-              Hi ${first_name},
+              Hi ${escapeHtml(first_name)},
             </p>
 
             <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-              The session <strong>${typedSlot.event.name}</strong> on <strong>${sessionTime}</strong> is currently full,
+              The session <strong>${escapeHtml(typedSlot.event.name)}</strong> on <strong>${sessionTime}</strong> is currently full,
               but you've been added to the waitlist at position #${waitlistPosition}.
             </p>
 
@@ -763,7 +763,7 @@ export async function POST(request: NextRequest) {
             ${userTopic ? `
               <div style="background: #EEF0FF; border-left: 4px solid #6F71EE; padding: 16px; border-radius: 0 8px 8px 0; margin: 20px 0;">
                 <h3 style="margin-top: 0; color: #101E57; font-size: 14px; font-weight: 600;">What you want to discuss:</h3>
-                <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${userTopic}"</p>
+                <p style="color: #667085; margin-bottom: 0; font-style: italic;">"${escapeHtml(userTopic)}"</p>
               </div>
             ` : ''}
 
@@ -859,7 +859,7 @@ export async function POST(request: NextRequest) {
             <div style="background: #E0F2FE; border-left: 4px solid #0EA5E9; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px;">
               <h2 style="margin: 0 0 8px 0; color: #0369A1; font-size: 18px;">You've been added to a meeting</h2>
               <p style="margin: 0; color: #0369A1; font-size: 14px;">
-                ${first_name} ${last_name} invited you to join.
+                ${escapeHtml(first_name)} ${escapeHtml(last_name)} invited you to join.
               </p>
             </div>
 
@@ -879,7 +879,7 @@ export async function POST(request: NextRequest) {
 
             <p style="color: #667085; font-size: 14px;">
               A calendar invite has been sent separately. If you need to make changes to this booking,
-              please contact ${first_name} at ${email}.
+              please contact ${escapeHtml(first_name)} at ${escapeHtml(email)}.
             </p>
 
             <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">

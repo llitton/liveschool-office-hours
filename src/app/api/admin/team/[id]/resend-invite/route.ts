@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
+import { escapeHtml } from '@/lib/email-html';
 
 // POST - Resend invitation email to a team member
 export async function POST(
@@ -53,11 +54,11 @@ export async function POST(
   // Send the invitation email
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    const inviterName = inviter.name || inviter.email;
+    const inviterName = escapeHtml(inviter.name || inviter.email);
     const inviteeName = admin.name || admin.email.split('@')[0];
 
     const profileImageHtml = inviter.profile_image
-      ? `<img src="${inviter.profile_image}" alt="${inviterName}" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; vertical-align: middle;" />`
+      ? `<img src="${escapeHtml(inviter.profile_image)}" alt="${inviterName}" style="width: 40px; height: 40px; border-radius: 50%; margin-right: 12px; vertical-align: middle;" />`
       : '';
 
     await sendEmail(

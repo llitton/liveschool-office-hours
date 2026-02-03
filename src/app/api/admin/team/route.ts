@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
+import { escapeHtml } from '@/lib/email-html';
 
 // GET all admins (for team selection)
 export async function GET() {

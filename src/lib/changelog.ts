@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-security-hardening',
+    date: '2026-02-03',
+    title: 'Security Hardening',
+    description: 'Added input sanitization, batch limits, and authorization checks across the platform.',
+    category: 'fix',
+    details: [
+      'All email templates now escape user input to prevent HTML injection',
+      'Slack notifications escape special characters in user-provided text',
+      'Batch API endpoints enforce a maximum of 100 items per request',
+      'Event creation validates host_email belongs to a registered team member',
+      'Poll time options validated for correct start/end ordering',
+    ],
+  },
+  {
     id: '2026-02-03-silent-failure-fixes',
     date: '2026-02-03',
     title: 'Silent Failure Prevention',

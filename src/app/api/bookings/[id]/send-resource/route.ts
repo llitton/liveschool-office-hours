@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
+import { escapeHtml } from '@/lib/email-html';
 
 // POST send a help article/resource to attendee
 export async function POST(
@@ -92,21 +93,21 @@ export async function POST(
   // Build the email
   const htmlBody = `
     <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-      <p>Hi ${booking.first_name},</p>
+      <p>Hi ${escapeHtml(booking.first_name)},</p>
 
-      <p>Following up on our ${event.name} session, I wanted to share this resource with you:</p>
+      <p>Following up on our ${escapeHtml(event.name)} session, I wanted to share this resource with you:</p>
 
       <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #101E57;">${resource.title}</h3>
-        <p style="color: #667085; margin-bottom: 12px;">${resource.content}</p>
+        <h3 style="margin-top: 0; color: #101E57;">${escapeHtml(resource.title)}</h3>
+        <p style="color: #667085; margin-bottom: 12px;">${escapeHtml(resource.content)}</p>
         ${resource.link ? `<a href="${resource.link}" style="display: inline-block; background: #6F71EE; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">View Resource</a>` : ''}
       </div>
 
-      ${customMessage ? `<p>${customMessage}</p>` : ''}
+      ${customMessage ? `<p>${escapeHtml(customMessage)}</p>` : ''}
 
       <p>Let me know if you have any questions!</p>
 
-      <p>Best,<br/>${event.host_name}</p>
+      <p>Best,<br/>${escapeHtml(event.host_name)}</p>
 
       <div style="border-top: 1px solid #E5E7EB; padding-top: 16px; margin-top: 20px; text-align: center;">
         <p style="color: #98A2B3; font-size: 12px; margin: 0;">

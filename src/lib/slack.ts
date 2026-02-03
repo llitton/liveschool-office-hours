@@ -1,6 +1,17 @@
 import { getServiceSupabase } from './supabase';
 import { slackLogger } from './logger';
 
+/**
+ * Escape Slack mrkdwn special characters in user-provided text.
+ * Prevents user input from manipulating Slack message formatting.
+ */
+function escapeSlackMarkdown(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 interface SlackConfig {
   webhook_url: string;
   default_channel: string | null;
@@ -232,7 +243,7 @@ export async function notifyNewBooking(booking: {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `👤 *${booking.attendee_name}*${statusText ? `  ${statusText}` : ''}\n${booking.attendee_email}`,
+          text: `👤 *${escapeSlackMarkdown(booking.attendee_name)}*${statusText ? `  ${statusText}` : ''}\n${escapeSlackMarkdown(booking.attendee_email)}`,
         },
       },
       {
@@ -266,7 +277,7 @@ export async function notifyNewBooking(booking: {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `💬 *${label}*\n>${response.replace(/\n/g, '\n>')}`,
+            text: `💬 *${escapeSlackMarkdown(label)}*\n>${escapeSlackMarkdown(response).replace(/\n/g, '\n>')}`,
           },
         });
       }
@@ -485,7 +496,7 @@ export async function sendDetailedSessionSummary(session: {
     }
     if (session.sharedLinks && session.sharedLinks.length > 0) {
       for (const link of session.sharedLinks) {
-        resourceLinks.push(`<${link.url}|${link.title}>`);
+        resourceLinks.push(`<${link.url}|${escapeSlackMarkdown(link.title)}>`);
       }
     }
     message.blocks!.push({
@@ -499,7 +510,7 @@ export async function sendDetailedSessionSummary(session: {
 
   // Add compact attendee lists
   if (attendedCount > 0) {
-    const attendedNames = attendedList.map(a => a.name.split(' ')[0]).join(', ');
+    const attendedNames = attendedList.map(a => escapeSlackMarkdown(a.name.split(' ')[0])).join(', ');
     message.blocks!.push({
       type: 'section',
       text: {
@@ -510,7 +521,7 @@ export async function sendDetailedSessionSummary(session: {
   }
 
   if (noShowCount > 0) {
-    const noShowNames = noShowList.map(a => a.name.split(' ')[0]).join(', ');
+    const noShowNames = noShowList.map(a => escapeSlackMarkdown(a.name.split(' ')[0])).join(', ');
     message.blocks!.push({
       type: 'section',
       text: {
@@ -582,14 +593,14 @@ export async function notifyUserFeedback(feedback: {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `👤 *${feedback.name}*\n${feedback.email}`,
+          text: `👤 *${escapeSlackMarkdown(feedback.name)}*\n${escapeSlackMarkdown(feedback.email)}`,
         },
       },
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `💬 ${feedback.message}`,
+          text: `💬 ${escapeSlackMarkdown(feedback.message)}`,
         },
       },
     ],
@@ -602,7 +613,7 @@ export async function notifyUserFeedback(feedback: {
       elements: [
         {
           type: 'mrkdwn',
-          text: `📍 Submitted from: ${feedback.pageUrl}`,
+          text: `📍 Submitted from: ${escapeSlackMarkdown(feedback.pageUrl)}`,
         },
       ],
     } as SlackBlock);

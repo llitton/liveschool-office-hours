@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { updateMeetingOutcome } from '@/lib/hubspot';
 import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { escapeHtml } from '@/lib/email-html';
 
 // PATCH update booking (attendance status, etc.)
 export async function PATCH(
@@ -62,8 +63,8 @@ export async function PATCH(
           const htmlBody = `
             <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
               <h2>We missed you!</h2>
-              <p>Hi ${booking.first_name},</p>
-              <p>We noticed you weren't able to make it to <strong>${booking.slot.event.name}</strong> today.</p>
+              <p>Hi ${escapeHtml(booking.first_name)},</p>
+              <p>We noticed you weren't able to make it to <strong>${escapeHtml(booking.slot.event.name)}</strong> today.</p>
               <p>No worries! Life happens. If you'd like to reschedule for another time, you can do so here:</p>
               <div style="margin: 20px 0;">
                 <a href="${manageUrl}" style="background: #6F71EE; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
@@ -71,7 +72,7 @@ export async function PATCH(
                 </a>
               </div>
               <p>We hope to see you soon!</p>
-              <p>Best,<br>${booking.slot.event.host_name}</p>
+              <p>Best,<br>${escapeHtml(booking.slot.event.host_name)}</p>
             </div>
           `;
 
