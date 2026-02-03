@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 import { addWeeks } from 'date-fns';
 import crypto from 'crypto';
 import { bookingLogger } from '@/lib/logger';
@@ -8,9 +10,12 @@ function generateManageToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
-// POST create a series booking
+// POST create a series booking (public)
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     slot_id,
     first_name,
@@ -206,8 +211,13 @@ export async function POST(request: NextRequest) {
   });
 }
 
-// GET series by email (for attendee to view their series)
+// GET series by email or ID (admin only)
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
   const seriesId = searchParams.get('seriesId');

@@ -66,6 +66,20 @@ export async function POST(
     );
   }
 
+  if (comment && typeof comment === 'string' && comment.length > 5000) {
+    return NextResponse.json(
+      { error: 'Comment must be 5,000 characters or less' },
+      { status: 400 }
+    );
+  }
+
+  if (topics_for_next_time && typeof topics_for_next_time === 'string' && topics_for_next_time.length > 5000) {
+    return NextResponse.json(
+      { error: 'Topic suggestion must be 5,000 characters or less' },
+      { status: 400 }
+    );
+  }
+
   const supabase = getServiceSupabase();
 
   // Get booking by manage token

@@ -104,6 +104,9 @@ export async function PATCH(
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Rating must be an integer between 1 and 5' }, { status: 400 });
     }
+    if (body.feedback_comment && typeof body.feedback_comment === 'string' && body.feedback_comment.length > 5000) {
+      return NextResponse.json({ error: 'Feedback comment must be 5,000 characters or less' }, { status: 400 });
+    }
     updates.feedback_rating = rating;
     updates.feedback_comment = body.feedback_comment || null;
     updates.feedback_submitted_at = new Date().toISOString();
@@ -143,11 +146,16 @@ export async function PATCH(
   });
 }
 
-// GET single booking
+// GET single booking (admin only)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
+  }
+
   const { id } = await params;
   const supabase = getServiceSupabase();
 

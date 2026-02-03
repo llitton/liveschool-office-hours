@@ -16,7 +16,32 @@ export async function GET(
   const decodedEmail = decodeURIComponent(email).toLowerCase();
   const supabase = getServiceSupabase();
 
-  // Get all bookings for this attendee
+  // Get admin ID for the current session to scope results
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
+  // Get event IDs this admin hosts (as primary host or co-host)
+  let hostedEventIds: string[] = [];
+  if (admin) {
+    const { data: hostedEvents } = await supabase
+      .from('oh_events')
+      .select('id')
+      .eq('host_email', session.email);
+
+    const { data: cohostedEvents } = await supabase
+      .from('oh_event_hosts')
+      .select('event_id')
+      .eq('admin_id', admin.id);
+
+    const primaryIds = hostedEvents?.map(e => e.id) || [];
+    const coHostIds = cohostedEvents?.map(e => e.event_id) || [];
+    hostedEventIds = [...new Set([...primaryIds, ...coHostIds])];
+  }
+
+  // Get bookings for this attendee, scoped to the admin's events
   const { data: bookings, error: bookingsError } = await supabase
     .from('oh_bookings')
     .select(`
@@ -33,6 +58,13 @@ export async function GET(
     return NextResponse.json({ error: bookingsError.message }, { status: 500 });
   }
 
+  // Filter bookings to only those from events the admin hosts
+  const scopedBookings = hostedEventIds.length > 0
+    ? (bookings || []).filter((b: { slot?: { event_id?: string } }) =>
+        b.slot?.event_id && hostedEventIds.includes(b.slot.event_id)
+      )
+    : bookings || [];
+
   // Get notes for this attendee
   const { data: notes } = await supabase
     .from('oh_attendee_notes')
@@ -40,30 +72,30 @@ export async function GET(
     .eq('attendee_email', decodedEmail)
     .order('created_at', { ascending: false });
 
-  // Calculate stats
-  const totalBookings = bookings?.length || 0;
-  const attended = bookings?.filter(b => b.attended_at).length || 0;
-  const noShows = bookings?.filter(b => b.no_show_at).length || 0;
-  const cancelled = bookings?.filter(b => b.cancelled_at).length || 0;
-  const upcoming = bookings?.filter(b =>
+  // Calculate stats from scoped bookings
+  const totalBookings = scopedBookings.length;
+  const attended = scopedBookings.filter(b => b.attended_at).length;
+  const noShows = scopedBookings.filter(b => b.no_show_at).length;
+  const cancelled = scopedBookings.filter(b => b.cancelled_at).length;
+  const upcoming = scopedBookings.filter(b =>
     !b.cancelled_at &&
     new Date(b.slot?.start_time) > new Date()
-  ).length || 0;
+  ).length;
 
   // Get first booking date
-  const firstBooking = bookings?.length
-    ? bookings[bookings.length - 1].created_at
+  const firstBooking = scopedBookings.length
+    ? scopedBookings[scopedBookings.length - 1].created_at
     : null;
 
   // Get average feedback rating
-  const ratingsWithFeedback = bookings?.filter(b => b.feedback_rating !== null) || [];
+  const ratingsWithFeedback = scopedBookings.filter(b => b.feedback_rating !== null);
   const avgRating = ratingsWithFeedback.length > 0
     ? ratingsWithFeedback.reduce((sum, b) => sum + (b.feedback_rating || 0), 0) / ratingsWithFeedback.length
     : null;
 
   // Get most common topics from question responses
   const topics: Record<string, number> = {};
-  for (const booking of bookings || []) {
+  for (const booking of scopedBookings) {
     if (booking.question_responses) {
       for (const response of Object.values(booking.question_responses)) {
         if (typeof response === 'string' && response.trim()) {
@@ -92,7 +124,7 @@ export async function GET(
       avgRating,
       firstBooking,
     },
-    bookings: bookings || [],
+    bookings: scopedBookings,
     notes: notes || [],
     isRepeatAttendee: totalBookings > 1,
     isFrequentAttendee: attended >= 3,

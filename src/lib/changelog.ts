@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-authorization-hardening',
+    date: '2026-02-03',
+    title: 'Authorization & Data Access Controls',
+    description: 'Added missing authentication checks and scoped data access to prevent unauthorized information exposure.',
+    category: 'fix',
+    details: [
+      'Added authentication to booking detail, series, and series history endpoints',
+      'Attendee history is now scoped to events you host (no longer shows data from other hosts)',
+      'Added length limits to feedback comments and topic suggestions',
+      'Series booking creation now validates request body format',
+    ],
+  },
+  {
     id: '2026-02-03-security-validation',
     date: '2026-02-03',
     title: 'Security & Input Validation Hardening',
