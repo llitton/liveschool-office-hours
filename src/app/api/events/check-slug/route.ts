@@ -50,11 +50,14 @@ async function generateSlugSuggestions(supabase: ReturnType<typeof getServiceSup
 
   for (const suffix of suffixes) {
     const candidateSlug = baseSlug + suffix;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('oh_events')
       .select('id')
       .eq('slug', candidateSlug)
       .maybeSingle();
+
+    // Skip this candidate if query failed (don't suggest a slug we can't verify)
+    if (error) continue;
 
     if (!data) {
       suggestions.push(candidateSlug);
@@ -66,11 +69,14 @@ async function generateSlugSuggestions(supabase: ReturnType<typeof getServiceSup
   if (suggestions.length < 3) {
     for (let i = 3; i <= 10 && suggestions.length < 3; i++) {
       const candidateSlug = `${baseSlug}-${i}`;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('oh_events')
         .select('id')
         .eq('slug', candidateSlug)
         .maybeSingle();
+
+      // Skip this candidate if query failed
+      if (error) continue;
 
       if (!data) {
         suggestions.push(candidateSlug);

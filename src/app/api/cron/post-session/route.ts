@@ -5,6 +5,7 @@ import { generateFollowupEmailHtml, generateFeedbackEmailHtml, generateRecording
 import { format, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { getTimezoneAbbr } from '@/lib/timezone';
+import { cronLogger } from '@/lib/logger';
 
 // This cron job runs hourly to handle post-session tasks:
 // 1. Send follow-up emails 2 hours after session ends (to attended attendees)
@@ -29,7 +30,7 @@ export async function GET() {
   // =============================================
   // 1. Send follow-up emails (2-3 hours after session)
   // =============================================
-  const { data: followupSlots } = await supabase
+  const { data: followupSlots, error: followupSlotsError } = await supabase
     .from('oh_slots')
     .select(`
       *,
@@ -39,6 +40,11 @@ export async function GET() {
     .eq('is_cancelled', false)
     .lt('end_time', twoHoursAgo.toISOString())
     .gt('end_time', threeHoursAgo.toISOString());
+
+  if (followupSlotsError) {
+    cronLogger.error('Failed to fetch followup slots', { operation: 'post-session' }, followupSlotsError);
+    errors.push(`Followup slots query failed: ${followupSlotsError.message}`);
+  }
 
   for (const slot of followupSlots || []) {
     // Skip if automated emails are disabled for this event or this slot
@@ -129,10 +135,17 @@ export async function GET() {
           }
         );
 
-        await supabase
+        const { error: followupUpdateError } = await supabase
           .from('oh_bookings')
           .update({ followup_sent_at: new Date().toISOString() })
           .eq('id', booking.id);
+
+        if (followupUpdateError) {
+          cronLogger.error('Failed to mark followup as sent — may resend', {
+            operation: 'post-session',
+            bookingId: booking.id,
+          }, followupUpdateError);
+        }
 
         followupSent++;
       } catch (err) {
@@ -147,7 +160,7 @@ export async function GET() {
   // 2. Send no-show re-engagement emails
   // =============================================
   // Get slots that ended in the last 24 hours with no-show bookings
-  const { data: noShowSlots } = await supabase
+  const { data: noShowSlots, error: noShowSlotsError } = await supabase
     .from('oh_slots')
     .select(`
       *,
@@ -157,6 +170,11 @@ export async function GET() {
     .eq('is_cancelled', false)
     .lt('end_time', now.toISOString())
     .gt('end_time', twentyFourHoursAgo.toISOString());
+
+  if (noShowSlotsError) {
+    cronLogger.error('Failed to fetch no-show slots', { operation: 'post-session' }, noShowSlotsError);
+    errors.push(`No-show slots query failed: ${noShowSlotsError.message}`);
+  }
 
   for (const slot of noShowSlots || []) {
     const event = slot.event;
@@ -251,10 +269,17 @@ export async function GET() {
           }
         );
 
-        await supabase
+        const { error: noShowUpdateError } = await supabase
           .from('oh_bookings')
           .update({ no_show_email_sent_at: new Date().toISOString() })
           .eq('id', booking.id);
+
+        if (noShowUpdateError) {
+          cronLogger.error('Failed to mark no-show email as sent — may resend', {
+            operation: 'post-session',
+            bookingId: booking.id,
+          }, noShowUpdateError);
+        }
 
         noShowSent++;
       } catch (err) {
@@ -269,7 +294,7 @@ export async function GET() {
   // 3. Send feedback requests (1-2 hours after session)
   // =============================================
   // Get slots that ended 1-2 hours ago (for feedback requests)
-  const { data: recentSlots } = await supabase
+  const { data: recentSlots, error: recentSlotsError } = await supabase
     .from('oh_slots')
     .select(`
       *,
@@ -279,6 +304,11 @@ export async function GET() {
     .eq('is_cancelled', false)
     .lt('end_time', oneHourAgo.toISOString())
     .gt('end_time', twoHoursAgo.toISOString());
+
+  if (recentSlotsError) {
+    cronLogger.error('Failed to fetch feedback slots', { operation: 'post-session' }, recentSlotsError);
+    errors.push(`Feedback slots query failed: ${recentSlotsError.message}`);
+  }
 
   for (const slot of recentSlots || []) {
     // Skip if automated emails are disabled for this event or this slot
@@ -337,10 +367,17 @@ export async function GET() {
           }
         );
 
-        await supabase
+        const { error: feedbackUpdateError } = await supabase
           .from('oh_bookings')
           .update({ feedback_sent_at: new Date().toISOString() })
           .eq('id', booking.id);
+
+        if (feedbackUpdateError) {
+          cronLogger.error('Failed to mark feedback as sent — may resend', {
+            operation: 'post-session',
+            bookingId: booking.id,
+          }, feedbackUpdateError);
+        }
 
         feedbackSent++;
       } catch (err) {
@@ -352,7 +389,7 @@ export async function GET() {
   }
 
   // Send recording emails for slots that have recordings but haven't been sent
-  const { data: slotsWithRecordings } = await supabase
+  const { data: slotsWithRecordings, error: recordingSlotsError } = await supabase
     .from('oh_slots')
     .select(`
       *,
@@ -361,6 +398,11 @@ export async function GET() {
     `)
     .not('recording_link', 'is', null)
     .eq('is_cancelled', false);
+
+  if (recordingSlotsError) {
+    cronLogger.error('Failed to fetch recording slots', { operation: 'post-session' }, recordingSlotsError);
+    errors.push(`Recording slots query failed: ${recordingSlotsError.message}`);
+  }
 
   for (const slot of slotsWithRecordings || []) {
     // Skip if automated emails are disabled for this event or this slot
@@ -418,10 +460,17 @@ export async function GET() {
           }
         );
 
-        await supabase
+        const { error: recordingUpdateError } = await supabase
           .from('oh_bookings')
           .update({ recording_sent_at: new Date().toISOString() })
           .eq('id', booking.id);
+
+        if (recordingUpdateError) {
+          cronLogger.error('Failed to mark recording as sent — may resend', {
+            operation: 'post-session',
+            bookingId: booking.id,
+          }, recordingUpdateError);
+        }
 
         recordingsSent++;
       } catch (err) {

@@ -620,10 +620,14 @@ export async function POST(request: NextRequest) {
 
   // Mark single-use one-off meetings as booked (only for confirmed, non-waitlisted bookings)
   if (typedSlot.event.is_one_off && typedSlot.event.single_use && !isWaitlisted) {
-    await supabase
+    const { error: oneOffError } = await supabase
       .from('oh_events')
       .update({ one_off_booked_at: new Date().toISOString() })
       .eq('id', typedSlot.event.id);
+
+    if (oneOffError) {
+      console.error('Failed to mark one-off as booked:', oneOffError);
+    }
   }
 
   // Track integration status to return to frontend
@@ -673,10 +677,14 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        await supabase
+        const { error: calUpdateError } = await supabase
           .from('oh_bookings')
           .update({ calendar_invite_sent_at: new Date().toISOString() })
           .eq('id', booking.id);
+
+        if (calUpdateError) {
+          console.error('Failed to update calendar_invite_sent_at:', calUpdateError);
+        }
 
         integrationStatus.calendar = 'sent';
       } catch (err) {
@@ -831,10 +839,14 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      await supabase
+      const { error: confirmUpdateError } = await supabase
         .from('oh_bookings')
         .update({ confirmation_sent_at: new Date().toISOString() })
         .eq('id', booking.id);
+
+      if (confirmUpdateError) {
+        console.error('Failed to update confirmation_sent_at:', confirmUpdateError);
+      }
 
       integrationStatus.email = 'sent';
 

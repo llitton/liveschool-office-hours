@@ -158,7 +158,11 @@ export async function POST(request: NextRequest) {
       role: 'owner',
     });
 
-    await supabase.from('oh_event_hosts').insert(hostInserts);
+    const { error: hostsError } = await supabase.from('oh_event_hosts').insert(hostInserts);
+    if (hostsError) {
+      console.error('Failed to insert event hosts:', hostsError);
+      return NextResponse.json({ error: 'Failed to assign hosts to event' }, { status: 500 });
+    }
   }
 
   // Create slots for each offered time

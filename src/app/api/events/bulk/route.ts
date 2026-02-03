@@ -197,7 +197,10 @@ export async function POST(request: NextRequest) {
               can_view_bookings: h.can_view_bookings,
             }));
 
-            await supabase.from('oh_event_hosts').insert(newHosts);
+            const { error: hostsInsertError } = await supabase.from('oh_event_hosts').insert(newHosts);
+            if (hostsInsertError) {
+              console.error(`Failed to copy hosts for duplicated event ${created.id}:`, hostsInsertError);
+            }
           }
         }
 

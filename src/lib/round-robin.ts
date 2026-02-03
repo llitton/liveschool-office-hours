@@ -1,5 +1,6 @@
 import { getServiceSupabase } from './supabase';
 import { checkTimeAvailability } from './availability';
+import { bookingLogger } from './logger';
 import type { RoundRobinStrategy, RoundRobinPeriod, OHAdmin } from '@/types';
 import {
   startOfDay,
@@ -243,7 +244,7 @@ async function updateRoundRobinState(
     .single();
 
   if (existing) {
-    await supabase
+    const { error: updateError } = await supabase
       .from('oh_round_robin_state')
       .update({
         last_assigned_host_id: assignedHostId,
@@ -251,13 +252,27 @@ async function updateRoundRobinState(
         assignment_count: (existing.assignment_count || 0) + 1,
       })
       .eq('event_id', eventId);
+
+    if (updateError) {
+      bookingLogger.error('Failed to update round-robin state', {
+        operation: 'updateRoundRobinState',
+        eventId,
+      }, updateError);
+    }
   } else {
-    await supabase.from('oh_round_robin_state').insert({
+    const { error: insertError } = await supabase.from('oh_round_robin_state').insert({
       event_id: eventId,
       last_assigned_host_id: assignedHostId,
       last_assigned_at: new Date().toISOString(),
       assignment_count: 1,
     });
+
+    if (insertError) {
+      bookingLogger.error('Failed to insert round-robin state', {
+        operation: 'updateRoundRobinState',
+        eventId,
+      }, insertError);
+    }
   }
 }
 
@@ -267,11 +282,18 @@ async function updateRoundRobinState(
 async function getHostBuffers(hostId: string): Promise<{ before: number; after: number }> {
   const supabase = getServiceSupabase();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('oh_admins')
     .select('default_buffer_before, default_buffer_after')
     .eq('id', hostId)
     .single();
+
+  if (error) {
+    bookingLogger.error('Failed to fetch host buffers, using defaults', {
+      operation: 'getHostBuffers',
+      adminId: hostId,
+    }, error);
+  }
 
   return {
     before: data?.default_buffer_before || 0,
@@ -564,11 +586,18 @@ async function getHostPriorities(
     priorities[hostId] = 3;
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('oh_event_hosts')
     .select('admin_id, priority')
     .eq('event_id', eventId)
     .in('admin_id', hostIds);
+
+  if (error) {
+    bookingLogger.error('Failed to fetch host priorities, using defaults', {
+      operation: 'getHostPriorities',
+      eventId,
+    }, error);
+  }
 
   if (data) {
     for (const host of data) {
@@ -594,12 +623,18 @@ async function getLastBookingTimes(
   }
 
   // Get most recent booking for each host
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('oh_bookings')
     .select('assigned_host_id, created_at')
     .in('assigned_host_id', hostIds)
     .is('cancelled_at', null)
     .order('created_at', { ascending: false });
+
+  if (error) {
+    bookingLogger.error('Failed to fetch last booking times, using defaults', {
+      operation: 'getLastBookingTimes',
+    }, error);
+  }
 
   if (data) {
     for (const booking of data) {

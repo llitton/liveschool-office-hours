@@ -125,11 +125,15 @@ export async function POST(
     });
 
     // Log the resource send
-    await supabase.from('oh_resource_sends').insert({
+    const { error: logError } = await supabase.from('oh_resource_sends').insert({
       booking_id: bookingId,
       resource_id: resourceId,
       sent_by: session.email,
     });
+
+    if (logError) {
+      console.error('Failed to log resource send:', logError);
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

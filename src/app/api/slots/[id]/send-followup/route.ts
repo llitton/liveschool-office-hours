@@ -155,10 +155,18 @@ export async function POST(
     const bookingIds = successfulResults.map(r => r.value.id);
     const updateColumn = recipients === 'attended' ? 'followup_sent_at' : 'no_show_email_sent_at';
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('oh_bookings')
       .update({ [updateColumn]: new Date().toISOString() })
       .in('id', bookingIds);
+
+    if (updateError) {
+      emailLogger.error('Failed to update sent-at timestamps — duplicate emails may occur', {
+        operation: 'sendFollowup',
+        slotId: id,
+        metadata: { updateColumn, bookingIds },
+      }, updateError);
+    }
   }
 
   emailLogger.info(`Follow-up emails sent from ${admin.email}`, {

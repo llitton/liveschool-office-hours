@@ -43,13 +43,17 @@ export async function syncGoogleCalendarBusy(
   );
 
   // Delete existing busy blocks for this admin in this date range
-  await supabase
+  const { error: deleteError } = await supabase
     .from('oh_busy_blocks')
     .delete()
     .eq('admin_id', adminId)
     .eq('source', 'google_calendar')
     .gte('start_time', startDate.toISOString())
     .lte('end_time', endDate.toISOString());
+
+  if (deleteError) {
+    throw new Error(`Failed to clear existing busy blocks: ${deleteError.message}`);
+  }
 
   // Insert new busy blocks
   if (busyTimes.length > 0) {
@@ -61,7 +65,10 @@ export async function syncGoogleCalendarBusy(
       synced_at: new Date().toISOString(),
     }));
 
-    await supabase.from('oh_busy_blocks').insert(blocks);
+    const { error: insertError } = await supabase.from('oh_busy_blocks').insert(blocks);
+    if (insertError) {
+      throw new Error(`Failed to insert busy blocks: ${insertError.message}`);
+    }
   }
 }
 
