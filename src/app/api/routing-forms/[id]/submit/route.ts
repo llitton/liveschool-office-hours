@@ -13,8 +13,19 @@ export async function POST(
   const body = await request.json();
   const { responses }: { responses: Record<string, string> } = body;
 
-  if (!responses || typeof responses !== 'object') {
+  if (!responses || typeof responses !== 'object' || Array.isArray(responses)) {
     return NextResponse.json({ error: 'responses object is required' }, { status: 400 });
+  }
+
+  const responseKeys = Object.keys(responses);
+  if (responseKeys.length > 50) {
+    return NextResponse.json({ error: 'Too many response fields' }, { status: 400 });
+  }
+
+  for (const value of Object.values(responses)) {
+    if (typeof value !== 'string' || value.length > 5000) {
+      return NextResponse.json({ error: 'Response values must be strings of 5000 characters or less' }, { status: 400 });
+    }
   }
 
   const supabase = getServiceSupabase();

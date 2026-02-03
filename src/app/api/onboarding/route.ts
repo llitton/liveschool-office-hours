@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
 import type { OnboardingState } from '@/types';
 
 // POST - Save onboarding state for an admin
 export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
   const body = await request.json();
 
@@ -11,6 +17,18 @@ export async function POST(request: NextRequest) {
 
   if (!adminId) {
     return NextResponse.json({ error: 'Admin ID is required' }, { status: 400 });
+  }
+
+  // Verify the admin ID belongs to the authenticated user
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('id', adminId)
+    .eq('email', session.email)
+    .single();
+
+  if (!admin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   const { error } = await supabase
@@ -28,6 +46,11 @@ export async function POST(request: NextRequest) {
 
 // GET - Fetch onboarding state for an admin
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
   const { searchParams } = new URL(request.url);
   const adminId = searchParams.get('adminId');
@@ -36,10 +59,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Admin ID is required' }, { status: 400 });
   }
 
+  // Verify the admin ID belongs to the authenticated user
   const { data: admin, error } = await supabase
     .from('oh_admins')
     .select('onboarding_progress')
     .eq('id', adminId)
+    .eq('email', session.email)
     .single();
 
   if (error) {

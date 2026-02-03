@@ -96,8 +96,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Meeting name is required' }, { status: 400 });
   }
 
-  if (!time_slots || time_slots.length === 0) {
+  if (!time_slots || !Array.isArray(time_slots) || time_slots.length === 0) {
     return NextResponse.json({ error: 'At least one time slot is required' }, { status: 400 });
+  }
+
+  if (time_slots.length > 100) {
+    return NextResponse.json({ error: 'Maximum 100 time slots per meeting' }, { status: 400 });
+  }
+
+  // Validate each time slot
+  for (const slot of time_slots) {
+    if (!slot.start || !slot.end) {
+      return NextResponse.json({ error: 'Each time slot requires start and end times' }, { status: 400 });
+    }
+    const start = new Date(slot.start);
+    const end = new Date(slot.end);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return NextResponse.json({ error: 'Invalid date format in time slots' }, { status: 400 });
+    }
+    if (start >= end) {
+      return NextResponse.json({ error: 'Start time must be before end time' }, { status: 400 });
+    }
   }
 
   const supabase = getServiceSupabase();

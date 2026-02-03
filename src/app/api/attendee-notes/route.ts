@@ -48,6 +48,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (typeof note !== 'string' || note.length > 10000) {
+    return NextResponse.json(
+      { error: 'Note must be 10,000 characters or less' },
+      { status: 400 }
+    );
+  }
+
   const supabase = getServiceSupabase();
 
   const { data, error } = await supabase

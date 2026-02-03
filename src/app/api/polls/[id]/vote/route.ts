@@ -26,6 +26,20 @@ export async function POST(
     );
   }
 
+  if (typeof voter_name !== 'string' || voter_name.length > 255) {
+    return NextResponse.json(
+      { error: 'Name must be 255 characters or less' },
+      { status: 400 }
+    );
+  }
+
+  if (typeof voter_email !== 'string' || voter_email.length > 320) {
+    return NextResponse.json(
+      { error: 'Invalid email address' },
+      { status: 400 }
+    );
+  }
+
   if (!votes || !Array.isArray(votes) || votes.length === 0) {
     return NextResponse.json(
       { error: 'At least one vote is required' },

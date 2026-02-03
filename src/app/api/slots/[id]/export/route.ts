@@ -3,6 +3,17 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { format, parseISO } from 'date-fns';
 
+// Escape a value for safe CSV output (prevents formula injection)
+function csvEscape(value: string): string {
+  // Double any internal quotes
+  let escaped = value.replace(/"/g, '""');
+  // Prefix formula-triggering characters to prevent CSV injection in Excel/Sheets
+  if (/^[=+\-@\t\r]/.test(escaped)) {
+    escaped = `'${escaped}`;
+  }
+  return `"${escaped}"`;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -54,7 +65,7 @@ export async function GET(
 
   const csvContent = [
     headers.join(','),
-    ...rows.map((row: string[]) => row.map((cell: string) => `"${cell}"`).join(',')),
+    ...rows.map((row: string[]) => row.map((cell: string) => csvEscape(cell)).join(',')),
   ].join('\n');
 
   const slotDate = format(parseISO(slot.start_time), 'yyyy-MM-dd');

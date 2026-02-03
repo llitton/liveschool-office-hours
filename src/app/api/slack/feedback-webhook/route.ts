@@ -18,6 +18,14 @@ export async function POST(request: NextRequest) {
 
   const { feedback_webhook_url } = body;
 
+  // Validate webhook URL to prevent SSRF
+  if (feedback_webhook_url && !feedback_webhook_url.startsWith('https://hooks.slack.com/')) {
+    return NextResponse.json(
+      { error: 'Invalid webhook URL. Must be a Slack webhook (https://hooks.slack.com/...)' },
+      { status: 400 }
+    );
+  }
+
   const supabase = getServiceSupabase();
 
   // Update the active Slack config with the feedback webhook

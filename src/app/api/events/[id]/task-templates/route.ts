@@ -52,8 +52,12 @@ export async function POST(
     sort_order = 0,
   } = body;
 
-  if (!title) {
+  if (!title || typeof title !== 'string') {
     return NextResponse.json({ error: 'title is required' }, { status: 400 });
+  }
+
+  if (title.length > 500) {
+    return NextResponse.json({ error: 'Title must be 500 characters or less' }, { status: 400 });
   }
 
   const supabase = getServiceSupabase();

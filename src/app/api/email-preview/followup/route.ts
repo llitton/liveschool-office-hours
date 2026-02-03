@@ -15,8 +15,14 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { to, isNoShow = false, slotId } = body;
 
-  if (!to) {
+  if (!to || typeof to !== 'string') {
     return NextResponse.json({ error: 'to email address is required' }, { status: 400 });
+  }
+
+  // Basic email format check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(to.trim())) {
+    return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 });
   }
 
   const supabase = getServiceSupabase();

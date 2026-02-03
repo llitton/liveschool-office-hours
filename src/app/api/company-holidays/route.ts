@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (typeof name !== 'string' || name.length > 200) {
+    return NextResponse.json(
+      { error: 'Holiday name must be 200 characters or less' },
+      { status: 400 }
+    );
+  }
+
   // Validate date format (YYYY-MM-DD)
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   if (!dateRegex.test(date)) {

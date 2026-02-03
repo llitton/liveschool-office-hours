@@ -12,6 +12,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-security-validation',
+    date: '2026-02-03',
+    title: 'Security & Input Validation Hardening',
+    description: 'Fixed security vulnerabilities and added comprehensive input validation across API endpoints.',
+    category: 'fix',
+    details: [
+      'Fixed CSV injection vulnerability in attendee exports',
+      'Fixed SSRF risk in Slack feedback webhook configuration',
+      'Added authentication to onboarding endpoints',
+      'Added time slot validation for one-off meetings (format, range, and count limits)',
+      'Added length limits to poll votes, attendee notes, task templates, session templates, and holidays',
+      'Added email format validation on email preview endpoint',
+      'Added field count and value length limits to routing form submissions',
+    ],
+  },
+  {
     id: '2026-02-03-data-integrity',
     date: '2026-02-03',
     title: 'Data Integrity & API Robustness',

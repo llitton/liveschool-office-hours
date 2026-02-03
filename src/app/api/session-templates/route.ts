@@ -38,8 +38,12 @@ export async function POST(request: NextRequest) {
     prep_materials,
   } = body;
 
-  if (!name) {
+  if (!name || typeof name !== 'string') {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+  }
+
+  if (name.length > 200) {
+    return NextResponse.json({ error: 'Name must be 200 characters or less' }, { status: 400 });
   }
 
   const { data: template, error } = await supabase
