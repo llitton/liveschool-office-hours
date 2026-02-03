@@ -24,9 +24,9 @@ export async function PATCH(
     .from('oh_bookings')
     .select(`
       *,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         *,
-        event:oh_events(*)
+        event:oh_events!event_id(*)
       )
     `)
     .eq('id', id)
@@ -150,9 +150,9 @@ export async function GET(
     .from('oh_bookings')
     .select(`
       *,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         *,
-        event:oh_events(*)
+        event:oh_events!event_id(*)
       )
     `)
     .eq('id', id)

@@ -83,8 +83,8 @@ export async function DELETE(
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*,
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*,
         assigned_host:oh_admins!assigned_host_id(id, name, email)
       )
     `)

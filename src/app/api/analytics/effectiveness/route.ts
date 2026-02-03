@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       start_time,
       end_time,
       event:oh_events!inner(id, name),
-      bookings:oh_bookings(
+      bookings:oh_bookings!slot_id(
         id,
         attended_at,
         no_show_at,
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       .from('oh_booking_tags')
       .select(`
         booking_id,
-        tag:oh_session_tags(name)
+        tag:oh_session_tags!tag_id(name)
       `)
       .in('booking_id', bookingIds);
 

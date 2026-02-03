@@ -22,7 +22,7 @@ export async function GET(
     .select(`
       *,
       default_event:oh_events!default_event_id(id, name, slug),
-      rules:oh_routing_rules(
+      rules:oh_routing_rules!form_id(
         *,
         target_event:oh_events!target_event_id(id, name, slug),
         target_host:oh_admins!target_host_id(id, name, email, profile_image)

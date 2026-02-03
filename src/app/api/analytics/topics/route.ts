@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
       question_responses,
       feedback_comment,
       created_at,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         event_id,
-        event:oh_events(id, name, custom_questions)
+        event:oh_events!event_id(id, name, custom_questions)
       )
     `)
     .not('question_responses', 'is', null);

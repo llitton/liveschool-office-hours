@@ -35,13 +35,13 @@ export async function GET(
     .from('oh_polls')
     .select(`
       *,
-      options:oh_poll_options(
+      options:oh_poll_options!poll_id(
         id,
         start_time,
         end_time,
         vote_count,
         sort_order,
-        votes:oh_poll_votes(
+        votes:oh_poll_votes!option_id(
           id,
           voter_name,
           voter_email,
@@ -49,7 +49,7 @@ export async function GET(
           created_at
         )
       ),
-      invitees:oh_poll_invitees(
+      invitees:oh_poll_invitees!poll_id(
         id,
         name,
         email,

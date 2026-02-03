@@ -20,8 +20,8 @@ export async function GET(
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(name, host_name),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(name, host_name),
+      bookings:oh_bookings!slot_id(*)
     `)
     .eq('id', id)
     .single();

@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
   // Fetch existing OH slots for this day (optionally filtered by event)
   let slotsQuery = supabase
     .from('oh_slots')
-    .select('start_time, end_time, event:oh_events(name)')
+    .select('start_time, end_time, event:oh_events!event_id(name)')
     .gte('start_time', dayStart.toISOString())
     .lte('start_time', dayEnd.toISOString())
     .eq('is_cancelled', false);

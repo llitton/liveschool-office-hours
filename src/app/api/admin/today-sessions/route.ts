@@ -93,8 +93,8 @@ export async function GET() {
       start_time,
       end_time,
       google_meet_link,
-      event:oh_events(id, name, slug, max_attendees),
-      bookings:oh_bookings(
+      event:oh_events!event_id(id, name, slug, max_attendees),
+      bookings:oh_bookings!slot_id(
         id,
         first_name,
         last_name,

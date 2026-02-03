@@ -31,12 +31,12 @@ export async function GET() {
     .from('oh_events')
     .select(`
       *,
-      slots:oh_slots(
+      slots:oh_slots!event_id(
         id,
         start_time,
         end_time,
         is_cancelled,
-        bookings:oh_bookings(count)
+        bookings:oh_bookings!slot_id(count)
       )
     `)
     .eq('is_one_off', true)

@@ -20,9 +20,9 @@ export async function GET(
     .from('oh_events')
     .select(`
       *,
-      slots:oh_slots(
+      slots:oh_slots!event_id(
         *,
-        bookings:oh_bookings(*)
+        bookings:oh_bookings!slot_id(*)
       )
     `)
     .eq('id', id)

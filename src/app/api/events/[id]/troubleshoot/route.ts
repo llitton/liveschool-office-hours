@@ -161,7 +161,7 @@ export async function GET(
   // Get existing bookings for the day
   const { data: existingSlots } = await supabase
     .from('oh_slots')
-    .select('id, start_time, end_time, bookings:oh_bookings(count)')
+    .select('id, start_time, end_time, bookings:oh_bookings!slot_id(count)')
     .eq('event_id', eventId)
     .eq('is_cancelled', false)
     .gte('start_time', dayStart.toISOString())

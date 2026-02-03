@@ -31,17 +31,17 @@ export default async function AdminPage({
       .from('oh_events')
       .select(`
         *,
-        slots:oh_slots(
+        slots:oh_slots!event_id(
           id,
           start_time,
           end_time,
           is_cancelled,
-          bookings:oh_bookings(count)
+          bookings:oh_bookings!slot_id(count)
         ),
-        hosts:oh_event_hosts(
+        hosts:oh_event_hosts!event_id(
           admin_id,
           role,
-          admin:oh_admins(name, email, profile_image)
+          admin:oh_admins!admin_id(name, email, profile_image)
         ),
         primary_host:oh_admins!host_id(name, email, profile_image)
       `)

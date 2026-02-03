@@ -32,7 +32,7 @@ export async function GET(
       id,
       start_time,
       end_time,
-      event:oh_events(id, name)
+      event:oh_events!event_id(id, name)
     `)
     .eq('id', slotId)
     .single();

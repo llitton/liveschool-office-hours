@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     .from('oh_sms_logs')
     .select(`
       *,
-      event:oh_events(id, name, slug)
+      event:oh_events!event_id(id, name, slug)
     `, { count: 'exact' })
     .order('created_at', { ascending: false });
 

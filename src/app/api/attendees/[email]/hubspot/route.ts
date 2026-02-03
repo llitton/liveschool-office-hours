@@ -67,9 +67,9 @@ export async function GET(
       question_responses,
       attended_at,
       created_at,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         start_time,
-        event:oh_events(name)
+        event:oh_events!event_id(name)
       )
     `)
     .eq('email', decodedEmail)

@@ -33,8 +33,8 @@ export async function GET() {
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*)
     `)
     .eq('is_cancelled', false)
     .lt('end_time', twoHoursAgo.toISOString())
@@ -151,8 +151,8 @@ export async function GET() {
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*)
     `)
     .eq('is_cancelled', false)
     .lt('end_time', now.toISOString())
@@ -273,8 +273,8 @@ export async function GET() {
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*)
     `)
     .eq('is_cancelled', false)
     .lt('end_time', oneHourAgo.toISOString())
@@ -356,8 +356,8 @@ export async function GET() {
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*)
     `)
     .not('recording_link', 'is', null)
     .eq('is_cancelled', false);

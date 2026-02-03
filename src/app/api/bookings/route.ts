@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
     .select(`
       *,
       event:oh_events!event_id(*),
-      bookings:oh_bookings(count)
+      bookings:oh_bookings!slot_id(count)
     `)
     .eq('id', slot_id)
     .single();

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   const { data: bookings, error } = await supabase
     .from('oh_bookings')
-    .select('id, first_name, last_name, email, attended_at, no_show_at, created_at, slot:oh_slots(id, start_time, event:oh_events(name))')
+    .select('id, first_name, last_name, email, attended_at, no_show_at, created_at, slot:oh_slots!slot_id(id, start_time, event:oh_events!event_id(name))')
     .ilike('email', `%${email}%`)
     .order('created_at', { ascending: false })
     .limit(10);

@@ -30,7 +30,7 @@ export async function GET() {
     .from('oh_polls')
     .select(`
       *,
-      options:oh_poll_options(
+      options:oh_poll_options!poll_id(
         id,
         start_time,
         end_time,

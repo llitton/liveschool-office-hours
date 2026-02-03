@@ -21,9 +21,9 @@ export async function GET(
     .from('oh_bookings')
     .select(`
       *,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         *,
-        event:oh_events(name, host_name)
+        event:oh_events!event_id(name, host_name)
       )
     `)
     .eq('email', decodedEmail)

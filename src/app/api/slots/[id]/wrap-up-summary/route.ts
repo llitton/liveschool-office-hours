@@ -35,7 +35,7 @@ export async function POST(
         custom_questions,
         slack_notifications_enabled
       ),
-      bookings:oh_bookings(
+      bookings:oh_bookings!slot_id(
         id,
         first_name,
         last_name,

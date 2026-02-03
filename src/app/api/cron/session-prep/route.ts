@@ -25,8 +25,8 @@ export async function GET() {
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*)
     `)
     .eq('is_cancelled', false)
     .gte('start_time', todayStart.toISOString())

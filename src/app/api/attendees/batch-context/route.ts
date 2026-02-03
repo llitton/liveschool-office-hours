@@ -92,9 +92,9 @@ export async function POST(request: NextRequest) {
       question_responses,
       attended_at,
       created_at,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         start_time,
-        event:oh_events(name)
+        event:oh_events!event_id(name)
       )
     `)
     .in('email', emailsToFetch)

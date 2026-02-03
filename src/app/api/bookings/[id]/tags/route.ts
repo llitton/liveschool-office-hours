@@ -20,7 +20,7 @@ export async function GET(
     .from('oh_booking_tags')
     .select(`
       *,
-      tag:oh_session_tags(*)
+      tag:oh_session_tags!tag_id(*)
     `)
     .eq('booking_id', bookingId);
 
@@ -75,7 +75,7 @@ export async function POST(
     })
     .select(`
       *,
-      tag:oh_session_tags(*)
+      tag:oh_session_tags!tag_id(*)
     `)
     .single();
 

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*)
+      event:oh_events!event_id(*)
     `)
     .eq('id', slot_id)
     .single();
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
       const { data: matchingSlots } = await supabase
         .from('oh_slots')
-        .select('*, bookings:oh_bookings(count)')
+        .select('*, bookings:oh_bookings!slot_id(count)')
         .eq('event_id', eventId)
         .eq('is_cancelled', false)
         .gte('start_time', searchStart.toISOString())
@@ -220,10 +220,10 @@ export async function GET(request: NextRequest) {
       .from('oh_booking_series')
       .select(`
         *,
-        event:oh_events(name, slug),
-        bookings:oh_bookings(
+        event:oh_events!event_id(name, slug),
+        bookings:oh_bookings!series_id(
           *,
-          slot:oh_slots(start_time, end_time, google_meet_link)
+          slot:oh_slots!slot_id(start_time, end_time, google_meet_link)
         )
       `)
       .eq('id', seriesId)
@@ -245,10 +245,10 @@ export async function GET(request: NextRequest) {
     .from('oh_booking_series')
     .select(`
       *,
-      event:oh_events(name, slug),
-      bookings:oh_bookings(
+      event:oh_events!event_id(name, slug),
+      bookings:oh_bookings!series_id(
         *,
-        slot:oh_slots(start_time, end_time)
+        slot:oh_slots!slot_id(start_time, end_time)
       )
     `)
     .eq('attendee_email', email.toLowerCase())

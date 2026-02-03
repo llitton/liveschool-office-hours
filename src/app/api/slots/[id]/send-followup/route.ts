@@ -43,8 +43,8 @@ export async function POST(
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(*)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(*)
     `)
     .eq('id', id)
     .single();

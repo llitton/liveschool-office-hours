@@ -87,7 +87,7 @@ export async function GET() {
       .select(`
         *,
         event:oh_events!event_id(*),
-        bookings:oh_bookings(count)
+        bookings:oh_bookings!slot_id(count)
       `)
       .eq('is_cancelled', false)
       .limit(1)

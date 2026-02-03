@@ -48,11 +48,11 @@ export async function POST(
     .from('oh_polls')
     .select(`
       *,
-      options:oh_poll_options(
+      options:oh_poll_options!poll_id(
         id,
         start_time,
         end_time,
-        votes:oh_poll_votes(voter_name, voter_email)
+        votes:oh_poll_votes!option_id(voter_name, voter_email)
       )
     `)
     .eq('id', pollId)

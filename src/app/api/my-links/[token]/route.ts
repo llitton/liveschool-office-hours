@@ -41,7 +41,7 @@ export async function GET(
   const { data: cohostedEvents } = await supabase
     .from('oh_event_hosts')
     .select(`
-      event:oh_events(id, slug, name, subtitle, duration_minutes, meeting_type, is_active, max_attendees)
+      event:oh_events!event_id(id, slug, name, subtitle, duration_minutes, meeting_type, is_active, max_attendees)
     `)
     .eq('admin_id', admin.id);
 

@@ -34,9 +34,9 @@ export async function POST(
       email,
       first_name,
       last_name,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         event_id,
-        event:oh_events(
+        event:oh_events!event_id(
           name,
           host_name,
           host_email

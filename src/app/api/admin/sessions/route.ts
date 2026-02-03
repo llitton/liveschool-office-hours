@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
       start_time,
       end_time,
       google_meet_link,
-      event:oh_events(id, name, slug, max_attendees),
-      bookings:oh_bookings(
+      event:oh_events!event_id(id, name, slug, max_attendees),
+      bookings:oh_bookings!slot_id(
         id,
         cancelled_at,
         attended_at,

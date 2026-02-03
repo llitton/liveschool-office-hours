@@ -13,10 +13,10 @@ export async function GET(
     .from('oh_booking_series')
     .select(`
       *,
-      event:oh_events(name, slug, description),
-      bookings:oh_bookings(
+      event:oh_events!event_id(name, slug, description),
+      bookings:oh_bookings!series_id(
         *,
-        slot:oh_slots(start_time, end_time, google_meet_link)
+        slot:oh_slots!slot_id(start_time, end_time, google_meet_link)
       )
     `)
     .eq('id', seriesId)
@@ -55,7 +55,7 @@ export async function DELETE(
     .from('oh_booking_series')
     .select(`
       *,
-      bookings:oh_bookings(id, manage_token, cancelled_at)
+      bookings:oh_bookings!series_id(id, manage_token, cancelled_at)
     `)
     .eq('id', seriesId)
     .single();
@@ -111,7 +111,7 @@ export async function PATCH(
     .from('oh_booking_series')
     .select(`
       *,
-      bookings:oh_bookings(id, manage_token, cancelled_at, slot:oh_slots(start_time))
+      bookings:oh_bookings!series_id(id, manage_token, cancelled_at, slot:oh_slots!slot_id(start_time))
     `)
     .eq('id', seriesId)
     .single();

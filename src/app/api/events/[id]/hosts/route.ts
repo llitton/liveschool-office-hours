@@ -33,7 +33,7 @@ export async function GET(
     .from('oh_event_hosts')
     .select(`
       *,
-      admin:oh_admins(id, name, email)
+      admin:oh_admins!admin_id(id, name, email)
     `)
     .eq('event_id', eventId)
     .order('created_at', { ascending: true });
@@ -127,7 +127,7 @@ export async function POST(
     })
     .select(`
       *,
-      admin:oh_admins(id, name, email)
+      admin:oh_admins!admin_id(id, name, email)
     `)
     .single();
 
@@ -220,7 +220,7 @@ export async function PATCH(
     .eq('event_id', eventId)
     .select(`
       *,
-      admin:oh_admins(id, name, email)
+      admin:oh_admins!admin_id(id, name, email)
     `)
     .single();
 

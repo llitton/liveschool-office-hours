@@ -73,7 +73,7 @@ export async function GET(
       .from('oh_slots')
       .select(`
         *,
-        bookings:oh_bookings(count),
+        bookings:oh_bookings!slot_id(count),
         assigned_host:oh_admins!assigned_host_id(id, name, email)
       `)
       .eq('event_id', eventId)

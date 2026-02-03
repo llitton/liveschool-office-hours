@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     .select(`
       start_time,
       end_time,
-      event:oh_events(name)
+      event:oh_events!event_id(name)
     `)
     .eq('is_cancelled', false)
     .gte('start_time', start.toISOString())

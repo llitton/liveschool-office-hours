@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       message_type,
       event_id,
       created_at,
-      event:oh_events(id, name)
+      event:oh_events!event_id(id, name)
     `)
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString())

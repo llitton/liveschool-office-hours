@@ -37,8 +37,8 @@ export async function GET() {
       id,
       start_time,
       event_id,
-      event:oh_events(id, name, max_attendees, confirmation_subject),
-      bookings:oh_bookings(count)
+      event:oh_events!event_id(id, name, max_attendees, confirmation_subject),
+      bookings:oh_bookings!slot_id(count)
     `)
     .eq('is_cancelled', false)
     .gte('start_time', now.toISOString())
@@ -128,8 +128,8 @@ export async function GET() {
     .select(`
       id,
       start_time,
-      event:oh_events(max_attendees),
-      bookings:oh_bookings(count, attended_at, no_show_at)
+      event:oh_events!event_id(max_attendees),
+      bookings:oh_bookings!slot_id(count, attended_at, no_show_at)
     `)
     .eq('is_cancelled', false)
     .gte('start_time', monthStart.toISOString())
@@ -167,7 +167,7 @@ export async function GET() {
     .from('oh_slots')
     .select(`
       start_time,
-      bookings:oh_bookings(count)
+      bookings:oh_bookings!slot_id(count)
     `)
     .eq('is_cancelled', false)
     .gte('start_time', ninetyDaysAgo.toISOString())
@@ -203,9 +203,9 @@ export async function GET() {
       last_name,
       email,
       created_at,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         start_time,
-        event:oh_events(name)
+        event:oh_events!event_id(name)
       )
     `)
     .is('cancelled_at', null)

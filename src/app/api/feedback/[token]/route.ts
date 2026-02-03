@@ -17,9 +17,9 @@ export async function GET(
       feedback_rating,
       feedback_comment,
       feedback_submitted_at,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         start_time,
-        event:oh_events(name, host_name)
+        event:oh_events!event_id(name, host_name)
       )
     `)
     .eq('manage_token', token)

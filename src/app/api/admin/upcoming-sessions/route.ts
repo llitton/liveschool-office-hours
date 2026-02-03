@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       start_time,
       end_time,
       google_meet_link,
-      event:oh_events(
+      event:oh_events!event_id(
         id,
         name,
         slug,
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         description,
         custom_questions
       ),
-      bookings:oh_bookings(
+      bookings:oh_bookings!slot_id(
         id,
         first_name,
         last_name,

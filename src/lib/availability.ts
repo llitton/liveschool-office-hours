@@ -159,7 +159,7 @@ async function getExistingSlots(
 
   let query = supabase
     .from('oh_slots')
-    .select('start_time, end_time, event:oh_events(host_email)')
+    .select('start_time, end_time, event:oh_events!event_id(host_email)')
     .eq('is_cancelled', false)
     .gte('start_time', startDate.toISOString())
     .lte('end_time', endDate.toISOString());

@@ -28,9 +28,9 @@ export async function GET(
     .from('oh_bookings')
     .select(`
       *,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         *,
-        event:oh_events(*)
+        event:oh_events!event_id(*)
       )
     `)
     .eq('manage_token', token)
@@ -45,7 +45,7 @@ export async function GET(
     .from('oh_slots')
     .select(`
       *,
-      bookings:oh_bookings(count)
+      bookings:oh_bookings!slot_id(count)
     `)
     .eq('event_id', booking.slot.event.id)
     .eq('is_cancelled', false)
@@ -93,9 +93,9 @@ export async function PUT(
     .from('oh_bookings')
     .select(`
       *,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         *,
-        event:oh_events(*)
+        event:oh_events!event_id(*)
       ),
       assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)
@@ -112,8 +112,8 @@ export async function PUT(
     .from('oh_slots')
     .select(`
       *,
-      event:oh_events(*),
-      bookings:oh_bookings(count)
+      event:oh_events!event_id(*),
+      bookings:oh_bookings!slot_id(count)
     `)
     .eq('id', new_slot_id)
     .eq('is_cancelled', false)
@@ -212,9 +212,9 @@ export async function DELETE(
     .from('oh_bookings')
     .select(`
       *,
-      slot:oh_slots(
+      slot:oh_slots!slot_id(
         *,
-        event:oh_events(*)
+        event:oh_events!event_id(*)
       ),
       assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)

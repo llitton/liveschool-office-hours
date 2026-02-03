@@ -29,7 +29,7 @@ export async function GET(
         email,
         profile_image
       ),
-      options:oh_poll_options(
+      options:oh_poll_options!poll_id(
         id,
         start_time,
         end_time,
@@ -55,7 +55,7 @@ export async function GET(
         end_time,
         vote_count,
         sort_order,
-        votes:oh_poll_votes(
+        votes:oh_poll_votes!option_id(
           voter_name,
           vote_type
         )
