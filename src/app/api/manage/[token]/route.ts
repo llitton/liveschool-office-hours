@@ -86,6 +86,12 @@ export async function PUT(
     return NextResponse.json({ error: 'new_slot_id is required' }, { status: 400 });
   }
 
+  // Validate UUID format to prevent invalid queries
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(new_slot_id)) {
+    return NextResponse.json({ error: 'Invalid slot ID format' }, { status: 400 });
+  }
+
   const supabase = getServiceSupabase();
 
   // Get current booking
@@ -125,6 +131,18 @@ export async function PUT(
 
   const bookingCount = newSlot.bookings?.[0]?.count || 0;
   if (bookingCount >= newSlot.event.max_attendees) {
+    return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
+  }
+
+  // Re-check capacity right before update to reduce race condition window.
+  // Uses count query which is more reliable than the aggregate join above.
+  const { count: currentCount } = await supabase
+    .from('oh_bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('slot_id', new_slot_id)
+    .is('cancelled_at', null);
+
+  if ((currentCount ?? 0) >= newSlot.event.max_attendees) {
     return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
   }
 

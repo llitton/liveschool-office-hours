@@ -414,7 +414,7 @@ export async function POST(request: NextRequest) {
     const { count: dailyCount, error: dailyError } = await supabase
       .from('oh_bookings')
       .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
-      .eq('typedSlot.event_id', event.id)
+      .eq('slot.event_id', event.id)
       .gte('slot.start_time', dayStart.toISOString())
       .lte('slot.start_time', dayEnd.toISOString())
       .is('cancelled_at', null);
@@ -443,7 +443,7 @@ export async function POST(request: NextRequest) {
     const { count: weeklyCount, error: weeklyError } = await supabase
       .from('oh_bookings')
       .select('id, slot:oh_slots!inner(event_id, start_time)', { count: 'exact', head: true })
-      .eq('typedSlot.event_id', event.id)
+      .eq('slot.event_id', event.id)
       .gte('slot.start_time', weekStart.toISOString())
       .lte('slot.start_time', weekEnd.toISOString())
       .is('cancelled_at', null);
@@ -902,10 +902,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Sync with HubSpot (non-blocking)
-  syncBookingToHubSpot(booking, typedSlot.event, slot, first_name, last_name, email, supabase).catch(
-    (err) => console.error('HubSpot sync failed:', err)
-  );
+  // Sync with HubSpot (awaited with timeout to prevent serverless cutoff)
+  try {
+    await Promise.race([
+      syncBookingToHubSpot(booking, typedSlot.event, slot, first_name, last_name, email, supabase),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('HubSpot sync timeout')), 5000)),
+    ]);
+  } catch (err) {
+    console.error('HubSpot sync failed:', err);
+  }
 
   // Send Slack notification (only if enabled for this event)
   if (typedSlot.event.slack_notifications_enabled) {
@@ -947,24 +952,22 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Track booking_created analytics event (non-blocking)
+  // Track booking_created analytics event (awaited to prevent serverless cutoff)
   if (analytics_session_id) {
-    (async () => {
-      try {
-        await supabase.from('oh_booking_analytics').insert({
-          session_id: analytics_session_id,
-          event_type: 'booking_created',
-          event_id: typedSlot.event_id,
-          event_slug: typedSlot.event.slug,
-          event_name: typedSlot.event.name,
-          slot_id: slot.id,
-          booking_id: booking.id,
-          selected_slot_time: slot.start_time,
-        });
-      } catch (err) {
-        console.error('Analytics tracking failed:', err);
-      }
-    })();
+    try {
+      await supabase.from('oh_booking_analytics').insert({
+        session_id: analytics_session_id,
+        event_type: 'booking_created',
+        event_id: typedSlot.event_id,
+        event_slug: typedSlot.event.slug,
+        event_name: typedSlot.event.name,
+        slot_id: slot.id,
+        booking_id: booking.id,
+        selected_slot_time: slot.start_time,
+      });
+    } catch (err) {
+      console.error('Analytics tracking failed:', err);
+    }
   }
 
   // Build response with integration status for frontend to display

@@ -104,13 +104,19 @@ export async function sendSlackMessage(message: SlackMessage): Promise<boolean> 
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(config.webhook_url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(message),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -119,7 +125,11 @@ export async function sendSlackMessage(message: SlackMessage): Promise<boolean> 
 
     return response.ok;
   } catch (error) {
-    console.error('[Slack] Failed to send message:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[Slack] Webhook timed out after 5s');
+    } else {
+      console.error('[Slack] Failed to send message:', error);
+    }
     return false;
   }
 }
@@ -600,14 +610,24 @@ export async function notifyUserFeedback(feedback: {
 
   // Send directly to feedback webhook (not the main booking webhook)
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const response = await fetch(config.feedback_webhook_url!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(message),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
-    console.error('[Slack] Failed to send feedback notification:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[Slack] Feedback webhook timed out after 5s');
+    } else {
+      console.error('[Slack] Failed to send feedback notification:', error);
+    }
     return false;
   }
 }

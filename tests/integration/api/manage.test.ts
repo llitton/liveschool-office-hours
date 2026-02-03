@@ -357,7 +357,7 @@ describe('Manage API Integration Tests', () => {
   describe('PUT /api/manage/[token] - Reschedule Booking', () => {
     it('updates slot_id to new slot', async () => {
       // Add a new available slot
-      const newSlot = createMockSlot({ id: 'slot-456' });
+      const newSlot = createMockSlot({ id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' });
       mockSlots.push(newSlot);
       mockSupabase = createMockSupabaseClient();
 
@@ -365,14 +365,14 @@ describe('Manage API Integration Tests', () => {
 
       const request = new NextRequest('http://localhost:3000/api/manage/test-manage-token', {
         method: 'PUT',
-        body: JSON.stringify({ new_slot_id: 'slot-456' }),
+        body: JSON.stringify({ new_slot_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
         headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request, { params: Promise.resolve({ token: 'test-manage-token' }) });
 
       expect(response.status).toBe(200);
-      expect(capturedUpdates.slot_id).toBe('slot-456');
+      expect(capturedUpdates.slot_id).toBe('a1b2c3d4-e5f6-7890-abcd-ef1234567890');
     });
 
     it('returns 400 when new_slot_id is missing', async () => {
@@ -399,7 +399,7 @@ describe('Manage API Integration Tests', () => {
 
       const request = new NextRequest('http://localhost:3000/api/manage/invalid-token', {
         method: 'PUT',
-        body: JSON.stringify({ new_slot_id: 'slot-456' }),
+        body: JSON.stringify({ new_slot_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
         headers: { 'Content-Type': 'application/json' },
       });
 

@@ -58,8 +58,19 @@ export async function GET(request: NextRequest) {
     metadata: { synced: results.synced, failed: results.failed, errors: results.errors.length },
   });
 
+  // Return 503 if more than half of syncs failed
+  const hasCriticalFailures = results.failed > 0 && results.failed > results.total / 2;
+
+  if (hasCriticalFailures) {
+    return NextResponse.json({
+      success: false,
+      ...results,
+      message: 'Critical: More than half of availability syncs failed',
+    }, { status: 503 });
+  }
+
   return NextResponse.json({
-    success: true,
+    success: results.failed === 0,
     ...results,
   });
 }

@@ -178,6 +178,13 @@ export default function BookingPage({
 
   useEffect(() => {
     fetchEventAndSlots();
+
+    // Auto-refresh slots every 60 seconds to reflect bookings by other users
+    const intervalId = setInterval(() => {
+      fetchEventAndSlots();
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, [slug]);
 
   // Track page view when event data loads

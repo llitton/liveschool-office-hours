@@ -54,9 +54,10 @@ export async function POST(
   const body = await request.json();
   const { rating, comment, topics_for_next_time } = body;
 
-  if (!rating || rating < 1 || rating > 5) {
+  const numRating = Number(rating);
+  if (!Number.isInteger(numRating) || numRating < 1 || numRating > 5) {
     return NextResponse.json(
-      { error: 'Rating must be between 1 and 5' },
+      { error: 'Rating must be an integer between 1 and 5' },
       { status: 400 }
     );
   }
@@ -78,7 +79,7 @@ export async function POST(
   const { error: updateError } = await supabase
     .from('oh_bookings')
     .update({
-      feedback_rating: rating,
+      feedback_rating: numRating,
       feedback_comment: comment || null,
       feedback_topic_suggestion: topics_for_next_time || null,
       feedback_submitted_at: new Date().toISOString(),

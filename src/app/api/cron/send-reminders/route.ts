@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
   let emailRemindersSent = 0;
   let smsRemindersSent = 0;
   const errors: string[] = [];
+  const MAX_REMINDERS_PER_RUN = 100;
+  let totalProcessed = 0;
 
   // Check if SMS is configured globally
   const smsConfig = await getSMSConfig();
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
   }
 
   for (const slot of slots || []) {
+    if (totalProcessed >= MAX_REMINDERS_PER_RUN) break;
     const slotTime = new Date(slot.start_time);
 
     // Get admin tokens
@@ -98,6 +101,10 @@ export async function GET(request: NextRequest) {
       }
 
       if (!reminderType) continue;
+
+      // Prevent serverless timeout by capping total reminders per run
+      if (totalProcessed >= MAX_REMINDERS_PER_RUN) break;
+      totalProcessed++;
 
       try {
         // Use attendee's stored timezone, fall back to event's display timezone, then default

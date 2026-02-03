@@ -28,6 +28,9 @@ export class TwilioProvider implements SMSProviderInterface {
       return false;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`,
@@ -42,8 +45,10 @@ export class TwilioProvider implements SMSProviderInterface {
             From: this.senderPhone,
             Body: message,
           }),
+          signal: controller.signal,
         }
       );
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
@@ -53,12 +58,16 @@ export class TwilioProvider implements SMSProviderInterface {
 
       return true;
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Twilio SMS error:', error);
       return false;
     }
   }
 
   async testConnection(): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
       const response = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}.json`,
@@ -67,11 +76,14 @@ export class TwilioProvider implements SMSProviderInterface {
           headers: {
             'Authorization': this.getAuthHeader(),
           },
+          signal: controller.signal,
         }
       );
+      clearTimeout(timeoutId);
 
       return response.ok;
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Twilio connection test error:', error);
       return false;
     }

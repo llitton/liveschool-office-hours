@@ -99,7 +99,11 @@ export async function PATCH(
 
   // Handle feedback submission
   if (body.feedback_rating !== undefined) {
-    updates.feedback_rating = body.feedback_rating;
+    const rating = Number(body.feedback_rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return NextResponse.json({ error: 'Rating must be an integer between 1 and 5' }, { status: 400 });
+    }
+    updates.feedback_rating = rating;
     updates.feedback_comment = body.feedback_comment || null;
     updates.feedback_submitted_at = new Date().toISOString();
   }

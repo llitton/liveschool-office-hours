@@ -31,6 +31,12 @@ export class AircallProvider implements SMSProviderInterface {
     return `Bearer ${this.apiKey}`;
   }
 
+  private createTimeout(ms = 10000): { controller: AbortController; clear: () => void } {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ms);
+    return { controller, clear: () => clearTimeout(timeoutId) };
+  }
+
   async sendSMS(to: string, message: string): Promise<boolean> {
     try {
       // Aircall SMS requires a number ID, not just a phone number
@@ -39,27 +45,35 @@ export class AircallProvider implements SMSProviderInterface {
 
       // If senderPhone looks like a phone number (not an ID), try to find the number ID
       if (this.senderPhone && this.senderPhone.startsWith('+')) {
-        const numbersResponse = await fetch('https://api.aircall.io/v1/numbers', {
-          method: 'GET',
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
+        const { controller: numCtrl, clear: clearNumTimeout } = this.createTimeout();
+        try {
+          const numbersResponse = await fetch('https://api.aircall.io/v1/numbers', {
+            method: 'GET',
+            headers: {
+              'Authorization': this.getAuthHeader(),
+            },
+            signal: numCtrl.signal,
+          });
+          clearNumTimeout();
 
-        if (numbersResponse.ok) {
-          const numbersData = await numbersResponse.json();
-          const matchingNumber = numbersData.numbers?.find(
-            (n: { direct_link: string; id: number; is_sms_enabled?: boolean }) =>
-              n.direct_link === this.senderPhone ||
-              n.direct_link?.replace(/\D/g, '') === this.senderPhone?.replace(/\D/g, '')
-          );
-          if (matchingNumber) {
-            numberId = String(matchingNumber.id);
-            smsLogger.debug('Found Aircall number', {
-              operation: 'aircall.sendSMS',
-              metadata: { numberId, smsEnabled: matchingNumber.is_sms_enabled },
-            });
+          if (numbersResponse.ok) {
+            const numbersData = await numbersResponse.json();
+            const matchingNumber = numbersData.numbers?.find(
+              (n: { direct_link: string; id: number; is_sms_enabled?: boolean }) =>
+                n.direct_link === this.senderPhone ||
+                n.direct_link?.replace(/\D/g, '') === this.senderPhone?.replace(/\D/g, '')
+            );
+            if (matchingNumber) {
+              numberId = String(matchingNumber.id);
+              smsLogger.debug('Found Aircall number', {
+                operation: 'aircall.sendSMS',
+                metadata: { numberId, smsEnabled: matchingNumber.is_sms_enabled },
+              });
+            }
           }
+        } catch (numErr) {
+          clearNumTimeout();
+          console.error('Aircall number lookup failed:', numErr);
         }
       }
 
@@ -69,6 +83,7 @@ export class AircallProvider implements SMSProviderInterface {
       }
 
       // Aircall SMS endpoint: POST /v1/numbers/{number_id}/messages
+      const { controller, clear: clearTimeout } = this.createTimeout();
       const response = await fetch(`https://api.aircall.io/v1/numbers/${numberId}/messages`, {
         method: 'POST',
         headers: {
@@ -79,7 +94,9 @@ export class AircallProvider implements SMSProviderInterface {
           to: to,
           body: message,
         }),
+        signal: controller.signal,
       });
+      clearTimeout();
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -100,6 +117,7 @@ export class AircallProvider implements SMSProviderInterface {
   }
 
   async testConnection(): Promise<boolean> {
+    const { controller, clear: clearTimeout } = this.createTimeout();
     try {
       // Test API connection by fetching user info
       const response = await fetch('https://api.aircall.io/v1/company', {
@@ -107,10 +125,13 @@ export class AircallProvider implements SMSProviderInterface {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
+        signal: controller.signal,
       });
+      clearTimeout();
 
       return response.ok;
     } catch (error) {
+      clearTimeout();
       console.error('Aircall connection test error:', error);
       return false;
     }
