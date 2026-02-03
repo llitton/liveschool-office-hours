@@ -402,6 +402,20 @@ vi.mock('@/lib/google', () => ({
 }));
 ```
 
+**Dynamic import tests need explicit timeouts:** Tests that use `vi.resetModules()` + `await import()` for route handlers can exceed the default 5000ms timeout when the full suite runs in parallel. Always add `{ timeout: 15000 }` to these tests or their parent `describe` block:
+```typescript
+// Per-test timeout
+it('requires eventId parameter', { timeout: 15000 }, async () => {
+  const { GET } = await import('@/app/api/slots/route');
+  // ...
+});
+
+// Or per-describe timeout (preferred when all tests use dynamic imports)
+describe('Send Follow-up API', { timeout: 15000 }, () => {
+  // all tests here get 15s timeout
+});
+```
+
 ### E2E Test Requirements
 
 E2E tests require a running dev server. Playwright automatically starts it via the config:
