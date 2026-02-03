@@ -273,51 +273,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Get the slot with event and booking count
-  // Only select the event fields we actually use to reduce payload
   const { data: slot, error: slotError } = await supabase
     .from('oh_slots')
     .select(`
-      id,
-      event_id,
-      start_time,
-      end_time,
-      is_cancelled,
-      google_event_id,
-      google_meet_link,
-      assigned_host_id,
-      event:oh_events(
-        id,
-        name,
-        slug,
-        description,
-        host_email,
-        host_name,
-        meeting_type,
-        duration_minutes,
-        max_attendees,
-        timezone,
-        display_timezone,
-        min_notice_hours,
-        booking_window_days,
-        max_daily_bookings,
-        max_weekly_bookings,
-        require_approval,
-        custom_questions,
-        prep_materials,
-        phone_required,
-        sms_phone_required,
-        sms_reminders_enabled,
-        round_robin_strategy,
-        round_robin_period,
-        ignore_busy_blocks,
-        slack_notifications_enabled,
-        confirmation_subject,
-        is_one_off,
-        single_use,
-        one_off_booked_at,
-        one_off_expires_at,
-        hubspot_meeting_type
-      ),
+      *,
+      event:oh_events(*),
       bookings:oh_bookings(count)
     `)
     .eq('id', slot_id)
@@ -331,8 +291,16 @@ export async function POST(request: NextRequest) {
         isDynamicSlot,
         slotError: slotError?.message || null,
         slotErrorCode: slotError?.code || null,
+        slotErrorDetails: slotError?.details || null,
+        slotErrorHint: slotError?.hint || null,
+        hasSlotData: !!slot,
       },
     });
+    // Return more specific error for debugging
+    const errorDetail = slotError?.code === 'PGRST116'
+      ? 'No matching slot found in database'
+      : slotError?.message || 'Unknown error';
+    console.error('[Booking] Slot lookup failed:', { slot_id, error: slotError });
     return NextResponse.json(
       { error: 'This time slot is no longer available. Please refresh the page and select a different time.' },
       { status: 404 }
