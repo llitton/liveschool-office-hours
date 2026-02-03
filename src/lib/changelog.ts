@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-performance-reliability',
+    date: '2026-02-03',
+    title: 'Performance & Reliability Improvements',
+    description: 'Faster HubSpot lookups, safer concurrent bookings, and stronger cron job protection.',
+    category: 'improvement',
+    details: [
+      'HubSpot deal lookups now batch into a single API call instead of fetching one at a time',
+      'All HubSpot API calls now have a 5-second timeout to prevent slow page loads',
+      'Round-robin host assignment uses atomic updates to prevent race conditions',
+      'Cron jobs now require authentication in production environments',
+      'Follow-up email errors now show which recipients failed and why',
+      'In-memory caches automatically clean up expired entries to prevent memory growth',
+    ],
+  },
+  {
     id: '2026-02-03-security-hardening',
     date: '2026-02-03',
     title: 'Security Hardening',
