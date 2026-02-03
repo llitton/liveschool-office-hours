@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { findOrCreateContact, createTask as createHubSpotTask } from '@/lib/hubspot';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET tasks for a booking
 export async function GET(
@@ -24,7 +25,7 @@ export async function GET(
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(tasks);
@@ -110,7 +111,7 @@ export async function POST(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(task);
@@ -151,7 +152,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(task);
@@ -185,7 +186,7 @@ export async function DELETE(
     .eq('booking_id', bookingId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

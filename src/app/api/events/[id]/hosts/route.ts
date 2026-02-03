@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireEventAccess } from '@/lib/auth';
 import type { OHEventHost } from '@/types';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET hosts for an event
 export async function GET(
@@ -39,7 +40,7 @@ export async function GET(
     .order('created_at', { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Get owner details if host_id is set
@@ -132,7 +133,7 @@ export async function POST(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(host);
@@ -173,7 +174,7 @@ export async function DELETE(
     .eq('event_id', eventId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
@@ -225,7 +226,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(host);

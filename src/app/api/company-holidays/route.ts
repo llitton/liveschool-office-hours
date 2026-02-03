@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET all company holidays
 export async function GET(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -125,7 +126,7 @@ export async function DELETE(request: NextRequest) {
     .eq('id', holidayId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

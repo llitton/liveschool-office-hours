@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Message is required' }, { status: 400 });
   }
 
+  if (message.length > 5000) {
+    return NextResponse.json({ error: 'Message must be 5,000 characters or less' }, { status: 400 });
+  }
+
   const supabase = getServiceSupabase();
 
   // Get admin info

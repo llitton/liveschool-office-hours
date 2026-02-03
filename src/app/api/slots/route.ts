@@ -5,6 +5,7 @@ import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { checkTimeAvailability, checkCollectiveAvailability } from '@/lib/availability';
 import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping, addHours, addDays, isBefore, isAfter } from 'date-fns';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET slots for an event
 export async function GET(request: NextRequest) {
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
   const { data: slots, error } = await query.order('start_time', { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Transform to include booking count and filter by constraints (unless admin)
@@ -376,7 +377,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(slot);

@@ -16,6 +16,7 @@ import { formatPhoneE164 } from '@/lib/sms';
 import { checkTimeAvailability } from '@/lib/availability';
 import { validateEmail } from '@/lib/email-validation';
 import { bookingLogger } from '@/lib/logger';
+import { getSession } from '@/lib/auth';
 import { CommonErrors, safeParseJSON } from '@/lib/errors';
 import type { OHAdmin } from '@/types';
 import { parseISO, format, addHours, addDays, addMinutes, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
@@ -1024,8 +1025,13 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(response);
 }
 
-// GET bookings for a slot (admin only via query param check)
+// GET bookings for a slot (admin only)
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const slotId = searchParams.get('slotId');
 
@@ -1043,7 +1049,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 });
   }
 
   return NextResponse.json(bookings);

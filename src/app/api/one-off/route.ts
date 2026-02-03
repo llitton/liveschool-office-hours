@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { createCalendarEvent } from '@/lib/google';
 import { nanoid } from 'nanoid';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET list one-off meetings for the current user
 export async function GET() {
@@ -44,7 +45,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Enrich with status
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (eventError) {
-    return NextResponse.json({ error: eventError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(eventError) }, { status: 500 });
   }
 
   // Add co-hosts if specified
@@ -246,7 +247,7 @@ export async function POST(request: NextRequest) {
   if (slotsError) {
     // Clean up event if slots failed
     await supabase.from('oh_events').delete().eq('id', event.id);
-    return NextResponse.json({ error: slotsError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(slotsError) }, { status: 500 });
   }
 
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/book/${slug}`;
@@ -312,7 +313,7 @@ export async function DELETE(request: NextRequest) {
     .eq('id', eventId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

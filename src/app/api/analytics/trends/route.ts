@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
 
 // GET topic trends over time
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
   const { data: bookings, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Aggregate by day

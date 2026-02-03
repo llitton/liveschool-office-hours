@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { subDays, startOfWeek, format, startOfMonth } from 'date-fns';
 
 // GET session effectiveness metrics
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
   const { data: slots, error } = await query.order('start_time', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Get session tags for resolved status

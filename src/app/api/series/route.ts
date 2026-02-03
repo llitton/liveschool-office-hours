@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { safeParseJSON } from '@/lib/errors';
+import { safeParseJSON, getUserFriendlyError } from '@/lib/errors';
 import { addWeeks } from 'date-fns';
 import crypto from 'crypto';
 import { bookingLogger } from '@/lib/logger';
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (seriesError) {
-    return NextResponse.json({ error: seriesError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(seriesError) }, { status: 500 });
   }
 
   // Find or create slots for each session in the series
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
       if (bookingError) {
         await supabase.from('oh_booking_series').delete().eq('id', series.id);
-        return NextResponse.json({ error: bookingError.message }, { status: 500 });
+        return NextResponse.json({ error: getUserFriendlyError(bookingError) }, { status: 500 });
       }
 
       bookings.push({ ...booking, slot: initialSlot });
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
     }
 
     return NextResponse.json(series);
@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(series);

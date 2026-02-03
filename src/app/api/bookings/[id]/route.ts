@@ -37,6 +37,40 @@ export async function PATCH(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
+  // Verify the requesting admin hosts this booking's event
+  const patchSlotData = booking.slot as { event_id?: string } | null;
+  const patchEventId = patchSlotData?.event_id;
+
+  if (patchEventId) {
+    const { data: patchAdmin } = await supabase
+      .from('oh_admins')
+      .select('id')
+      .eq('email', session.email)
+      .single();
+
+    const { data: patchPrimaryEvent } = await supabase
+      .from('oh_events')
+      .select('id')
+      .eq('id', patchEventId)
+      .eq('host_email', session.email)
+      .single();
+
+    let patchIsCoHost = false;
+    if (!patchPrimaryEvent && patchAdmin) {
+      const { data: coHostEntry } = await supabase
+        .from('oh_event_hosts')
+        .select('id')
+        .eq('event_id', patchEventId)
+        .eq('admin_id', patchAdmin.id)
+        .single();
+      patchIsCoHost = !!coHostEntry;
+    }
+
+    if (!patchPrimaryEvent && !patchIsCoHost) {
+      return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+    }
+  }
+
   // Build update object
   const updates: Record<string, unknown> = {};
 

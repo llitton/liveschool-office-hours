@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-error-sanitization',
+    date: '2026-02-03',
+    title: 'Error Message Sanitization & Access Controls',
+    description: 'Sanitized error responses across all API routes and added missing input limits.',
+    category: 'fix',
+    details: [
+      'Replaced raw database error messages with user-friendly errors across 29 API routes',
+      'Added authentication to booking list endpoint',
+      'Added ownership verification to booking update endpoint',
+      'Added 5,000 character limit to user feedback messages',
+    ],
+  },
+  {
     id: '2026-02-03-auth-access-controls-2',
     date: '2026-02-03',
     title: 'Additional Auth & Access Controls',

@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { generateSlug } from '@/lib/routing';
 import type { RoutingQuestion } from '@/types';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET all routing forms (admin)
 export async function GET() {
@@ -23,7 +24,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ forms });
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ form }, { status: 201 });

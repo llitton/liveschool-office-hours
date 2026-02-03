@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET availability patterns for current admin
 export async function GET() {
@@ -29,7 +30,7 @@ export async function GET() {
     .order('day_of_week', { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(patterns);
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json(pattern, { status: 201 });
@@ -177,7 +178,7 @@ export async function PUT(request: NextRequest) {
       .insert(patternsToInsert);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
     }
   }
 
@@ -229,7 +230,7 @@ export async function DELETE(request: NextRequest) {
     .eq('admin_id', admin.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { escapeHtml } from '@/lib/email-html';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET all admins (for team selection)
 export async function GET() {
@@ -34,7 +35,7 @@ export async function GET() {
     .order('created_at', { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Get timezone and availability hours for each admin from their patterns
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Send invite email if inviter has Google connected
@@ -268,7 +269,7 @@ export async function DELETE(request: NextRequest) {
   const { error } = await supabase.from('oh_admins').delete().eq('id', adminId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

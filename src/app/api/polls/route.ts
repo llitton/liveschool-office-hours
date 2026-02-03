@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { nanoid } from 'nanoid';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET list polls for the current user
 export async function GET() {
@@ -42,7 +43,7 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(error) }, { status: 500 });
   }
 
   // Calculate total participants for each poll
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (pollError) {
-    return NextResponse.json({ error: pollError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(pollError) }, { status: 500 });
   }
 
   // Validate time options
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
   if (optionsError) {
     // Clean up poll if options failed
     await supabase.from('oh_polls').delete().eq('id', poll.id);
-    return NextResponse.json({ error: optionsError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(optionsError) }, { status: 500 });
   }
 
   const pollUrl = `${process.env.NEXT_PUBLIC_APP_URL}/vote/${slug}`;
