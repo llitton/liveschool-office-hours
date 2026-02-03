@@ -291,9 +291,13 @@ vi.mock('@/lib/supabase', () => ({
 // TEST HELPERS
 // ============================================
 
+// Test constants - use valid UUIDs for slot and event IDs
+const TEST_SLOT_ID = 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d';
+const TEST_EVENT_ID = 'f1e2d3c4-b5a6-4987-8765-432109876543';
+
 function createMockEvent(overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    id: 'event-123',
+    id: TEST_EVENT_ID,
     slug: 'test-event',
     name: 'Test Event',
     host_name: 'Test Host',
@@ -320,8 +324,8 @@ function createMockSlot(overrides: Partial<Record<string, unknown>> = {}) {
   tomorrow.setHours(14, 0, 0, 0);
 
   return {
-    id: 'slot-123',
-    event_id: 'event-123',
+    id: TEST_SLOT_ID,
+    event_id: TEST_EVENT_ID,
     start_time: tomorrow.toISOString(),
     end_time: addHours(tomorrow, 1).toISOString(),
     is_cancelled: false,
@@ -376,7 +380,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
@@ -395,7 +399,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         // Missing first_name, last_name, email
       });
 
@@ -413,7 +417,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
@@ -436,7 +440,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
@@ -456,7 +460,7 @@ describe('Bookings API Integration Tests', () => {
       mockBookings = [
         {
           id: 'existing-booking',
-          slot_id: 'slot-123',
+          slot_id: TEST_SLOT_ID,
           email: 'john@example.com',
           first_name: 'John',
           last_name: 'Doe',
@@ -470,7 +474,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
@@ -490,7 +494,7 @@ describe('Bookings API Integration Tests', () => {
       mockBookings = [
         {
           id: 'existing-booking',
-          slot_id: 'slot-123',
+          slot_id: TEST_SLOT_ID,
           email: 'existing@example.com',
           first_name: 'Existing',
           last_name: 'User',
@@ -504,7 +508,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         first_name: 'Jane',
         last_name: 'Smith',
         email: 'jane@example.com',
@@ -521,7 +525,7 @@ describe('Bookings API Integration Tests', () => {
       mockBookings = [
         {
           id: 'existing-booking',
-          slot_id: 'slot-123',
+          slot_id: TEST_SLOT_ID,
           email: 'existing@example.com',
           first_name: 'Existing',
           last_name: 'User',
@@ -535,7 +539,7 @@ describe('Bookings API Integration Tests', () => {
       const { POST } = await import('@/app/api/bookings/route');
 
       const request = createMockRequest({
-        slot_id: 'slot-123',
+        slot_id: TEST_SLOT_ID,
         first_name: 'Jane',
         last_name: 'Smith',
         email: 'jane@example.com',

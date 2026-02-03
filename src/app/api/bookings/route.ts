@@ -115,6 +115,28 @@ export async function POST(request: NextRequest) {
   // Dynamic slot IDs have format: "dynamic-<ISO timestamp>"
   const isDynamicSlot = slot_id && slot_id.startsWith('dynamic-');
 
+  // Validate slot_id format for non-dynamic slots (should be a valid UUID)
+  if (slot_id && !isDynamicSlot) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const trimmedSlotId = slot_id.trim();
+    if (!uuidRegex.test(trimmedSlotId)) {
+      bookingLogger.error('Invalid slot_id format', {
+        operation: 'createBooking',
+        metadata: {
+          slot_id,
+          trimmedSlotId,
+          length: slot_id.length,
+        },
+      });
+      return NextResponse.json(
+        { error: 'Invalid slot format. Please refresh the page and try again.' },
+        { status: 400 }
+      );
+    }
+    // Use trimmed version
+    slot_id = trimmedSlotId;
+  }
+
   if (isDynamicSlot) {
     // Extract start time from dynamic slot ID
     const startTimeStr = slot_id.replace('dynamic-', '');
@@ -302,7 +324,19 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (slotError || !slot) {
-    return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
+    bookingLogger.error('Slot not found', {
+      operation: 'createBooking',
+      metadata: {
+        slot_id,
+        isDynamicSlot,
+        slotError: slotError?.message || null,
+        slotErrorCode: slotError?.code || null,
+      },
+    });
+    return NextResponse.json(
+      { error: 'This time slot is no longer available. Please refresh the page and select a different time.' },
+      { status: 404 }
+    );
   }
 
   // Type assertion for the nested event object
