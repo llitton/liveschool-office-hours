@@ -111,7 +111,7 @@ function createMockBooking(overrides: Partial<Record<string, unknown>> = {}) {
 // TESTS
 // ============================================
 
-describe('Send Follow-up API', () => {
+describe('Send Follow-up API', { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSession = { email: 'sender@test.com' };

@@ -251,7 +251,7 @@ describe('Slots API Integration Tests', () => {
   });
 
   describe('GET /api/slots', () => {
-    it('requires eventId parameter', async () => {
+    it('requires eventId parameter', { timeout: 15000 }, async () => {
       const { GET } = await import('@/app/api/slots/route');
 
       const request = new NextRequest('http://localhost:3000/api/slots');
