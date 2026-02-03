@@ -299,6 +299,7 @@ tests/
 │       ├── feedback.test.ts             # Feedback submission (8 tests)
 │       ├── manage.test.ts               # Manage/cancel bookings (8 tests)
 │       ├── reliability.test.ts          # Reliability fixes validation (13 tests)
+│       ├── silent-failures.test.ts     # Silent failure prevention (6 tests)
 │       ├── send-followup.test.ts        # Follow-up emails (10 tests)
 │       ├── slots.test.ts               # Slot generation API (11 tests)
 │       └── verify-migrations.test.ts    # Migration verification (6 tests)
@@ -376,10 +377,11 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-bo
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
 | Reliability Fixes | 13 | `reliability.ts` |
+| Silent Failure Prevention | 6 | `silent-failures.ts` |
 | **Total Unit Tests** | **498** | 16 lib modules + 1 component |
-| **Integration Tests** | **111** | 13 API test files |
+| **Integration Tests** | **117** | 14 API test files |
 | **E2E Tests** | **9** | 1 critical flow test file |
-| **Grand Total** | **618** | All test files |
+| **Grand Total** | **624** | All test files |
 
 ### Writing Tests
 
@@ -894,6 +896,8 @@ await Promise.race([
 Cron jobs running on Vercel have execution time limits. Follow these patterns:
 - **Batch limits:** Process max 100 items per run to prevent timeout (e.g., reminder emails)
 - **Error reporting:** Return `503` when >50% of operations fail (not `{ success: true }`)
+- **Query error checking:** Always destructure and check `error` on slot/booking queries — don't use `for (const slot of data || [])` which silently skips entire sections on query failure
+- **Sent-at tracking:** After sending an email, check the sent-at timestamp update succeeded. Log errors with `cronLogger` so duplicate sends are traceable.
 - **Token refresh:** Google OAuth2 client handles refresh automatically when `refresh_token` is provided
 - **Idempotency:** Use sent-at timestamp fields to prevent duplicate sends
 
@@ -962,6 +966,8 @@ CHECK constraints prevent invalid data at the database level:
 - Supabase queries use `getServiceSupabase()` for server-side operations
 - **Supabase foreign key joins must use explicit syntax:** `event:oh_events!event_id(*)` not `event:oh_events(*)` — implicit joins silently return null instead of failing, which caused a production booking outage on 2026-02-02. All 161 joins across the codebase now use explicit `!fk_column` syntax
 - **Supabase filter paths must use alias names:** When filtering on joined tables, use the alias from the select (e.g., `.eq('slot.event_id', id)` not `.eq('typedSlot.event_id', id)`) — JavaScript variable names don't work as PostgREST filter paths
+- **Always check Supabase query errors:** Every `supabase.from().select/insert/update/delete()` must destructure `error` and handle it. Use `const { data, error } = await ...` not `const { data } = await ...`. Unchecked errors caused silent failures in round-robin assignment, busy block sync, and email deduplication.
+- **Sent-at timestamp updates must be error-checked:** When marking emails as sent (`followup_sent_at`, `feedback_sent_at`, etc.), always check the update result. If the update fails but the email succeeded, the cron will resend the same email on every run.
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint) - use `/api/events/check-slug` to validate before creation

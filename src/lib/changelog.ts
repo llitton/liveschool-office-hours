@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-silent-failure-fixes',
+    date: '2026-02-03',
+    title: 'Silent Failure Prevention',
+    description: 'Added error checking to 30+ database operations that previously failed silently.',
+    category: 'fix',
+    details: [
+      'Round-robin host assignment now logs errors instead of silently using defaults',
+      'Google Calendar sync throws on failure instead of silently losing busy blocks',
+      'Post-session cron now logs all query failures and sent-at update failures',
+      'Follow-up and no-show email tracking now properly reports errors to prevent duplicate sends',
+      'Slug suggestions skip unverified candidates instead of suggesting potentially taken slugs',
+    ],
+  },
+  {
     id: '2026-02-03-reliability-fixes',
     date: '2026-02-03',
     title: 'Reliability & Security Improvements',
