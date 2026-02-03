@@ -11,7 +11,13 @@ import { cronLogger } from '@/lib/logger';
 
 const MIN_ATTENDANCE_DURATION = 5; // Minutes required to count as attended
 
-export async function GET() {
+export async function GET(request?: Request) {
+  // Verify cron secret in production
+  const authHeader = request?.headers.get('authorization');
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
   const now = new Date();
   const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);

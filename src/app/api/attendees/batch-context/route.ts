@@ -21,9 +21,32 @@ interface CachedContact {
   timestamp: number;
 }
 
-// In-memory cache for batch context data
+// In-memory cache for batch context data with periodic cleanup
 const cache = new Map<string, CachedContact>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_MAX_SIZE = 500;
+let lastCleanup = Date.now();
+
+function cleanupCache() {
+  const now = Date.now();
+  // Only run cleanup every 5 minutes
+  if (now - lastCleanup < 5 * 60 * 1000) return;
+  lastCleanup = now;
+
+  for (const [key, entry] of cache) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      cache.delete(key);
+    }
+  }
+  // If still over max size, remove oldest entries
+  if (cache.size > CACHE_MAX_SIZE) {
+    const entries = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toRemove = entries.slice(0, cache.size - CACHE_MAX_SIZE);
+    for (const [key] of toRemove) {
+      cache.delete(key);
+    }
+  }
+}
 
 /**
  * Batch fetch HubSpot context for multiple attendees
@@ -34,6 +57,9 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Periodically clean up expired cache entries to prevent memory growth
+  cleanupCache();
 
   let emails: string[];
   try {

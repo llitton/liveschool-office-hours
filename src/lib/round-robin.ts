@@ -230,49 +230,46 @@ async function getRoundRobinState(eventId: string): Promise<{
 
 /**
  * Update round-robin state after assignment
+ * Uses upsert to atomically handle both insert and update cases,
+ * preventing the race condition where concurrent bookings could
+ * both try to insert for the same event_id.
  */
 async function updateRoundRobinState(
   eventId: string,
   assignedHostId: string
 ): Promise<void> {
   const supabase = getServiceSupabase();
+  const now = new Date().toISOString();
 
+  // First try to get existing count for increment
   const { data: existing } = await supabase
     .from('oh_round_robin_state')
-    .select('id, assignment_count')
+    .select('assignment_count')
     .eq('event_id', eventId)
     .single();
 
-  if (existing) {
-    const { error: updateError } = await supabase
-      .from('oh_round_robin_state')
-      .update({
+  const newCount = (existing?.assignment_count || 0) + 1;
+
+  // Upsert atomically handles the insert-vs-update race:
+  // If two requests race on a new event_id, one insert wins and the other
+  // becomes an update via onConflict, instead of both trying to insert.
+  const { error } = await supabase
+    .from('oh_round_robin_state')
+    .upsert(
+      {
+        event_id: eventId,
         last_assigned_host_id: assignedHostId,
-        last_assigned_at: new Date().toISOString(),
-        assignment_count: (existing.assignment_count || 0) + 1,
-      })
-      .eq('event_id', eventId);
+        last_assigned_at: now,
+        assignment_count: newCount,
+      },
+      { onConflict: 'event_id' }
+    );
 
-    if (updateError) {
-      bookingLogger.error('Failed to update round-robin state', {
-        operation: 'updateRoundRobinState',
-        eventId,
-      }, updateError);
-    }
-  } else {
-    const { error: insertError } = await supabase.from('oh_round_robin_state').insert({
-      event_id: eventId,
-      last_assigned_host_id: assignedHostId,
-      last_assigned_at: new Date().toISOString(),
-      assignment_count: 1,
-    });
-
-    if (insertError) {
-      bookingLogger.error('Failed to insert round-robin state', {
-        operation: 'updateRoundRobinState',
-        eventId,
-      }, insertError);
-    }
+  if (error) {
+    bookingLogger.error('Failed to update round-robin state', {
+      operation: 'updateRoundRobinState',
+      eventId,
+    }, error);
   }
 }
 

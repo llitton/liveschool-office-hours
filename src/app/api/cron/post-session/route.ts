@@ -13,7 +13,13 @@ import { cronLogger } from '@/lib/logger';
 // 3. Send feedback requests 1 hour after session ends
 // 4. Send recording links when added
 
-export async function GET() {
+export async function GET(request?: Request) {
+  // Verify cron secret in production
+  const authHeader = request?.headers.get('authorization');
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
   const now = new Date();
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);

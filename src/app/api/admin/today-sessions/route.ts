@@ -139,10 +139,11 @@ export async function GET() {
     }
   }
 
-  // Batch fetch HubSpot data for all attendees (with timeout for fast page loads)
+  // Batch fetch HubSpot data for attendees (with timeout and cap for fast page loads)
   const hubspotData: Record<string, { company: string | null }> = {};
   if (hubspotConnected && allEmails.size > 0) {
-    const emailArray = Array.from(allEmails);
+    // Cap at 50 emails to avoid hammering HubSpot API on busy days
+    const emailArray = Array.from(allEmails).slice(0, 50);
 
     // Run all requests in parallel with a 3-second timeout
     // This ensures the dashboard loads quickly even if HubSpot is slow

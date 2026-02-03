@@ -2,9 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { isHubSpotConnected, getHubSpotConfig } from '@/lib/hubspot';
 
-// Simple in-memory cache for user types
+// Simple in-memory cache for user types with periodic cleanup
 const cache = new Map<string, { userType: string | null; timestamp: number }>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const CACHE_MAX_SIZE = 500;
+let lastCleanup = Date.now();
+
+function cleanupCache() {
+  const now = Date.now();
+  if (now - lastCleanup < 5 * 60 * 1000) return;
+  lastCleanup = now;
+
+  for (const [key, entry] of cache) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      cache.delete(key);
+    }
+  }
+  if (cache.size > CACHE_MAX_SIZE) {
+    const entries = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
+    for (const [key] of entries.slice(0, cache.size - CACHE_MAX_SIZE)) {
+      cache.delete(key);
+    }
+  }
+}
 
 /**
  * Batch fetch user types from HubSpot for multiple emails
@@ -26,6 +46,9 @@ export async function POST(request: NextRequest) {
   if (emails.length > 100) {
     return NextResponse.json({ error: 'Maximum 100 emails per request' }, { status: 400 });
   }
+
+  // Periodically clean up expired cache entries
+  cleanupCache();
 
   // Check if HubSpot is connected
   const hubspotConfig = await getHubSpotConfig();

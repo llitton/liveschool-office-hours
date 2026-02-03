@@ -10,7 +10,13 @@ import { escapeHtml } from '@/lib/email-html';
 // This cron job runs at 7am ET daily to send Hannah a morning digest
 // of all attendees for today's sessions
 
-export async function GET() {
+export async function GET(request?: Request) {
+  // Verify cron secret in production
+  const authHeader = request?.headers.get('authorization');
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
   const now = new Date();
   const timezone = 'America/New_York';

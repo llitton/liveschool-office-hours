@@ -1,6 +1,10 @@
 import { getServiceSupabase } from './supabase';
 
 const HUBSPOT_API_BASE = 'https://api.hubapi.com';
+const HUBSPOT_TIMEOUT_MS = 5000;
+
+// Mutex for token refresh to prevent concurrent refresh races
+let refreshPromise: Promise<HubSpotTokens | null> | null = null;
 
 interface HubSpotTokens {
   access_token: string;
@@ -134,7 +138,16 @@ export async function refreshHubSpotToken(refreshToken: string): Promise<HubSpot
 }
 
 /**
- * Make authenticated HubSpot API request
+ * Create a fetch request with an AbortController timeout
+ */
+function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = HUBSPOT_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+
+/**
+ * Make authenticated HubSpot API request (with timeout and token refresh mutex)
  */
 async function hubspotFetch(
   endpoint: string,
@@ -145,7 +158,7 @@ async function hubspotFetch(
     throw new Error('HubSpot not configured');
   }
 
-  const response = await fetch(`${HUBSPOT_API_BASE}${endpoint}`, {
+  const response = await fetchWithTimeout(`${HUBSPOT_API_BASE}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -154,11 +167,16 @@ async function hubspotFetch(
     },
   });
 
-  // If unauthorized, try refreshing token
+  // If unauthorized, try refreshing token (with mutex to prevent concurrent refreshes)
   if (response.status === 401 && config.refresh_token) {
-    const newTokens = await refreshHubSpotToken(config.refresh_token);
+    if (!refreshPromise) {
+      refreshPromise = refreshHubSpotToken(config.refresh_token).finally(() => {
+        refreshPromise = null;
+      });
+    }
+    const newTokens = await refreshPromise;
     if (newTokens) {
-      return fetch(`${HUBSPOT_API_BASE}${endpoint}`, {
+      return fetchWithTimeout(`${HUBSPOT_API_BASE}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -540,27 +558,29 @@ export async function getContactWithCompany(email: string): Promise<HubSpotEnric
             if (companyDealsResponse.ok) {
               const companyDealsData = await companyDealsResponse.json();
               if (companyDealsData.results && companyDealsData.results.length > 0) {
-                // Fetch details for all deals to find closed-won ones
                 const dealIds = companyDealsData.results.slice(0, 20).map((d: { id: string }) => d.id);
 
-                for (const dealId of dealIds) {
-                  const dealResponse = await hubspotFetch(
-                    `/crm/v3/objects/deals/${dealId}?properties=dealname,dealstage,amount,closedate`
-                  );
-                  if (dealResponse.ok) {
-                    const dealData = await dealResponse.json();
+                // Batch-fetch all deal details in a single API call
+                const batchResponse = await hubspotFetch('/crm/v3/objects/deals/batch/read', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    properties: ['dealname', 'dealstage', 'amount', 'closedate'],
+                    inputs: dealIds.map((id: string) => ({ id })),
+                  }),
+                });
+
+                if (batchResponse.ok) {
+                  const batchData = await batchResponse.json();
+                  for (const dealData of batchData.results || []) {
                     const stage = dealData.properties.dealstage?.toLowerCase() || '';
 
-                    // Check if it's a closed-won deal (stage usually contains "closedwon" or similar)
                     if (stage.includes('closedwon') || stage === 'closedwon' || stage.includes('closed won')) {
                       closedWonDeals++;
 
-                      // Track total ARR
                       if (dealData.properties.amount) {
                         totalArr = (totalArr || 0) + parseFloat(dealData.properties.amount);
                       }
 
-                      // Track earliest close date
                       if (dealData.properties.closedate) {
                         const closeYear = new Date(dealData.properties.closedate).getFullYear().toString();
                         if (!customerSince || closeYear < customerSince) {

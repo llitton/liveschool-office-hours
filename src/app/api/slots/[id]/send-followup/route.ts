@@ -183,10 +183,23 @@ export async function POST(
     },
   });
 
+  // Include failed email details so host knows who didn't receive the email
+  const failedEmails = failedResults.map((r, idx) => {
+    // Match failed results back to target bookings by index
+    const booking = targetBookings[
+      results.findIndex((res, i) => res === r)
+    ] as { email: string } | undefined;
+    return {
+      email: booking?.email || 'unknown',
+      error: String(r.reason),
+    };
+  });
+
   return NextResponse.json({
     success: true,
     sent,
     failed,
     sentFrom: admin.email,
+    ...(failedEmails.length > 0 && { failedEmails }),
   });
 }

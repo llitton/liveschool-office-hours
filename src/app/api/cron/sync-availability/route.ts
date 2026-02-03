@@ -6,9 +6,9 @@ import { cronLogger } from '@/lib/logger';
 
 // This cron job syncs Google Calendar busy times for all admins
 export async function GET(request: NextRequest) {
-  // Verify cron secret
+  // Verify cron secret in production
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
