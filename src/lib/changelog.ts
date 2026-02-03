@@ -12,6 +12,20 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-auth-access-controls-2',
+    date: '2026-02-03',
+    title: 'Additional Auth & Access Controls',
+    description: 'Closed remaining authentication gaps and added resource limits to prevent abuse.',
+    category: 'fix',
+    details: [
+      'Added authentication to session template create, list, and delete endpoints',
+      'Session template creation now tracks who created it',
+      'Booking detail endpoint now verifies you host the related event',
+      'Event detail endpoint now requires authentication',
+      'CSV import limited to 5MB file size and 1,000 rows',
+    ],
+  },
+  {
     id: '2026-02-03-authorization-hardening',
     date: '2026-02-03',
     title: 'Authorization & Data Access Controls',

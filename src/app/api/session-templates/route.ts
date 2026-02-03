@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 import type { OHSessionTemplate } from '@/types';
 
-// GET - List all session templates
+// GET - List all session templates (admin only)
 export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
 
   const { data: templates, error } = await supabase
@@ -20,10 +27,18 @@ export async function GET() {
   return NextResponse.json(templates);
 }
 
-// POST - Create a new custom template
+// POST - Create a new custom template (admin only)
 export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
-  const body = await request.json();
+  const body = await safeParseJSON(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
   const {
     name,
@@ -46,6 +61,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Name must be 200 characters or less' }, { status: 400 });
   }
 
+  // Get admin ID for created_by attribution
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
   const { data: template, error } = await supabase
     .from('oh_session_templates')
     .insert({
@@ -59,7 +81,8 @@ export async function POST(request: NextRequest) {
       booking_window_days: booking_window_days || 30,
       custom_questions: custom_questions || [],
       prep_materials: prep_materials || null,
-      is_system: false, // Custom templates are never system templates
+      is_system: false,
+      created_by: admin?.id || null,
     })
     .select()
     .single();
@@ -72,8 +95,13 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(template, { status: 201 });
 }
 
-// DELETE - Delete a custom template (not system templates)
+// DELETE - Delete a custom template (admin only, not system templates)
 export async function DELETE(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getServiceSupabase();
   const { searchParams } = new URL(request.url);
   const templateId = searchParams.get('id');

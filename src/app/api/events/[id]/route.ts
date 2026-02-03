@@ -3,11 +3,16 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 
-// GET single event
+// GET single event (admin only)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
+  }
+
   const { id } = await params;
   const supabase = getServiceSupabase();
 

@@ -28,6 +28,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Limit file size to 5MB
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      { error: 'File too large (max 5MB)' },
+      { status: 400 }
+    );
+  }
+
   const supabase = getServiceSupabase();
 
   // Get the event details
@@ -49,6 +58,15 @@ export async function POST(request: NextRequest) {
   const firstLine = lines[0].toLowerCase();
   const hasHeader = firstLine.includes('date') || firstLine.includes('time');
   const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  // Limit to 1000 rows
+  const MAX_ROWS = 1000;
+  if (dataLines.length > MAX_ROWS) {
+    return NextResponse.json(
+      { error: `Too many rows (max ${MAX_ROWS})` },
+      { status: 400 }
+    );
+  }
 
   const rows: SlotRow[] = [];
   const parseErrors: string[] = [];

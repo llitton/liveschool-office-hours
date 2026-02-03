@@ -146,7 +146,7 @@ export async function PATCH(
   });
 }
 
-// GET single booking (admin only)
+// GET single booking (admin only, scoped to hosted events)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -173,6 +173,40 @@ export async function GET(
 
   if (error || !booking) {
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
+  // Verify the requesting admin hosts this booking's event
+  const slotData = booking.slot as { event_id?: string; event?: { host_email?: string } } | null;
+  const eventId = slotData?.event_id;
+
+  if (eventId) {
+    const { data: admin } = await supabase
+      .from('oh_admins')
+      .select('id')
+      .eq('email', session.email)
+      .single();
+
+    const { data: primaryEvent } = await supabase
+      .from('oh_events')
+      .select('id')
+      .eq('id', eventId)
+      .eq('host_email', session.email)
+      .single();
+
+    let isCoHost = false;
+    if (!primaryEvent && admin) {
+      const { data: coHostEntry } = await supabase
+        .from('oh_event_hosts')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('admin_id', admin.id)
+        .single();
+      isCoHost = !!coHostEntry;
+    }
+
+    if (!primaryEvent && !isCoHost) {
+      return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+    }
   }
 
   return NextResponse.json(booking);
