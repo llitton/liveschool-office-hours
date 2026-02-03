@@ -100,6 +100,7 @@ Event pages (accessible from event cards):
 | Error utilities | `src/lib/errors.ts` |
 | Structured logging | `src/lib/logger.ts` |
 | Session topics extraction | `src/lib/session-topics.ts` |
+| Booking health check | `src/app/api/health/booking/route.ts` |
 | Type definitions | `src/types/index.ts` |
 
 ## Database Tables (Supabase)
@@ -280,16 +281,26 @@ tests/
 │       ├── ical.test.ts              # iCal generation, calendar URLs (21 tests)
 │       ├── round-robin.test.ts       # Host selection strategies (16 tests)
 │       ├── routing.test.ts           # Lead routing rules, encoding (30 tests)
-│       ├── slack.test.ts             # Slack webhook integration (35 tests)
+│       ├── slack.test.ts             # Slack webhook integration (43 tests)
 │       ├── sms.test.ts               # Phone validation, templates (35 tests)
 │       ├── session-topics.test.ts    # Session topics extraction (21 tests)
 │       ├── timezone.test.ts          # Timezone formatting utilities (48 tests)
-│       └── url-handling.test.ts      # URL utilities (29 tests)
+│       ├── url-handling.test.ts      # URL utilities (29 tests)
+│       └── google-meet.test.ts       # Google Meet attendance sync (17 tests)
 ├── integration/
 │   └── api/
-│       ├── bookings.test.ts          # Booking API endpoints (16 tests)
-│       ├── events.test.ts            # Event CRUD operations (13 tests)
-│       └── slots.test.ts             # Slot generation API (11 tests)
+│       ├── attendee-types.test.ts        # Batch attendee type fetching (8 tests)
+│       ├── auth.test.ts                  # Auth disconnect/reconnect (3 tests)
+│       ├── auto-attendance.test.ts       # Google Meet attendance sync (6 tests)
+│       ├── automated-emails-toggle.test.ts # Per-event email toggle (10 tests)
+│       ├── batch-context.test.ts         # Batch HubSpot context (8 tests)
+│       ├── bookings.test.ts              # Booking API endpoints (7 tests)
+│       ├── events.test.ts               # Event CRUD operations (13 tests)
+│       ├── feedback.test.ts             # Feedback submission (8 tests)
+│       ├── manage.test.ts               # Manage/cancel bookings (8 tests)
+│       ├── send-followup.test.ts        # Follow-up emails (10 tests)
+│       ├── slots.test.ts               # Slot generation API (11 tests)
+│       └── verify-migrations.test.ts    # Migration verification (6 tests)
 └── e2e/
     ├── booking-flow.spec.ts          # Public booking flows
     ├── critical-booking-flow.spec.ts # Critical path monitoring (9 tests)
@@ -348,23 +359,25 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-bo
 |------|-------|-------|
 | Email HTML Templates | 90 | `email-html.ts` |
 | Timezone Utilities | 48 | `timezone.ts` |
+| Slack Integration | 43 | `slack.ts` |
 | SMS Utilities | 35 | `sms.ts` |
 | Error Handling | 30 | `errors.ts` |
 | Lead Routing | 30 | `routing.ts` |
 | Booking Constraints | 29 | `booking-constraints.ts` |
 | URL Handling | 29 | `url-handling.ts` |
-| Slack Integration | 35 | `slack.ts` |
 | HubSpot Integration | 25 | `hubspot.ts` |
 | Auth & Sessions | 21 | `auth.ts` |
 | Email Validation | 21 | `email-validation.ts` |
 | iCal Generation | 21 | `ical.ts` |
 | Session Topics | 21 | `session-topics.ts` |
+| Google Meet Sync | 17 | `google-meet.ts` |
 | Round-Robin | 16 | `round-robin.ts` |
 | Availability Logic | 14 | `availability.ts` |
 | Breadcrumb Component | 8 | `Breadcrumb.tsx` |
-| **Total Unit Tests** | **473** | 15 lib modules + 1 component |
-| **Integration Tests** | **40** | 3 API test files |
-| **Grand Total** | **596** | All test files (includes additional integration tests) |
+| **Total Unit Tests** | **498** | 16 lib modules + 1 component |
+| **Integration Tests** | **98** | 12 API test files |
+| **E2E Tests** | **9** | 1 critical flow test file |
+| **Grand Total** | **605** | All test files |
 
 ### Writing Tests
 
@@ -897,6 +910,7 @@ CHECK constraints prevent invalid data at the database level:
 - API routes return `{ error: string }` on failure with appropriate status codes
 - Use `getUserFriendlyError()` or `CommonErrors` for error responses (not raw error.message)
 - Supabase queries use `getServiceSupabase()` for server-side operations
+- **Supabase foreign key joins must use explicit syntax:** `event:oh_events!event_id(*)` not `event:oh_events(*)` — implicit joins can fail silently
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint) - use `/api/events/check-slug` to validate before creation
@@ -1246,5 +1260,6 @@ Working features:
 - What's New changelog with badge
 - System status dashboard
 - User feedback collection
+- Booking health monitoring (Uptime Robot + /api/health/booking)
 
 See `SCHEDULING_PLATFORM_ROADMAP.md` for detailed feature roadmap.

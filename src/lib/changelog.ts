@@ -12,6 +12,30 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-02-booking-health-monitor',
+    date: '2026-02-02',
+    title: 'Booking Health Monitor',
+    description: 'Added automated monitoring to catch booking issues before they affect users.',
+    category: 'feature',
+    details: [
+      'New /api/health/booking endpoint tests critical database queries every 5 minutes',
+      'End-to-end tests verify the complete booking flow from slot selection to confirmation',
+      'External monitoring via Uptime Robot alerts the team immediately if something breaks',
+    ],
+  },
+  {
+    id: '2026-02-02-booking-fix',
+    date: '2026-02-02',
+    title: 'Booking Reliability Fix',
+    description: 'Fixed an issue where users saw "slot not found" when trying to book available time slots.',
+    category: 'fix',
+    details: [
+      'Resolved a database query issue that prevented slot lookups during booking',
+      'Added input validation for slot IDs with clearer error messages',
+      'Improved error messages to guide users to refresh and retry',
+    ],
+  },
+  {
     id: '2026-01-30-feedback-button',
     date: '2026-01-30',
     title: 'Send Feedback Button',
