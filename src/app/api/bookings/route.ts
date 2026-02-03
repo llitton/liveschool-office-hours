@@ -65,13 +65,35 @@ async function syncBookingToHubSpot(
   }
 }
 
+interface BookingRequestBody {
+  slot_id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  question_responses?: Record<string, string>;
+  attendee_timezone?: string;
+  preferred_host_id?: string;
+  phone?: string;
+  sms_consent?: boolean;
+  event_id?: string;
+  guest_emails?: string[];
+  analytics_session_id?: string;
+}
+
 // POST create booking (public)
 export async function POST(request: NextRequest) {
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<BookingRequestBody>(request);
   if (!body) {
     return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
   }
   let { slot_id, first_name, last_name, email, question_responses, attendee_timezone, preferred_host_id, phone, sms_consent, event_id, guest_emails, analytics_session_id } = body;
+
+  if (!first_name || !last_name || !email) {
+    return NextResponse.json(
+      { error: 'first_name, last_name, and email are required' },
+      { status: 400 }
+    );
+  }
 
   // Validate guest_emails if provided
   let validatedGuestEmails: string[] = [];
@@ -85,13 +107,6 @@ export async function POST(request: NextRequest) {
         }
       }
     }
-  }
-
-  if (!first_name || !last_name || !email) {
-    return NextResponse.json(
-      { error: 'first_name, last_name, and email are required' },
-      { status: 400 }
-    );
   }
 
   // === EMAIL VALIDATION ===
@@ -141,7 +156,7 @@ export async function POST(request: NextRequest) {
     slot_id = trimmedSlotId;
   }
 
-  if (isDynamicSlot) {
+  if (isDynamicSlot && slot_id) {
     // Extract start time from dynamic slot ID
     const startTimeStr = slot_id.replace('dynamic-', '');
     const startTime = parseISO(startTimeStr);

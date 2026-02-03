@@ -11,7 +11,7 @@ describe('Routing Utilities', () => {
   describe('evaluateRules', () => {
     const createRule = (overrides: Partial<OHRoutingRule> = {}): OHRoutingRule => ({
       id: `rule-${Math.random().toString(36).substr(2, 9)}`,
-      form_id: 'form-123',
+      routing_form_id: 'form-123',
       question_id: 'q1',
       answer_value: 'yes',
       target_event_id: 'event-abc',

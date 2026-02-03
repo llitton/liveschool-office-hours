@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 /**
  * Send Follow-up API Integration Tests
@@ -132,7 +133,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +151,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recipients: 'attended' }), // Missing subject and body
@@ -166,7 +167,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -187,7 +188,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,7 +209,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -232,7 +233,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -255,7 +256,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -280,7 +281,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -307,7 +308,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -332,7 +333,7 @@ describe('Send Follow-up API', { timeout: 15000 }, () => {
       vi.resetModules();
 
       const { POST } = await import('@/app/api/slots/[id]/send-followup/route');
-      const request = new Request('http://localhost/api/slots/slot-123/send-followup', {
+      const request = new NextRequest('http://localhost/api/slots/slot-123/send-followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

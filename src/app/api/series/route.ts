@@ -10,9 +10,19 @@ function generateManageToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+interface SeriesBookingBody {
+  slot_id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  question_responses?: Record<string, string>;
+  recurrence_pattern?: string;
+  total_sessions?: number;
+}
+
 // POST create a series booking (public)
 export async function POST(request: NextRequest) {
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<SeriesBookingBody>(request);
   if (!body) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }

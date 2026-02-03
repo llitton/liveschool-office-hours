@@ -202,6 +202,7 @@ function createManageMockSupabaseClient() {
       if (table === 'oh_slots') {
         const slotsWithBookings = mockManageSlots.map((slot) => ({
           ...slot,
+          id: slot.id as string,
           event: mockManageEvents[0],
           bookings: [
             {

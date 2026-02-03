@@ -55,9 +55,9 @@ describe('URL Handling Conventions', () => {
 
         forbiddenPatterns.forEach((pattern) => {
           const match = content.match(pattern);
-          expect(match).toBeNull(
+          expect(match,
             `Found hardcoded domain in ${filePath}: ${match?.[0]}. Use process.env.NEXT_PUBLIC_APP_URL instead.`
-          );
+          ).toBeNull();
         });
       });
 
@@ -71,9 +71,9 @@ describe('URL Handling Conventions', () => {
         const content = fs.readFileSync(fullPath, 'utf-8');
         const match = content.match(wrongEnvVarPattern);
 
-        expect(match).toBeNull(
+        expect(match,
           `Found wrong env var in ${filePath}: ${match?.[0]}. Use NEXT_PUBLIC_APP_URL instead.`
-        );
+        ).toBeNull();
       });
     });
   });
@@ -91,9 +91,9 @@ describe('URL Handling Conventions', () => {
 
         forbiddenPatterns.forEach((pattern) => {
           const match = content.match(pattern);
-          expect(match).toBeNull(
+          expect(match,
             `Found hardcoded domain in ${filePath}: ${match?.[0]}. Use NEXT_PUBLIC_APP_URL or window.location.origin instead.`
-          );
+          ).toBeNull();
         });
       });
 
@@ -113,9 +113,9 @@ describe('URL Handling Conventions', () => {
           const hasWindowFallback = content.includes('window.location.origin');
           const hasTypeofCheck = content.includes("typeof window !== 'undefined'");
 
-          expect(hasWindowFallback || hasTypeofCheck).toBe(true,
+          expect(hasWindowFallback || hasTypeofCheck,
             `${filePath} uses NEXT_PUBLIC_APP_URL but should have window.location.origin fallback for client-side rendering`
-          );
+          ).toBe(true);
         }
       });
     });
@@ -133,9 +133,9 @@ describe('URL Handling Conventions', () => {
 
       // Check that manage URLs use the correct pattern
       const manageUrlPattern = /\$\{process\.env\.NEXT_PUBLIC_APP_URL\}\/manage\//;
-      expect(manageUrlPattern.test(content)).toBe(true,
+      expect(manageUrlPattern.test(content),
         'Booking route should construct manage URLs using NEXT_PUBLIC_APP_URL'
-      );
+      ).toBe(true);
     });
 
     it('should use consistent URL construction pattern in reminder route', () => {
@@ -149,9 +149,9 @@ describe('URL Handling Conventions', () => {
 
       // Check that manage URLs use the correct pattern
       const manageUrlPattern = /\$\{process\.env\.NEXT_PUBLIC_APP_URL\}\/manage\//;
-      expect(manageUrlPattern.test(content)).toBe(true,
+      expect(manageUrlPattern.test(content),
         'Reminder route should construct manage URLs using NEXT_PUBLIC_APP_URL'
-      );
+      ).toBe(true);
     });
 
     it('should use consistent URL construction pattern in team invitation route', () => {
@@ -165,9 +165,9 @@ describe('URL Handling Conventions', () => {
 
       // Check that app URL is retrieved from env
       const appUrlPattern = /process\.env\.NEXT_PUBLIC_APP_URL/;
-      expect(appUrlPattern.test(content)).toBe(true,
+      expect(appUrlPattern.test(content),
         'Team route should use NEXT_PUBLIC_APP_URL for invitation links'
-      );
+      ).toBe(true);
     });
   });
 });

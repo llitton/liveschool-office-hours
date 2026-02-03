@@ -263,11 +263,11 @@ describe('Round-Robin Host Selection', () => {
 
       // Mock host-1 as unavailable
       vi.mocked(checkTimeAvailability).mockImplementation(
-        async (hostId: string) => {
-          if (hostId === 'host-1') {
+        async (adminId: string, _startTime: Date, _endTime: Date, _eventId?: string, _bufferBefore?: number, _bufferAfter?: number, _ignoreBusyBlocks?: boolean) => {
+          if (adminId === 'host-1') {
             return { available: false, reason: 'Busy with another meeting' };
           }
-          return { available: true, reason: null };
+          return { available: true };
         }
       );
 

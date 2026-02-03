@@ -79,7 +79,7 @@ export async function PUT(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<{ new_slot_id?: string }>(request);
   if (!body) {
     return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
   }
@@ -399,7 +399,8 @@ async function promoteFromWaitlist(
     .eq('id', slotId)
     .single();
 
-  const maxAttendees = (slotEvent?.event as { max_attendees: number } | null)?.max_attendees ?? 1;
+  const eventData = slotEvent?.event as unknown as { max_attendees: number } | null;
+  const maxAttendees = eventData?.max_attendees ?? 1;
   if ((activeCount ?? 0) >= maxAttendees) {
     return; // Slot is full, don't promote
   }

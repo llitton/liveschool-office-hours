@@ -121,9 +121,10 @@ describe('Batch Attendee Context API', () => {
         firstName: 'Alice',
         lastName: 'Test',
         role: 'administrator',
-        company: { name: 'Test Corp', id: '456' },
+        company: { name: 'Test Corp', id: '456', customerSince: null, closedWonDeals: 0, totalArr: null },
         deal: null,
         meetingsCount: 5,
+        lastContactedAt: null,
       });
 
       const request = new NextRequest('http://localhost/api/attendees/batch-context', {
@@ -163,6 +164,7 @@ describe('Batch Attendee Context API', () => {
           company: null,
           deal: null,
           meetingsCount: 2,
+          lastContactedAt: null,
         })
         .mockResolvedValueOnce({
           id: '456',
@@ -170,9 +172,10 @@ describe('Batch Attendee Context API', () => {
           firstName: 'Carol',
           lastName: 'Test',
           role: 'site leader',
-          company: { name: 'School ABC', id: '789' },
+          company: { name: 'School ABC', id: '789', customerSince: null, closedWonDeals: 0, totalArr: null },
           deal: null,
           meetingsCount: 10,
+          lastContactedAt: null,
         });
 
       const request = new NextRequest('http://localhost/api/attendees/batch-context', {
@@ -211,6 +214,7 @@ describe('Batch Attendee Context API', () => {
           company: null,
           deal: null,
           meetingsCount: 1,
+          lastContactedAt: null,
         })
         .mockRejectedValueOnce(new Error('HubSpot API error'));
 
@@ -248,6 +252,7 @@ describe('Batch Attendee Context API', () => {
         company: null,
         deal: null,
         meetingsCount: 3,
+        lastContactedAt: null,
       });
 
       const request = new NextRequest('http://localhost/api/attendees/batch-context', {

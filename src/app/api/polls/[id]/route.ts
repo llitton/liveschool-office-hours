@@ -91,7 +91,7 @@ export async function PATCH(
     return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<{ action?: string }>(request);
   if (!body) {
     return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
   }

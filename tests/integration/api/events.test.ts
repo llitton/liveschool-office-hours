@@ -113,7 +113,7 @@ function createMockEvent(overrides: Partial<Record<string, unknown>> = {}) {
 }
 
 function createRequest(method: string, body?: Record<string, unknown>): NextRequest {
-  const init: RequestInit = { method };
+  const init: { method: string; body?: string; headers?: Record<string, string> } = { method };
   if (body) {
     init.body = JSON.stringify(body);
     init.headers = { 'Content-Type': 'application/json' };
@@ -146,8 +146,8 @@ describe('Events API Integration Tests', () => {
 
       const { GET } = await import('@/app/api/events/route');
 
-      const request = createRequest('GET');
-      const response = await GET(request);
+      createRequest('GET');
+      const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);

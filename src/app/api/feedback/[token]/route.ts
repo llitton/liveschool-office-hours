@@ -52,7 +52,7 @@ export async function POST(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<{ rating?: unknown; comment?: string; topics_for_next_time?: string }>(request);
   if (!body) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }

@@ -156,10 +156,8 @@ describe('Error Utilities', () => {
   });
 
   describe('createApiError', () => {
-    const originalEnv = process.env.NODE_ENV;
-
     afterEach(() => {
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
     });
 
     it('creates error from Supabase error object', () => {
@@ -184,7 +182,7 @@ describe('Error Utilities', () => {
     });
 
     it('includes code and details in development mode', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       const supabaseError = {
         code: '23505',
         message: 'duplicate key',
@@ -196,7 +194,7 @@ describe('Error Utilities', () => {
     });
 
     it('excludes code and details in production mode', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       const supabaseError = {
         code: '23505',
         message: 'duplicate key',

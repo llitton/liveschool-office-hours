@@ -93,6 +93,9 @@ function createMockEvent(overrides: Partial<OHEvent> = {}): OHEvent {
     single_use: false,
     one_off_expires_at: null,
     one_off_booked_at: null,
+    phone_required: false,
+    slack_notifications_enabled: false,
+    automated_emails_enabled: true,
     ...overrides,
   };
 }
@@ -114,6 +117,8 @@ function createMockAdmin(overrides: Partial<OHAdmin> = {}): OHAdmin {
     profile_image: null,
     onboarding_progress: null,
     quick_links_token: 'test-quick-links-token',
+    invitation_sent_at: null,
+    invitation_last_sent_at: null,
     ...overrides,
   };
 }

@@ -19,8 +19,8 @@ describe('Google Meet - matchParticipantsToBookings', () => {
   describe('email matching', () => {
     it('matches participants by exact email', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John Doe', durationMinutes: 30 },
-        { email: 'jane@example.com', displayName: 'Jane Smith', durationMinutes: 25 },
+        { email: 'john@example.com', displayName: 'John Doe', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
+        { email: 'jane@example.com', displayName: 'Jane Smith', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:25:00Z', durationMinutes: 25 },
       ];
 
       const bookings = [
@@ -49,7 +49,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('matches email case-insensitively', () => {
       const participants = [
-        { email: 'JOHN@EXAMPLE.COM', displayName: 'John', durationMinutes: 30 },
+        { email: 'JOHN@EXAMPLE.COM', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -66,7 +66,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
   describe('duration threshold', () => {
     it('marks as attended when duration meets threshold', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John', durationMinutes: 5 }, // Exactly 5 min
+        { email: 'john@example.com', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:05:00Z', durationMinutes: 5 }, // Exactly 5 min
       ];
 
       const bookings = [
@@ -81,7 +81,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('marks as no-show when duration is below threshold', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John', durationMinutes: 4 }, // Below 5 min
+        { email: 'john@example.com', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:04:00Z', durationMinutes: 4 }, // Below 5 min
       ];
 
       const bookings = [
@@ -97,7 +97,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('uses custom minimum duration', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John', durationMinutes: 8 },
+        { email: 'john@example.com', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:08:00Z', durationMinutes: 8 },
       ];
 
       const bookings = [
@@ -114,7 +114,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
   describe('name matching fallback', () => {
     it('matches by full name when email not available', () => {
       const participants = [
-        { email: null, displayName: 'John Doe', durationMinutes: 30 },
+        { email: null, displayName: 'John Doe', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -129,7 +129,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('matches by name case-insensitively', () => {
       const participants = [
-        { email: null, displayName: 'JOHN DOE', durationMinutes: 30 },
+        { email: null, displayName: 'JOHN DOE', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -144,7 +144,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('matches by first name only when last name missing', () => {
       const participants = [
-        { email: null, displayName: 'John', durationMinutes: 30 },
+        { email: null, displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -160,7 +160,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
     it('matches when booking has middle initial but Meet display name does not', () => {
       // Real scenario: Booking is "Alicia L Gunn", Meet shows "Alicia Gunn"
       const participants = [
-        { email: null, displayName: 'Alicia Gunn', durationMinutes: 10 },
+        { email: null, displayName: 'Alicia Gunn', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:10:00Z', durationMinutes: 10 },
       ];
 
       const bookings = [
@@ -175,7 +175,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('matches when Meet display name has middle initial but booking does not', () => {
       const participants = [
-        { email: null, displayName: 'John M Smith', durationMinutes: 10 },
+        { email: null, displayName: 'John M Smith', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:10:00Z', durationMinutes: 10 },
       ];
 
       const bookings = [
@@ -191,7 +191,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
   describe('edge cases', () => {
     it('handles empty participants list', () => {
-      const participants: unknown[] = [];
+      const participants: import('@/lib/google').MeetParticipant[] = [];
       const bookings = [
         { id: 'b1', email: 'john@example.com', first_name: 'John', last_name: 'Doe' },
       ];
@@ -205,9 +205,9 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('handles empty bookings list', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John', durationMinutes: 30 },
+        { email: 'john@example.com', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
-      const bookings: unknown[] = [];
+      const bookings: { id: string; email: string; first_name: string; last_name: string }[] = [];
 
       const matches = matchParticipantsToBookings(participants, bookings, 5);
 
@@ -221,7 +221,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('handles participant with undefined email', () => {
       const participants = [
-        { email: undefined, displayName: 'Anonymous User', durationMinutes: 30 },
+        { email: undefined as unknown as null, displayName: 'Anonymous User', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -236,7 +236,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('handles multiple bookings with same email', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John', durationMinutes: 30 },
+        { email: 'john@example.com', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -255,7 +255,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
   describe('return value structure', () => {
     it('returns correct structure for each match', () => {
       const participants = [
-        { email: 'john@example.com', displayName: 'John', durationMinutes: 30 },
+        { email: 'john@example.com', displayName: 'John', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [
@@ -273,7 +273,7 @@ describe('Google Meet - matchParticipantsToBookings', () => {
 
     it('includes email in match even for name-matched bookings', () => {
       const participants = [
-        { email: null, displayName: 'John Doe', durationMinutes: 30 },
+        { email: null, displayName: 'John Doe', joinTime: '2026-01-01T10:00:00Z', leaveTime: '2026-01-01T10:30:00Z', durationMinutes: 30 },
       ];
 
       const bookings = [

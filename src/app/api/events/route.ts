@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
   }
 
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<Record<string, unknown> & { round_robin_hosts?: string[] }>(request);
   if (!body) {
     return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
   }
