@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-analytics-scoping',
+    date: '2026-02-03',
+    title: 'Analytics Scoping & Security Hardening',
+    description: 'Scoped analytics dashboards to your hosted events and hardened file uploads and admin page security.',
+    category: 'fix',
+    details: [
+      'Conversions, trends, effectiveness, and topics analytics now only include events you host or co-host',
+      'Conversions export now validates the requested event belongs to you',
+      'Profile image uploads derive file extension from validated MIME type instead of client-provided filename',
+      'Admin pages now include X-Frame-Options, X-Content-Type-Options, and Referrer-Policy security headers',
+    ],
+  },
+  {
     id: '2026-02-03-data-scoping',
     date: '2026-02-03',
     title: 'Data Scoping & Token Safety',

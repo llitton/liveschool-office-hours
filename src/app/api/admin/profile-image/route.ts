@@ -41,8 +41,14 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceSupabase();
 
-    // Generate unique filename
-    const fileExt = file.name.split('.').pop() || 'jpg';
+    // Generate unique filename with safe extension derived from validated MIME type
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    const fileExt = mimeToExt[file.type] || 'jpg';
     const fileName = `${session.id}-${Date.now()}.${fileExt}`;
     const filePath = `profile-images/${fileName}`;
 

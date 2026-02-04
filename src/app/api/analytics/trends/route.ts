@@ -6,8 +6,9 @@ import { subDays, startOfDay, endOfDay, format } from 'date-fns';
 
 // GET topic trends over time
 export async function GET(request: NextRequest) {
+  let session;
   try {
-    await requireAuth();
+    session = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -18,10 +19,34 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // Scope to events the current user hosts or co-hosts
+  const { data: ownedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', session.id);
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', session.id);
+
+  const hostedEventIds: string[] = [];
+  ownedEvents?.forEach(e => hostedEventIds.push(e.id));
+  coHostedEvents?.forEach(e => hostedEventIds.push(e.event_id));
+
+  if (hostedEventIds.length === 0) {
+    return NextResponse.json({
+      dateRange: { start: new Date().toISOString(), end: new Date().toISOString(), days },
+      summary: { totalBookings: 0, attended: 0, noShow: 0, attendanceRate: '0' },
+      dailyData: [],
+      topTopics: [],
+    });
+  }
+
   const startDate = startOfDay(subDays(new Date(), days));
   const endDate = endOfDay(new Date());
 
-  // Build query
+  // Build query - scope to user's hosted events via slot -> event relationship
   let query = supabase
     .from('oh_bookings')
     .select(`
@@ -37,7 +62,8 @@ export async function GET(request: NextRequest) {
     `)
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString())
-    .is('cancelled_at', null);
+    .is('cancelled_at', null)
+    .in('slot.event_id', hostedEventIds);
 
   if (eventId) {
     query = query.eq('slot.event_id', eventId);

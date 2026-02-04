@@ -15,19 +15,44 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // Scope to events the current user hosts or co-hosts
+  const { data: ownedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', session.id);
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', session.id);
+
+  const hostedEventIds: string[] = [];
+  ownedEvents?.forEach(e => hostedEventIds.push(e.id));
+  coHostedEvents?.forEach(e => hostedEventIds.push(e.event_id));
+
+  if (hostedEventIds.length === 0) {
+    return NextResponse.json({
+      questionAnalytics: [],
+      suggestedTopics: [],
+      recentTopicSuggestions: [],
+      totalBookingsAnalyzed: 0,
+    });
+  }
+
   // Build query - note: feedback_topic_suggestion may not exist in all deployments
-  let query = supabase
+  const query = supabase
     .from('oh_bookings')
     .select(`
       question_responses,
       feedback_comment,
       created_at,
-      slot:oh_slots!slot_id(
+      slot:oh_slots!inner(
         event_id,
         event:oh_events!event_id(id, name, custom_questions)
       )
     `)
-    .not('question_responses', 'is', null);
+    .not('question_responses', 'is', null)
+    .in('slot.event_id', hostedEventIds);
 
   // Get all bookings with responses
   const { data: bookings, error } = await query;

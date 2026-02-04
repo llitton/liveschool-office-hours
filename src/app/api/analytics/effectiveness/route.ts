@@ -6,8 +6,9 @@ import { subDays, startOfWeek, format, startOfMonth } from 'date-fns';
 
 // GET session effectiveness metrics
 export async function GET(request: NextRequest) {
+  let session;
   try {
-    await requireAuth();
+    session = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -18,6 +19,33 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // Scope to events the current user hosts or co-hosts
+  const { data: ownedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', session.id);
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', session.id);
+
+  const hostedEventIds: string[] = [];
+  ownedEvents?.forEach(e => hostedEventIds.push(e.id));
+  coHostedEvents?.forEach(e => hostedEventIds.push(e.event_id));
+
+  if (hostedEventIds.length === 0) {
+    return NextResponse.json({
+      period,
+      summary: {
+        totalSessions: 0, totalBookings: 0, attended: 0, noShows: 0,
+        resolved: 0, attendanceRate: '0', resolutionRate: '0',
+        avgRating: null, ratingCount: 0,
+      },
+      periodData: [],
+    });
+  }
+
   let startDate: Date;
   if (period === 'month') {
     startDate = startOfMonth(subDays(new Date(), 90)); // Last 3 months
@@ -27,7 +55,7 @@ export async function GET(request: NextRequest) {
     startDate = startOfWeek(subDays(new Date(), 56)); // Last 8 weeks
   }
 
-  // Get slots with bookings and feedback
+  // Get slots with bookings and feedback - scoped to user's hosted events
   let query = supabase
     .from('oh_slots')
     .select(`
@@ -46,7 +74,8 @@ export async function GET(request: NextRequest) {
     `)
     .gte('start_time', startDate.toISOString())
     .lte('start_time', new Date().toISOString())
-    .eq('is_cancelled', false);
+    .eq('is_cancelled', false)
+    .in('event_id', hostedEventIds);
 
   if (eventId) {
     query = query.eq('event_id', eventId);

@@ -30,9 +30,16 @@ export function middleware(request: NextRequest) {
     response.headers.set('Content-Security-Policy', "frame-ancestors *");
   }
 
+  // Security headers for admin pages
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  }
+
   return response;
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/embed/:path*'],
+  matcher: ['/api/:path*', '/embed/:path*', '/admin/:path*'],
 };

@@ -44,6 +44,37 @@ export async function GET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
+  // Scope to events the current user hosts or co-hosts
+  const { data: ownedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', session.id);
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', session.id);
+
+  const hostedEventIds: string[] = [];
+  ownedEvents?.forEach(e => hostedEventIds.push(e.id));
+  coHostedEvents?.forEach(e => hostedEventIds.push(e.event_id));
+
+  if (hostedEventIds.length === 0) {
+    return NextResponse.json({
+      summary: { pageViews: 0, bookings: 0, conversionRate: 0, dropOffRate: 0 },
+      funnel: [],
+      topDropOffs: [],
+      eventBreakdown: [],
+      trends: [],
+      period,
+    });
+  }
+
+  // If eventId is specified, verify it belongs to user's hosted events
+  if (eventId && !hostedEventIds.includes(eventId)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
   // Calculate date range
   let startDate: Date | null = null;
   if (period === 'week') {
@@ -62,8 +93,11 @@ export async function GET(request: NextRequest) {
     query = query.gte('created_at', startDate.toISOString());
   }
 
+  // Always scope to user's hosted events; narrow to specific eventId if provided
   if (eventId) {
     query = query.eq('event_id', eventId);
+  } else {
+    query = query.in('event_id', hostedEventIds);
   }
 
   const { data: events, error } = await query;
