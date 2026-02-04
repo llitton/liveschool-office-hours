@@ -22,30 +22,38 @@ export async function GET(
     return NextResponse.json({ error: 'HubSpot not configured' });
   }
 
-  // Check token type
-  const tokenPrefix = config.access_token?.substring(0, 10) || '';
+  // Check token type (never expose token content, even prefixes)
   const isPrivateAppToken = config.access_token?.startsWith('pat-');
 
   const results: Record<string, unknown> = {
     email: decodedEmail,
     portalId: config.portal_id,
-    tokenPrefix: tokenPrefix + '...',
-    isPrivateAppToken,
+    tokenType: isPrivateAppToken ? 'private_app' : 'oauth',
+    hasAccessToken: !!config.access_token,
     hasRefreshToken: !!config.refresh_token,
   };
 
   // Check what scopes the token has (only works for OAuth tokens, not private app tokens)
-  if (!isPrivateAppToken) {
+  if (!isPrivateAppToken && config.access_token) {
     try {
       const tokenInfoResponse = await fetch(
         `https://api.hubapi.com/oauth/v1/access-tokens/${config.access_token}`
       );
       results.tokenInfoStatus = tokenInfoResponse.status;
-      results.tokenInfo = await tokenInfoResponse.json();
+      if (tokenInfoResponse.ok) {
+        const tokenInfo = await tokenInfoResponse.json();
+        // Only expose safe fields, not the token itself
+        results.tokenInfo = {
+          scopes: tokenInfo.scopes,
+          expires_in: tokenInfo.expires_in,
+          hub_id: tokenInfo.hub_id,
+          user: tokenInfo.user,
+        };
+      }
     } catch (err) {
       results.tokenInfoError = err instanceof Error ? err.message : 'Unknown error';
     }
-  } else {
+  } else if (isPrivateAppToken) {
     results.tokenNote = 'Private App token detected - scopes must be configured in HubSpot Private App settings';
   }
 

@@ -29,12 +29,12 @@ export async function GET() {
       .limit(1);
 
     if (slotsError) {
-      checks.slots_query = { status: 'error', message: slotsError.message };
+      checks.slots_query = { status: 'error', message: 'Slots query failed' };
     } else {
       checks.slots_query = { status: 'ok', latency_ms: Date.now() - slotStart };
     }
   } catch (err) {
-    checks.slots_query = { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' };
+    checks.slots_query = { status: 'error', message: 'Check failed' };
   }
 
   // Check 2: Can we join slots with events? (This is what broke)
@@ -52,14 +52,14 @@ export async function GET() {
 
     if (joinError && joinError.code !== 'PGRST116') {
       // PGRST116 = no rows returned, which is fine
-      checks.slot_event_join = { status: 'error', message: joinError.message };
+      checks.slot_event_join = { status: 'error', message: 'Slot-event join failed' };
     } else if (slotWithEvent && !slotWithEvent.event) {
       checks.slot_event_join = { status: 'error', message: 'Join returned null event' };
     } else {
       checks.slot_event_join = { status: 'ok', latency_ms: Date.now() - joinStart };
     }
   } catch (err) {
-    checks.slot_event_join = { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' };
+    checks.slot_event_join = { status: 'error', message: 'Check failed' };
   }
 
   // Check 3: Can we count bookings?
@@ -71,12 +71,12 @@ export async function GET() {
       .limit(1);
 
     if (countError) {
-      checks.bookings_count = { status: 'error', message: countError.message };
+      checks.bookings_count = { status: 'error', message: 'Bookings count failed' };
     } else {
       checks.bookings_count = { status: 'ok', latency_ms: Date.now() - countStart };
     }
   } catch (err) {
-    checks.bookings_count = { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' };
+    checks.bookings_count = { status: 'error', message: 'Check failed' };
   }
 
   // Check 4: Test the exact query used in booking creation
@@ -94,14 +94,14 @@ export async function GET() {
       .single();
 
     if (slotError && slotError.code !== 'PGRST116') {
-      checks.booking_slot_query = { status: 'error', message: slotError.message };
+      checks.booking_slot_query = { status: 'error', message: 'Booking slot query failed' };
     } else if (slot && !slot.event) {
       checks.booking_slot_query = { status: 'error', message: 'Booking query returned null event' };
     } else {
       checks.booking_slot_query = { status: 'ok', latency_ms: Date.now() - bookingQueryStart };
     }
   } catch (err) {
-    checks.booking_slot_query = { status: 'error', message: err instanceof Error ? err.message : 'Unknown error' };
+    checks.booking_slot_query = { status: 'error', message: 'Check failed' };
   }
 
   // Determine overall status

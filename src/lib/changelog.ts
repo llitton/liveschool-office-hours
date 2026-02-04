@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-email-url-data-hardening',
+    date: '2026-02-03',
+    title: 'Email URL Safety & Data Exposure Fixes',
+    description: 'Sanitized URLs in email templates, restricted public API data, and hardened legacy email paths.',
+    category: 'fix',
+    details: [
+      'Email template URLs now validated for http/https protocol to prevent javascript: injection',
+      'Shared link titles and URLs in emails are now properly escaped',
+      'Public events API now returns only necessary fields instead of full config',
+      'Legacy email template path now escapes user-supplied content before HTML conversion',
+      'Debug endpoints no longer expose token prefixes',
+      'Health endpoint no longer exposes raw database error messages',
+    ],
+  },
+  {
     id: '2026-02-03-auth-injection-hardening',
     date: '2026-02-03',
     title: 'Auth, Injection & Error Hardening',

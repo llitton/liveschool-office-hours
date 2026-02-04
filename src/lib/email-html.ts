@@ -43,6 +43,23 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Sanitize a URL for safe use in href attributes.
+ * Only allows http: and https: protocols to prevent javascript: and data: injection.
+ * Also escapes HTML special characters in the URL.
+ */
+export function sanitizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return '#';
+    }
+    return escapeHtml(url);
+  } catch {
+    return '#';
+  }
+}
+
 // Brand colors
 const COLORS = {
   purple: '#6F71EE',
@@ -110,7 +127,7 @@ export function generateConfirmationEmailHtml(data: ConfirmationEmailData): stri
           <div style="background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
             <strong style="color: ${COLORS.navy};">${resource.title}</strong>
             <p style="color: ${COLORS.gray}; margin: 8px 0 0 0; font-size: 14px;">${resource.content}</p>
-            ${resource.link ? `<a href="${resource.link}" style="color: ${COLORS.purple}; font-size: 14px;">Learn more →</a>` : ''}
+            ${resource.link ? `<a href="${sanitizeUrl(resource.link)}" style="color: ${COLORS.purple}; font-size: 14px;">Learn more →</a>` : ''}
           </div>
         `).join('')}
       </div>
@@ -508,7 +525,7 @@ export function generateFollowupEmailHtml(data: FollowupEmailData): string {
                       <span style="font-size: 18px;">🎥</span>
                     </td>
                     <td>
-                      <a href="${recordingLink}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
+                      <a href="${sanitizeUrl(recordingLink)}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
                         Watch Recording →
                       </a>
                     </td>
@@ -526,7 +543,7 @@ export function generateFollowupEmailHtml(data: FollowupEmailData): string {
                       <span style="font-size: 18px;">📊</span>
                     </td>
                     <td>
-                      <a href="${deckLink}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
+                      <a href="${sanitizeUrl(deckLink)}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
                         View Slides →
                       </a>
                     </td>
@@ -544,8 +561,8 @@ export function generateFollowupEmailHtml(data: FollowupEmailData): string {
                       <span style="font-size: 18px;">📎</span>
                     </td>
                     <td>
-                      <a href="${link.url}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
-                        ${link.title} →
+                      <a href="${sanitizeUrl(link.url)}" style="color: ${COLORS.purple}; text-decoration: none; font-weight: 500; font-size: 15px;">
+                        ${escapeHtml(link.title)} →
                       </a>
                     </td>
                   </tr>
@@ -563,7 +580,7 @@ export function generateFollowupEmailHtml(data: FollowupEmailData): string {
   const recordingCta = !isNoShow && recordingLink ? `
     <tr>
       <td style="background: white; padding: 0 32px 24px 32px; text-align: center;">
-        <a href="${recordingLink}" style="display: inline-block; background: ${COLORS.green}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+        <a href="${sanitizeUrl(recordingLink)}" style="display: inline-block; background: ${COLORS.green}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
           🎥 Watch Recording
         </a>
       </td>
@@ -851,7 +868,7 @@ export function generateRecordingEmailHtml(data: RecordingEmailData): string {
             ${deckLink ? `
             <tr>
               <td style="padding: 6px 0;">
-                <a href="${deckLink}" style="color: ${COLORS.purple}; text-decoration: none; font-size: 14px;">
+                <a href="${sanitizeUrl(deckLink)}" style="color: ${COLORS.purple}; text-decoration: none; font-size: 14px;">
                   📊 View Slides →
                 </a>
               </td>
@@ -860,8 +877,8 @@ export function generateRecordingEmailHtml(data: RecordingEmailData): string {
             ${sharedLinks && sharedLinks.length > 0 ? sharedLinks.map(link => `
             <tr>
               <td style="padding: 6px 0;">
-                <a href="${link.url}" style="color: ${COLORS.purple}; text-decoration: none; font-size: 14px;">
-                  📎 ${link.title} →
+                <a href="${sanitizeUrl(link.url)}" style="color: ${COLORS.purple}; text-decoration: none; font-size: 14px;">
+                  📎 ${escapeHtml(link.title)} →
                 </a>
               </td>
             </tr>
@@ -950,7 +967,7 @@ export function generateRecordingEmailHtml(data: RecordingEmailData): string {
 
               <!-- Primary CTA -->
               <div style="text-align: center;">
-                <a href="${recordingLink}" style="display: inline-block; background: ${COLORS.green}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                <a href="${sanitizeUrl(recordingLink)}" style="display: inline-block; background: ${COLORS.green}; color: white; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
                   🎥 Watch Recording
                 </a>
               </div>

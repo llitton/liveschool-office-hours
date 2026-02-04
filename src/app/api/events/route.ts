@@ -7,10 +7,39 @@ import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors'
 export async function GET() {
   const supabase = getServiceSupabase();
 
+  // Select only fields needed for public listing and admin dashboard
+  // Excludes: email templates, SMS templates, round-robin config, internal flags
   const { data: events, error } = await supabase
     .from('oh_events')
     .select(`
-      *,
+      id,
+      slug,
+      name,
+      subtitle,
+      description,
+      duration_minutes,
+      host_name,
+      host_email,
+      host_id,
+      max_attendees,
+      is_active,
+      created_at,
+      meeting_type,
+      custom_questions,
+      prep_materials,
+      banner_image,
+      display_timezone,
+      phone_required,
+      sms_reminders_enabled,
+      sms_phone_required,
+      guest_limit,
+      allow_guests,
+      is_one_off,
+      single_use,
+      one_off_expires_at,
+      one_off_booked_at,
+      ignore_busy_blocks,
+      display_order,
       host:oh_admins!host_id(profile_image)
     `)
     .eq('is_active', true)
@@ -21,11 +50,14 @@ export async function GET() {
   }
 
   // Flatten host profile_image into the event object
-  const eventsWithHostImage = events?.map(event => ({
-    ...event,
-    host_profile_image: event.host?.profile_image || null,
-    host: undefined, // Remove the nested host object
-  }));
+  const eventsWithHostImage = events?.map(event => {
+    const hostData = Array.isArray(event.host) ? event.host[0] : event.host;
+    return {
+      ...event,
+      host_profile_image: hostData?.profile_image || null,
+      host: undefined, // Remove the nested host object
+    };
+  });
 
   return NextResponse.json(eventsWithHostImage);
 }

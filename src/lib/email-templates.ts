@@ -1,5 +1,6 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
+import { escapeHtml } from '@/lib/email-html';
 
 export interface EmailTemplateVariables {
   first_name: string;
@@ -171,8 +172,9 @@ export function createEmailVariables(
 }
 
 export function htmlifyEmailBody(text: string): string {
-  // Convert plain text to simple HTML
-  return text
+  // Escape HTML in template-processed text to prevent XSS, then convert to paragraphs
+  const escaped = escapeHtml(text);
+  return escaped
     .split('\n\n')
     .map((paragraph) => `<p>${paragraph.replace(/\n/g, '<br>')}</p>`)
     .join('');
