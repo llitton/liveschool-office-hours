@@ -141,19 +141,8 @@ export async function POST(
   // Add to Google Calendar (always, to keep calendar accurate)
   if (admin?.google_access_token && admin?.google_refresh_token && slot.google_event_id && !isWaitlisted) {
     try {
-      await addAttendeeToEvent(
-        admin.google_access_token,
-        admin.google_refresh_token,
-        slot.google_event_id,
-        email.toLowerCase()
-      );
-
-      await supabase
-        .from('oh_bookings')
-        .update({ calendar_invite_sent_at: new Date().toISOString() })
-        .eq('id', bookingId);
-
-      // Add manage/reschedule link to calendar description (non-webinar only)
+      // Update calendar description with manage link BEFORE adding attendee,
+      // so Google's invitation email includes the link
       if (slot.event.meeting_type !== 'webinar') {
         try {
           const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${manageToken}`;
@@ -172,6 +161,18 @@ export async function POST(
           console.error('[Slot/AddAttendee] Failed to update calendar description:', descErr);
         }
       }
+
+      await addAttendeeToEvent(
+        admin.google_access_token,
+        admin.google_refresh_token,
+        slot.google_event_id,
+        email.toLowerCase()
+      );
+
+      await supabase
+        .from('oh_bookings')
+        .update({ calendar_invite_sent_at: new Date().toISOString() })
+        .eq('id', bookingId);
 
       calendarLogger.info('Added attendee to calendar event (admin add)', {
         operation: 'adminAddAttendee',

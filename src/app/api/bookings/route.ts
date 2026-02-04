@@ -678,6 +678,27 @@ export async function POST(request: NextRequest) {
     // Only add to calendar if booking is confirmed (not pending approval) AND not waitlisted
     if (slot.google_event_id && bookingStatus === 'confirmed' && !isWaitlisted) {
       try {
+        // Update calendar description with manage link BEFORE adding attendee,
+        // so Google's invitation email includes the link
+        if (typedSlot.event.meeting_type !== 'webinar') {
+          try {
+            const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${manage_token}`;
+            const baseDesc = typedSlot.event.description || '';
+            const updatedDesc = event.max_attendees === 1
+              ? `${baseDesc}\n\n---\nReschedule or cancel: ${manageUrl}`
+              : `${baseDesc}\n\n---\nNeed to reschedule or cancel? Use the link in your confirmation email.`;
+
+            await updateCalendarEventDescription(
+              admin.google_access_token,
+              admin.google_refresh_token,
+              slot.google_event_id,
+              updatedDesc
+            );
+          } catch (descErr) {
+            console.error('Failed to update calendar event description:', descErr);
+          }
+        }
+
         // Add the main booker to the calendar
         await addAttendeeToEvent(
           admin.google_access_token,
@@ -707,26 +728,6 @@ export async function POST(request: NextRequest) {
 
         if (calUpdateError) {
           console.error('Failed to update calendar_invite_sent_at:', calUpdateError);
-        }
-
-        // Add manage/reschedule link to calendar event description (non-webinar only)
-        if (typedSlot.event.meeting_type !== 'webinar') {
-          try {
-            const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${manage_token}`;
-            const baseDesc = typedSlot.event.description || '';
-            const updatedDesc = event.max_attendees === 1
-              ? `${baseDesc}\n\n---\nReschedule or cancel: ${manageUrl}`
-              : `${baseDesc}\n\n---\nNeed to reschedule or cancel? Use the link in your confirmation email.`;
-
-            await updateCalendarEventDescription(
-              admin.google_access_token,
-              admin.google_refresh_token,
-              slot.google_event_id,
-              updatedDesc
-            );
-          } catch (descErr) {
-            console.error('Failed to update calendar event description:', descErr);
-          }
         }
 
         integrationStatus.calendar = 'sent';
