@@ -33,7 +33,8 @@ tests/
 │       ├── auth.test.ts              # Session management, token refresh (21 tests)
 │       ├── availability.test.ts      # Slot generation logic (14 tests)
 │       ├── booking-constraints.test.ts # Validation rules (29 tests)
-│       ├── email-html.test.ts        # HTML email templates (54 tests)
+│       ├── email-html.test.ts        # HTML email templates (90 tests)
+│       ├── email-templates.test.ts  # Email template processing (31 tests)
 │       ├── email-validation.test.ts  # Email format/MX/disposable (21 tests)
 │       ├── errors.test.ts            # Error sanitization, user-friendly messages (30 tests)
 │       ├── hubspot.test.ts           # HubSpot API integration (25 tests)
@@ -50,7 +51,7 @@ tests/
 │   └── api/
 │       ├── attendee-types.test.ts        # Batch attendee type fetching (8 tests)
 │       ├── auth.test.ts                  # Auth disconnect/reconnect (3 tests)
-│       ├── auto-attendance.test.ts       # Google Meet attendance sync (6 tests)
+│       ├── auto-attendance.test.ts       # Google Meet attendance sync (21 tests)
 │       ├── automated-emails-toggle.test.ts # Per-event email toggle (10 tests)
 │       ├── batch-context.test.ts         # Batch HubSpot context (8 tests)
 │       ├── bookings.test.ts              # Booking API endpoints (7 tests)
@@ -61,6 +62,9 @@ tests/
 │       ├── silent-failures.test.ts     # Silent failure prevention (6 tests)
 │       ├── send-followup.test.ts        # Follow-up emails (10 tests)
 │       ├── attendee-management.test.ts  # Admin add/remove attendees (16 tests)
+│       ├── slot-deletion.test.ts       # Permanent/soft slot deletion (8 tests)
+│       ├── post-session.test.ts          # Post-session cron job (23 tests)
+│       ├── send-reminders.test.ts       # Reminder cron job (17 tests)
 │       ├── slots.test.ts               # Slot generation API (11 tests)
 │       └── verify-migrations.test.ts    # Migration verification (6 tests)
 └── e2e/
@@ -150,7 +154,7 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-bo
 
 | Area | Tests |
 |------|-------|
-| **Total Unit Tests** | **498** |
-| **Integration Tests** | **133** |
+| **Total Unit Tests** | **529** |
+| **Integration Tests** | **196** |
 | **E2E Tests** | **9** |
-| **Grand Total** | **640** |
+| **Grand Total** | **734** |

@@ -1460,7 +1460,7 @@ export default function SlotCard({
                               <button
                                 onClick={() => {
                                   setEmailPrompt({
-                                    message: 'Mark as no-show and send "we missed you" email?',
+                                    message: 'Send "we missed you" email to this attendee?',
                                     onYes: () => { setEmailPrompt(null); handleMarkAttendance(booking.id, 'no_show', true); },
                                     onNo: () => { setEmailPrompt(null); handleMarkAttendance(booking.id, 'no_show', false); },
                                   });
