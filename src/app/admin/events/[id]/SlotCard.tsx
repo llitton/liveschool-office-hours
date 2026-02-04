@@ -83,6 +83,11 @@ export default function SlotCard({
   const [addLastName, setAddLastName] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addingAttendee, setAddingAttendee] = useState(false);
+  const [emailPrompt, setEmailPrompt] = useState<{
+    message: string;
+    onYes: () => void;
+    onNo: () => void;
+  } | null>(null);
 
   // Tags and tasks state
   const [allTags, setAllTags] = useState<SessionTag[]>([]);
@@ -328,11 +333,7 @@ export default function SlotCard({
     }
   };
 
-  const handleRemoveAttendee = async (bookingId: string, bookingName: string) => {
-    if (!confirm(`Remove ${bookingName} from this session? This permanently deletes the booking.`)) {
-      return;
-    }
-    const notify = confirm(`Send cancellation email to ${bookingName}?\n\nOK = Yes, send email\nCancel = No, skip email`);
+  const doRemoveAttendee = async (bookingId: string, notify: boolean) => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: 'DELETE',
@@ -351,17 +352,18 @@ export default function SlotCard({
     }
   };
 
-  const handleAddAttendee = async () => {
-    if (!addFirstName.trim() || !addLastName.trim() || !addEmail.trim()) {
-      alert('Please fill in all fields');
+  const handleRemoveAttendee = (bookingId: string, bookingName: string) => {
+    if (!confirm(`Remove ${bookingName} from this session? This permanently deletes the booking.`)) {
       return;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(addEmail.trim())) {
-      alert('Please enter a valid email address');
-      return;
-    }
-    const notify = confirm(`Send confirmation email to ${addFirstName.trim()}?\n\nOK = Yes, send email\nCancel = No, skip email`);
+    setEmailPrompt({
+      message: `Send cancellation email to ${bookingName}?`,
+      onYes: () => { setEmailPrompt(null); doRemoveAttendee(bookingId, true); },
+      onNo: () => { setEmailPrompt(null); doRemoveAttendee(bookingId, false); },
+    });
+  };
+
+  const doAddAttendee = async (notify: boolean) => {
     setAddingAttendee(true);
     try {
       const response = await fetch(`/api/slots/${slot.id}/add-attendee`, {
@@ -390,6 +392,23 @@ export default function SlotCard({
     } finally {
       setAddingAttendee(false);
     }
+  };
+
+  const handleAddAttendee = () => {
+    if (!addFirstName.trim() || !addLastName.trim() || !addEmail.trim()) {
+      alert('Please fill in all fields');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(addEmail.trim())) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    setEmailPrompt({
+      message: `Send confirmation email to ${addFirstName.trim()}?`,
+      onYes: () => { setEmailPrompt(null); doAddAttendee(true); },
+      onNo: () => { setEmailPrompt(null); doAddAttendee(false); },
+    });
   };
 
   const handleMarkAllAttendance = async (status: 'attended' | 'no_show') => {
@@ -1535,6 +1554,29 @@ export default function SlotCard({
               })()}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Email prompt modal */}
+      {emailPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <p className="text-sm text-[#101E57] mb-4">{emailPrompt.message}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={emailPrompt.onNo}
+                className="px-4 py-2 text-sm font-medium text-[#667085] bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                No
+              </button>
+              <button
+                onClick={emailPrompt.onYes}
+                className="px-4 py-2 text-sm font-medium text-white bg-[#6F71EE] hover:bg-[#5a5cd0] rounded-lg transition"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
