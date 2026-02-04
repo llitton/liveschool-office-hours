@@ -88,6 +88,14 @@ export default function ManageEventPage({
   // State for collapsible past sessions
   const [expandedPastSlots, setExpandedPastSlots] = useState<Set<string>>(new Set());
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    message: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  } | null>(null);
+
   const slotsRef = useRef<HTMLDivElement>(null);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -282,40 +290,52 @@ export default function ManageEventPage({
     );
   };
 
-  const handleDeleteSlot = async (slotId: string) => {
-    if (!confirm('Are you sure you want to cancel this time slot?')) return;
+  const handleDeleteSlot = (slotId: string) => {
+    setConfirmModal({
+      message: 'Are you sure you want to cancel this time slot? All attendees will be notified.',
+      confirmLabel: 'Cancel Slot',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          const response = await fetch(`/api/slots/${slotId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/slots/${slotId}`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            throw new Error('Failed to cancel slot');
+          }
 
-      if (!response.ok) {
-        throw new Error('Failed to cancel slot');
-      }
-
-      await fetchData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel slot');
-    }
+          await fetchData();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to cancel slot');
+        }
+      },
+      onCancel: () => setConfirmModal(null),
+    });
   };
 
-  const handlePermanentDeleteSlot = async (slotId: string) => {
-    if (!confirm('Permanently delete this session and all its bookings? This cannot be undone.')) return;
+  const handlePermanentDeleteSlot = (slotId: string) => {
+    setConfirmModal({
+      message: 'Permanently delete this session and all its bookings? This cannot be undone.',
+      confirmLabel: 'Delete Session',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          const response = await fetch(`/api/slots/${slotId}?permanent=true`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/slots/${slotId}?permanent=true`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            throw new Error('Failed to delete session');
+          }
 
-      if (!response.ok) {
-        throw new Error('Failed to delete session');
-      }
-
-      await fetchData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete session');
-    }
+          await fetchData();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to delete session');
+        }
+      },
+      onCancel: () => setConfirmModal(null),
+    });
   };
 
   const handleSaveAsTemplate = async (e: React.FormEvent) => {
@@ -1662,6 +1682,28 @@ export default function ManageEventPage({
           </div>
         )}
       </main>
+
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <p className="text-sm text-[#101E57] mb-4">{confirmModal.message}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={confirmModal.onCancel}
+                className="px-4 py-2 text-sm font-medium text-[#667085] bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+              >
+                {confirmModal.confirmLabel || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

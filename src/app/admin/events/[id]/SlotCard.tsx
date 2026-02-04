@@ -85,6 +85,12 @@ export default function SlotCard({
   const [addLastName, setAddLastName] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addingAttendee, setAddingAttendee] = useState(false);
+  const [confirmPrompt, setConfirmPrompt] = useState<{
+    message: string;
+    confirmLabel?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  } | null>(null);
   const [emailPrompt, setEmailPrompt] = useState<{
     message: string;
     onYes: () => void;
@@ -355,13 +361,18 @@ export default function SlotCard({
   };
 
   const handleRemoveAttendee = (bookingId: string, bookingName: string) => {
-    if (!confirm(`Remove ${bookingName} from this session? This permanently deletes the booking.`)) {
-      return;
-    }
-    setEmailPrompt({
-      message: `Send cancellation email to ${bookingName}?`,
-      onYes: () => { setEmailPrompt(null); doRemoveAttendee(bookingId, true); },
-      onNo: () => { setEmailPrompt(null); doRemoveAttendee(bookingId, false); },
+    setConfirmPrompt({
+      message: `Remove ${bookingName} from this session? This permanently deletes the booking.`,
+      confirmLabel: 'Remove',
+      onConfirm: () => {
+        setConfirmPrompt(null);
+        setEmailPrompt({
+          message: `Send cancellation email to ${bookingName}?`,
+          onYes: () => { setEmailPrompt(null); doRemoveAttendee(bookingId, true); },
+          onNo: () => { setEmailPrompt(null); doRemoveAttendee(bookingId, false); },
+        });
+      },
+      onCancel: () => setConfirmPrompt(null),
     });
   };
 
@@ -1448,11 +1459,11 @@ export default function SlotCard({
                               </button>
                               <button
                                 onClick={() => {
-                                  if (confirm('Mark as no-show and send "we missed you" email?')) {
-                                    handleMarkAttendance(booking.id, 'no_show', true);
-                                  } else {
-                                    handleMarkAttendance(booking.id, 'no_show', false);
-                                  }
+                                  setEmailPrompt({
+                                    message: 'Mark as no-show and send "we missed you" email?',
+                                    onYes: () => { setEmailPrompt(null); handleMarkAttendance(booking.id, 'no_show', true); },
+                                    onNo: () => { setEmailPrompt(null); handleMarkAttendance(booking.id, 'no_show', false); },
+                                  });
                                 }}
                                 className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
                               >
@@ -1568,6 +1579,28 @@ export default function SlotCard({
       )}
 
       {/* Email prompt modal */}
+      {confirmPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <p className="text-sm text-[#101E57] mb-4">{confirmPrompt.message}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={confirmPrompt.onCancel}
+                className="px-4 py-2 text-sm font-medium text-[#667085] bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPrompt.onConfirm}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+              >
+                {confirmPrompt.confirmLabel || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {emailPrompt && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
