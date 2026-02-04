@@ -300,6 +300,24 @@ export default function ManageEventPage({
     }
   };
 
+  const handlePermanentDeleteSlot = async (slotId: string) => {
+    if (!confirm('Permanently delete this session and all its bookings? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`/api/slots/${slotId}?permanent=true`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session');
+      }
+
+      await fetchData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+    }
+  };
+
   const handleSaveAsTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!templateName.trim()) return;
@@ -440,7 +458,7 @@ export default function ManageEventPage({
 
   // Calculate quick stats
   const upcomingSlots = slots.filter(s => !isPast(parseISO(s.end_time)));
-  const pastSlots = slots.filter(s => isPast(parseISO(s.end_time)));
+  const pastSlots = slots.filter(s => isPast(parseISO(s.end_time))).reverse();
   const totalBookings = upcomingSlots.reduce((sum, s) => sum + (s.booking_count || 0), 0);
   const totalCapacity = upcomingSlots.length * event.max_attendees;
 
@@ -1626,6 +1644,7 @@ export default function ManageEventPage({
                             event={event}
                             bookings={slotBookings}
                             onDeleteSlot={handleDeleteSlot}
+                            onPermanentDeleteSlot={handlePermanentDeleteSlot}
                             onRefresh={fetchData}
                             isCollapsible={true}
                           />

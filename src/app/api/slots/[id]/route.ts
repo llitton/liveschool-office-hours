@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 import {
   processTemplate,
   createEmailVariables,
@@ -71,7 +71,10 @@ export async function PATCH(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
   // Only allow updating certain fields
   const allowedUpdates: Record<string, unknown> = {};
@@ -160,7 +163,41 @@ export async function DELETE(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Mark as cancelled
+  const permanent = request.nextUrl.searchParams.get('permanent') === 'true';
+
+  if (permanent) {
+    // Permanently delete all bookings for this slot first (cascade)
+    const { error: bookingsDeleteError } = await supabase
+      .from('oh_bookings')
+      .delete()
+      .eq('slot_id', id);
+
+    if (bookingsDeleteError) {
+      console.error('[Slot/Delete] Failed to delete bookings:', bookingsDeleteError);
+      return NextResponse.json({ error: getUserFriendlyError(bookingsDeleteError) }, { status: 500 });
+    }
+
+    // Permanently delete the slot
+    const { error: slotDeleteError } = await supabase
+      .from('oh_slots')
+      .delete()
+      .eq('id', id);
+
+    if (slotDeleteError) {
+      console.error('[Slot/Delete] Failed to delete slot:', slotDeleteError);
+      return NextResponse.json({ error: getUserFriendlyError(slotDeleteError) }, { status: 500 });
+    }
+
+    slotLogger.info('Slot permanently deleted', {
+      operation: 'permanentDeleteSlot',
+      slotId: id,
+      metadata: { deletedBy: session.email, bookingsDeleted: (slot.bookings || []).length },
+    });
+
+    return NextResponse.json({ success: true, permanent: true });
+  }
+
+  // Soft cancel: mark as cancelled and notify attendees
   const { error } = await supabase
     .from('oh_slots')
     .update({ is_cancelled: true })

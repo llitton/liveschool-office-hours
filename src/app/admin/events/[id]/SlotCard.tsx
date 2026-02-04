@@ -47,6 +47,7 @@ interface SlotCardProps {
   event: OHEvent;
   bookings: OHBooking[];
   onDeleteSlot: (slotId: string) => void;
+  onPermanentDeleteSlot?: (slotId: string) => void;
   onRefresh: () => void;
   isCollapsible?: boolean; // When true, rendered inside accordion without outer border
 }
@@ -56,6 +57,7 @@ export default function SlotCard({
   event,
   bookings,
   onDeleteSlot,
+  onPermanentDeleteSlot,
   onRefresh,
   isCollapsible = false,
 }: SlotCardProps) {
@@ -1061,6 +1063,14 @@ export default function SlotCard({
                 className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
               >
                 Cancel Slot
+              </button>
+            )}
+            {isPastSlot && onPermanentDeleteSlot && (
+              <button
+                onClick={() => onPermanentDeleteSlot(slot.id)}
+                className="px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+              >
+                Delete Session
               </button>
             )}
           </div>
