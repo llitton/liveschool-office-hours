@@ -289,7 +289,7 @@ function getPopupCloseScript(result: {
       window.opener.postMessage(${JSON.stringify({
         type: 'google-calendar-auth',
         ...result,
-      })}, '*');
+      })}, '${process.env.NEXT_PUBLIC_APP_URL || ''}');
     }
     setTimeout(() => window.close(), 1000);
   </script>

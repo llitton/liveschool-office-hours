@@ -887,9 +887,9 @@ export async function POST(request: NextRequest) {
             </div>
 
             <div style="background: #F6F6F9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-              <h3 style="margin: 0 0 8px 0; color: #101E57; font-size: 16px;">${typedSlot.event.name}</h3>
+              <h3 style="margin: 0 0 8px 0; color: #101E57; font-size: 16px;">${escapeHtml(typedSlot.event.name)}</h3>
               <p style="margin: 0 0 4px 0; color: #667085;">${sessionTime}</p>
-              <p style="margin: 0; color: #667085;">Host: ${assignedHost?.name || typedSlot.event.host_name}</p>
+              <p style="margin: 0; color: #667085;">Host: ${escapeHtml(assignedHost?.name || typedSlot.event.host_name || '')}</p>
             </div>
 
             ${slot.google_meet_link ? `

@@ -137,7 +137,7 @@ function getPopupCloseScript(result: {
       window.opener.postMessage(${JSON.stringify({
         type: 'microsoft-calendar-auth',
         ...result,
-      })}, '*');
+      })}, '${process.env.NEXT_PUBLIC_APP_URL || ''}');
     }
     // Close the popup after a brief delay
     setTimeout(() => window.close(), 1000);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { createCalendarEvent, sendEmail } from '@/lib/google';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -132,7 +133,7 @@ export async function POST(
     .single();
 
   if (eventError) {
-    return NextResponse.json({ error: eventError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(eventError) }, { status: 500 });
   }
 
   // Create calendar event with Google Meet
@@ -177,7 +178,7 @@ export async function POST(
     .single();
 
   if (slotError) {
-    return NextResponse.json({ error: slotError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(slotError) }, { status: 500 });
   }
 
   // Update poll status
@@ -194,7 +195,7 @@ export async function POST(
     .eq('id', pollId);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(updateError) }, { status: 500 });
   }
 
   // Send confirmation emails to all attendees

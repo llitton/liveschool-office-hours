@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth, getHostWithTokens } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 import { parseISO, addMinutes, startOfDay, endOfDay, areIntervalsOverlapping, isValid, parse } from 'date-fns';
@@ -334,7 +335,7 @@ export async function POST(request: NextRequest) {
     if (createError) {
       results.skipped.push({
         ...row,
-        reason: createError.message,
+        reason: getUserFriendlyError(createError),
       });
     } else {
       results.created.push(row);

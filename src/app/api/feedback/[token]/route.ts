@@ -105,7 +105,7 @@ export async function POST(
     .eq('id', booking.id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save feedback. Please try again.' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

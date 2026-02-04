@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/login?error=${error}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/login?error=${encodeURIComponent(error)}`
     );
   }
 

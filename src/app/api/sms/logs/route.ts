@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { requireAuth } from '@/lib/auth';
 
 // GET /api/sms/logs - Get paginated SMS logs with filtering
 export async function GET(request: NextRequest) {
+  try {
+    await requireAuth();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '50');
@@ -47,8 +54,11 @@ export async function GET(request: NextRequest) {
   }
 
   if (search) {
-    // Search by phone number or recipient name
-    query = query.or(`recipient_phone.ilike.%${search}%,recipient_name.ilike.%${search}%`);
+    // Sanitize search to prevent PostgREST filter injection via .or() string interpolation
+    const sanitized = search.replace(/[%,().*]/g, '');
+    if (sanitized) {
+      query = query.or(`recipient_phone.ilike.%${sanitized}%,recipient_name.ilike.%${sanitized}%`);
+    }
   }
 
   // Apply pagination
@@ -80,7 +90,10 @@ export async function GET(request: NextRequest) {
     summaryQuery = summaryQuery.lte('created_at', to);
   }
   if (search) {
-    summaryQuery = summaryQuery.or(`recipient_phone.ilike.%${search}%,recipient_name.ilike.%${search}%`);
+    const sanitized = search.replace(/[%,().*]/g, '');
+    if (sanitized) {
+      summaryQuery = summaryQuery.or(`recipient_phone.ilike.%${sanitized}%,recipient_name.ilike.%${sanitized}%`);
+    }
   }
 
   const { data: allLogs } = await summaryQuery;

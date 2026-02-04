@@ -126,12 +126,14 @@ vi.mock('@/lib/supabase', () => ({
                 }),
               }),
               not: vi.fn().mockReturnValue({
-                eq: vi.fn().mockImplementation(() =>
-                  Promise.resolve({
-                    data: mockSlotQueryError ? null : [],
-                    error: mockSlotQueryError,
-                  })
-                ),
+                eq: vi.fn().mockReturnValue({
+                  gte: vi.fn().mockImplementation(() =>
+                    Promise.resolve({
+                      data: mockSlotQueryError ? null : [],
+                      error: mockSlotQueryError,
+                    })
+                  ),
+                }),
               }),
             }),
           };

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { subDays, format } from 'date-fns';
 
 export async function GET(request: NextRequest) {
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     .select('id, name, email');
 
   if (adminsError) {
-    return NextResponse.json({ error: adminsError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(adminsError) }, { status: 500 });
   }
 
   // Get all bookings with their slots for the period
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     .is('cancelled_at', null);
 
   if (bookingsError) {
-    return NextResponse.json({ error: bookingsError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(bookingsError) }, { status: 500 });
   }
 
   // Aggregate metrics per team member

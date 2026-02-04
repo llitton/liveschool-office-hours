@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
+import { getUserFriendlyError } from '@/lib/errors';
 
 // GET events for a host by their quick links token
 export async function GET(
@@ -34,7 +35,7 @@ export async function GET(
     .order('name', { ascending: true });
 
   if (eventsError) {
-    return NextResponse.json({ error: eventsError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(eventsError) }, { status: 500 });
   }
 
   // Get events where admin is a co-host

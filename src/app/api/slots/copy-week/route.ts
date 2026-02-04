@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth, getHostWithTokens } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 import { parseISO, format, addDays, startOfWeek, endOfWeek, startOfDay, endOfDay, areIntervalsOverlapping, differenceInDays } from 'date-fns';
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     .order('start_time', { ascending: true });
 
   if (slotsError) {
-    return NextResponse.json({ error: slotsError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(slotsError) }, { status: 500 });
   }
 
   if (!sourceSlots || sourceSlots.length === 0) {

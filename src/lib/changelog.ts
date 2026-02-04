@@ -12,6 +12,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-auth-injection-hardening',
+    date: '2026-02-03',
+    title: 'Auth, Injection & Error Hardening',
+    description: 'Added missing authentication, fixed query injection, scoped dashboard stats, and hardened error handling.',
+    category: 'fix',
+    details: [
+      'SMS logs endpoint now requires authentication',
+      'SMS search input sanitized to prevent PostgREST filter injection',
+      'Dashboard stats now scoped to your hosted events only',
+      'Recording email cron query now bounded to last 7 days',
+      'Calendar auth popups now use strict postMessage target origin',
+      'Guest notification emails now escape event name and host name',
+      'Replaced raw database error messages with user-friendly messages in 8 more routes',
+    ],
+  },
+  {
     id: '2026-02-03-analytics-scoping',
     date: '2026-02-03',
     title: 'Analytics Scoping & Security Hardening',

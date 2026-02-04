@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { getUserFriendlyError } from '@/lib/errors';
 import { addHours } from 'date-fns';
 import { findOrCreateContact, createTask as createHubSpotTask } from '@/lib/hubspot';
 
@@ -39,7 +40,7 @@ export async function POST(
   const { data: templates, error: templateError } = await query;
 
   if (templateError) {
-    return NextResponse.json({ error: templateError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(templateError) }, { status: 500 });
   }
 
   if (!templates || templates.length === 0) {
@@ -134,7 +135,7 @@ export async function POST(
     .select();
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json({ error: getUserFriendlyError(insertError) }, { status: 500 });
   }
 
   return NextResponse.json({ tasks });

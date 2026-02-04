@@ -395,6 +395,8 @@ export async function GET(request?: Request) {
   }
 
   // Send recording emails for slots that have recordings but haven't been sent
+  // Only look at slots from the last 7 days to avoid unbounded queries
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const { data: slotsWithRecordings, error: recordingSlotsError } = await supabase
     .from('oh_slots')
     .select(`
@@ -403,7 +405,8 @@ export async function GET(request?: Request) {
       bookings:oh_bookings!slot_id(*)
     `)
     .not('recording_link', 'is', null)
-    .eq('is_cancelled', false);
+    .eq('is_cancelled', false)
+    .gte('start_time', sevenDaysAgo.toISOString());
 
   if (recordingSlotsError) {
     cronLogger.error('Failed to fetch recording slots', { operation: 'post-session' }, recordingSlotsError);

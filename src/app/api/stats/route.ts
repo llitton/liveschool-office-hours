@@ -30,6 +30,46 @@ export async function GET() {
   const monthStart = startOfMonth(now);
   const in24Hours = addHours(now, 24);
 
+  // Scope all queries to events this user hosts or co-hosts
+  const { data: adminRecord } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
+  const adminId = adminRecord?.id;
+
+  const { data: ownedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', adminId || '');
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', adminId || '');
+
+  const hostedEventIds = [
+    ...(ownedEvents || []).map(e => e.id),
+    ...(coHostedEvents || []).map(e => e.event_id),
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  if (hostedEventIds.length === 0) {
+    return NextResponse.json({
+      nextSession: null,
+      openCapacity: 0,
+      upcomingSessions: 0,
+      attendanceRate: 0,
+      attendanceContext: 'No events yet',
+      actionItems: [],
+      setupItems: [],
+      setupComplete: 0,
+      setupTotal: 0,
+      popularTimeSlots: [],
+      recentBookings: [],
+    });
+  }
+
   // Get upcoming slots with details for next session and capacity
   const { data: upcomingSlots } = await supabase
     .from('oh_slots')
@@ -41,6 +81,7 @@ export async function GET() {
       bookings:oh_bookings!slot_id(count)
     `)
     .eq('is_cancelled', false)
+    .in('event_id', hostedEventIds)
     .gte('start_time', now.toISOString())
     .order('start_time', { ascending: true });
 
@@ -80,11 +121,12 @@ export async function GET() {
     }
   }
 
-  // Get all events to check for missing slots or templates
+  // Get all events to check for missing slots or templates (scoped to user's events)
   const { data: events } = await supabase
     .from('oh_events')
     .select('id, name, confirmation_subject, meeting_type')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .in('id', hostedEventIds);
 
   for (const event of events || []) {
     // Check if event has no upcoming slots
@@ -122,7 +164,7 @@ export async function GET() {
     }
   }
 
-  // Get completed sessions this month with attendance data
+  // Get completed sessions this month with attendance data (scoped)
   const { data: completedSlots } = await supabase
     .from('oh_slots')
     .select(`
@@ -132,6 +174,7 @@ export async function GET() {
       bookings:oh_bookings!slot_id(count, attended_at, no_show_at)
     `)
     .eq('is_cancelled', false)
+    .in('event_id', hostedEventIds)
     .gte('start_time', monthStart.toISOString())
     .lt('start_time', now.toISOString());
 
@@ -170,6 +213,7 @@ export async function GET() {
       bookings:oh_bookings!slot_id(count)
     `)
     .eq('is_cancelled', false)
+    .in('event_id', hostedEventIds)
     .gte('start_time', ninetyDaysAgo.toISOString())
     .limit(500);
 
@@ -194,29 +238,39 @@ export async function GET() {
     .sort((a, b) => b.totalBookings - a.totalBookings)
     .slice(0, 5);
 
-  // Get recent bookings
-  const { data: recentBookings } = await supabase
-    .from('oh_bookings')
-    .select(`
-      id,
-      first_name,
-      last_name,
-      email,
-      created_at,
-      slot:oh_slots!slot_id(
-        start_time,
-        event:oh_events!event_id(name)
-      )
-    `)
-    .is('cancelled_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // Get recent bookings (scoped via slots in user's events)
+  const { data: scopedSlots } = await supabase
+    .from('oh_slots')
+    .select('id')
+    .in('event_id', hostedEventIds);
+
+  const scopedSlotIds = (scopedSlots || []).map(s => s.id);
+
+  const { data: recentBookings } = scopedSlotIds.length > 0
+    ? await supabase
+        .from('oh_bookings')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email,
+          created_at,
+          slot:oh_slots!slot_id(
+            start_time,
+            event:oh_events!event_id(name)
+          )
+        `)
+        .is('cancelled_at', null)
+        .in('slot_id', scopedSlotIds)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    : { data: [] };
 
   // Get admin info for setup checklist (only boolean checks, not raw tokens)
   const { data: admin } = await supabase
     .from('oh_admins')
     .select('id, profile_image')
-    .eq('email', session.email)
+    .eq('id', adminId || '')
     .single();
 
   // Check Google connection separately without exposing tokens
