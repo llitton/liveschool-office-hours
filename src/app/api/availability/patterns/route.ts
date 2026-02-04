@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET availability patterns for current admin
 export async function GET() {
@@ -43,7 +43,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { day_of_week, start_time, end_time, timezone } = body;
 
   if (day_of_week === undefined || !start_time || !end_time) {
@@ -122,7 +125,10 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { patterns, timezone: requestTimezone } = body;
 
   if (!Array.isArray(patterns)) {

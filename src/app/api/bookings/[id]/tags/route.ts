@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET tags for a booking
 export async function GET(
@@ -44,7 +44,10 @@ export async function POST(
   }
 
   const { id: bookingId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { tag_id } = body;
 
   if (!tag_id) {

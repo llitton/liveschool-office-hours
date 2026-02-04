@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { generateFollowupEmailHtml } from '@/lib/email-html';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST send a test follow-up email preview
 // Body: { to: "email@example.com", isNoShow?: boolean, slotId?: string }
@@ -12,7 +13,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { to, isNoShow = false, slotId } = body;
 
   if (!to || typeof to !== 'string') {

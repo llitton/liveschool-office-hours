@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { nanoid } from 'nanoid';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET list polls for the current user
 export async function GET() {
@@ -81,7 +81,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     title,
     description,

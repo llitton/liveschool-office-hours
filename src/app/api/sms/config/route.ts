@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { getSMSConfig, saveSMSConfig, deactivateSMSConfig, testSMSConnection } from '@/lib/sms';
 import { createSMSProvider } from '@/lib/sms-providers';
+import { safeParseJSON } from '@/lib/errors';
 import type { SMSProvider, OHSMSConfig } from '@/types';
 
 // GET - Get current SMS config (masked)
@@ -36,7 +37,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { provider, api_key, api_secret, sender_phone } = body as {
     provider: SMSProvider;
     api_key: string;

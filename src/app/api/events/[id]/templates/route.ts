@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 
 export async function PUT(
   request: Request,
@@ -12,7 +13,10 @@ export async function PUT(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
   const supabase = getServiceSupabase();
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import type { RoutingQuestion } from '@/types';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET a single routing form with its rules
 export async function GET(
@@ -51,7 +51,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     name,
     description,

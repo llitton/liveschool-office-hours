@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { evaluateRules, encodeResponses } from '@/lib/routing';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 import type { OHRoutingRule } from '@/types';
 
 // POST submit routing form and get redirect URL (public endpoint)
@@ -10,8 +10,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await request.json();
-  const { responses }: { responses: Record<string, string> } = body;
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { responses } = body as { responses: Record<string, string> };
 
   if (!responses || typeof responses !== 'object' || Array.isArray(responses)) {
     return NextResponse.json({ error: 'responses object is required' }, { status: 400 });

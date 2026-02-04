@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 import { createCalendarEvent, sendEmail } from '@/lib/google';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -22,7 +22,10 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     option_id, // The winning time slot
     additional_invitees = [], // Array of { name, email } for people who didn't vote

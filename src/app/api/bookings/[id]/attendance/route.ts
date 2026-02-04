@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 
 // PATCH /api/bookings/[id]/attendance - Update attendance status
 export async function PATCH(
@@ -13,7 +14,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { status } = body; // 'attended' | 'no_show' | 'reset'
 
   if (!['attended', 'no_show', 'reset'].includes(status)) {

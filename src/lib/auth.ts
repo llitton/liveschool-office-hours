@@ -14,7 +14,7 @@ export async function getSession(): Promise<OHAdmin | null> {
   const supabase = getServiceSupabase();
   const { data: admin, error } = await supabase
     .from('oh_admins')
-    .select('*')
+    .select('id, email, name, google_access_token, google_refresh_token, token_expires_at, created_at, updated_at, max_meetings_per_day, max_meetings_per_week, default_buffer_before, default_buffer_after, profile_image, onboarding_progress, quick_links_token, invitation_sent_at, invitation_last_sent_at')
     .eq('id', sessionId)
     .single();
 
@@ -145,7 +145,7 @@ export async function getHostWithTokens(hostId: string): Promise<OHAdmin | null>
 
   const { data: admin, error } = await supabase
     .from('oh_admins')
-    .select('*')
+    .select('id, email, name, google_access_token, google_refresh_token, token_expires_at, created_at, updated_at, max_meetings_per_day, max_meetings_per_week, default_buffer_before, default_buffer_after, profile_image, onboarding_progress, quick_links_token, invitation_sent_at, invitation_last_sent_at')
     .eq('id', hostId)
     .single();
 

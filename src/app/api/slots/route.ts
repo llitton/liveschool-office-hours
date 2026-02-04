@@ -5,7 +5,7 @@ import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { checkTimeAvailability, checkCollectiveAvailability } from '@/lib/availability';
 import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 import { parseISO, startOfDay, endOfDay, areIntervalsOverlapping, addHours, addDays, isBefore, isAfter } from 'date-fns';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET slots for an event
 export async function GET(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   // First get the event to check constraints
   const { data: event, error: eventError } = await supabase
     .from('oh_events')
-    .select('*')
+    .select('id, min_notice_hours, booking_window_days, max_attendees')
     .eq('id', eventId)
     .single();
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('oh_slots')
     .select(`
-      *,
+      id, event_id, start_time, end_time, google_meet_link, is_cancelled, created_at, google_event_id, recording_link, deck_link, shared_links, skip_automated_emails, assigned_host_id,
       bookings:oh_bookings!slot_id(count),
       assigned_host:oh_admins!assigned_host_id(id, name, email)
     `)
@@ -97,7 +97,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { event_id, start_time, end_time, assigned_host_id } = body;
 
   if (!event_id || !start_time || !end_time) {

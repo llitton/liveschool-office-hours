@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceSupabase();
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<Record<string, any>>(request);
   if (!body) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }

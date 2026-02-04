@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { getMeetParticipants, matchParticipantsToBookings } from '@/lib/google';
 import { updateMeetingOutcome } from '@/lib/hubspot';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST sync attendance from Google Meet
 export async function POST(
@@ -15,7 +16,10 @@ export async function POST(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const minDuration = body.minDuration || 5; // Minimum minutes to count as attended
 
   const supabase = getServiceSupabase();
@@ -123,11 +127,15 @@ export async function POST(
     const booking = eligibleBookings.find((b: { id: string }) => b.id === match.bookingId);
     if (booking?.hubspot_contact_id) {
       const hubspotOutcome = match.attended ? 'COMPLETED' : 'NO_SHOW';
-      updateMeetingOutcome(
-        booking.hubspot_contact_id,
-        slot.event.name,
-        hubspotOutcome
-      ).catch((err) => console.error('Failed to sync HubSpot outcome:', err));
+      try {
+        await updateMeetingOutcome(
+          booking.hubspot_contact_id,
+          slot.event.name,
+          hubspotOutcome
+        );
+      } catch (err) {
+        console.error('Failed to sync HubSpot outcome:', err);
+      }
     }
   }
 

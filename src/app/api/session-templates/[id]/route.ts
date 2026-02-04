@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 
 // GET - Get a single template by ID
 export async function GET(
@@ -68,7 +69,10 @@ export async function PUT(
     return NextResponse.json({ error: 'Template not found' }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
   // Build update object with only allowed fields
   const updateData: Record<string, unknown> = {};

@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { generateFollowupEmailHtml } from '@/lib/email-html';
+import { safeParseJSON } from '@/lib/errors';
 import { emailLogger } from '@/lib/logger';
 import { format, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
@@ -19,7 +20,10 @@ export async function POST(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { recipients, subject, body: emailBody } = body;
 
   if (!recipients || !subject || !emailBody) {

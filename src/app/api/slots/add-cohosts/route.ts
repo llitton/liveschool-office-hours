@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { addAttendeeToEvent } from '@/lib/google';
 import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST /api/slots/add-cohosts
 // Add co-hosts to existing calendar events for webinar/collective event slots
@@ -13,7 +14,11 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceSupabase();
-  const { event_id } = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { event_id } = body;
 
   if (!event_id) {
     return NextResponse.json({ error: 'event_id is required' }, { status: 400 });

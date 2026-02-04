@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { createTask, getContactWithCompany } from '@/lib/hubspot';
+import { safeParseJSON } from '@/lib/errors';
 import { parseISO } from 'date-fns';
 
 // POST schedule a follow-up for an attendee
@@ -15,7 +16,10 @@ export async function POST(
   }
 
   const { id: bookingId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { title, notes, dueDate, syncToHubspot } = body;
 
   if (!title) {

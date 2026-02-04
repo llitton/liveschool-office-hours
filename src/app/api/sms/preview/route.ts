@@ -3,10 +3,14 @@ import { processSMSTemplate, calculateSMSSegments } from '@/lib/sms';
 import { getServiceSupabase } from '@/lib/supabase';
 import { formatInTimeZone } from 'date-fns-tz';
 import { addDays } from 'date-fns';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST /api/sms/preview - Preview an SMS template with sample data
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { template, eventId } = body;
 
   if (!template) {

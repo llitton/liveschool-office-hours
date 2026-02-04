@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 import type { OnboardingState } from '@/types';
 
 // POST - Save onboarding state for an admin
@@ -11,7 +12,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getServiceSupabase();
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
   const { adminId, state } = body as { adminId: string; state: OnboardingState };
 

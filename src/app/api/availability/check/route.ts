@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { checkTimeAvailability, getAvailableSlots } from '@/lib/availability';
+import { safeParseJSON } from '@/lib/errors';
 import { parseISO, addDays } from 'date-fns';
 
 // POST check if a specific time slot is available
@@ -11,7 +12,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { start_time, end_time, event_id, buffer_before, buffer_after } = body;
 
   if (!start_time || !end_time) {

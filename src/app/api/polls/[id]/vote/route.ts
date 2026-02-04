@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { id: pollId } = await params;
 
-  const body = await safeParseJSON(request);
+  const body = await safeParseJSON<Record<string, any>>(request);
   if (!body) {
     return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
   }

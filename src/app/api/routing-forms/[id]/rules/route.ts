@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET all rules for a routing form
 export async function GET(
@@ -46,19 +46,16 @@ export async function POST(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     question_id,
     answer_value,
     target_event_id,
     target_host_id,
     priority,
-  }: {
-    question_id: string;
-    answer_value: string;
-    target_event_id: string;
-    target_host_id?: string;
-    priority?: number;
   } = body;
 
   if (!question_id || !answer_value || !target_event_id) {
@@ -125,7 +122,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'rule_id query param is required' }, { status: 400 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     question_id,
     answer_value,
@@ -133,13 +133,6 @@ export async function PATCH(
     target_host_id,
     priority,
     is_active,
-  }: {
-    question_id?: string;
-    answer_value?: string;
-    target_event_id?: string;
-    target_host_id?: string | null;
-    priority?: number;
-    is_active?: boolean;
   } = body;
 
   const supabase = getServiceSupabase();

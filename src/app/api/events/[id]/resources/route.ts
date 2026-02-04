@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 import {
   getPrepResources,
   createPrepResource,
@@ -36,7 +37,10 @@ export async function POST(
   }
 
   const { id: eventId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { title, content, link, keywords } = body;
 
   if (!title || !content) {
@@ -74,7 +78,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { resourceId, title, content, link, keywords } = body;
 
   if (!resourceId) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { isHubSpotConnected, getHubSpotConfig } from '@/lib/hubspot';
+import { safeParseJSON } from '@/lib/errors';
 
 // Simple in-memory cache for user types with periodic cleanup
 const cache = new Map<string, { userType: string | null; timestamp: number }>();
@@ -38,7 +39,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { emails } = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  const { emails } = body;
   if (!Array.isArray(emails) || emails.length === 0) {
     return NextResponse.json({ error: 'emails array required' }, { status: 400 });
   }

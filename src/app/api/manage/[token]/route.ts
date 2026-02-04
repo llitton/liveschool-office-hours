@@ -24,6 +24,7 @@ export async function GET(
   const supabase = getServiceSupabase();
 
   // Get booking with slot and event
+  // Note: response narrows fields at lines 62-69 before returning to client
   const { data: booking, error } = await supabase
     .from('oh_bookings')
     .select(`
@@ -44,7 +45,7 @@ export async function GET(
   const { data: availableSlots } = await supabase
     .from('oh_slots')
     .select(`
-      *,
+      id, event_id, start_time, end_time, google_meet_link, is_cancelled,
       bookings:oh_bookings!slot_id(count)
     `)
     .eq('event_id', booking.slot.event.id)
@@ -162,7 +163,7 @@ export async function PUT(
   // Send confirmation email for the reschedule
   const { data: admin } = await supabase
     .from('oh_admins')
-    .select('*')
+    .select('id, email, google_access_token, google_refresh_token')
     .eq('email', newSlot.event.host_email)
     .single();
 
@@ -265,7 +266,7 @@ export async function DELETE(
   // Get admin for Google API access
   const { data: admin } = await supabase
     .from('oh_admins')
-    .select('*')
+    .select('id, email, google_access_token, google_refresh_token')
     .eq('email', booking.slot.event.host_email)
     .single();
 
@@ -408,7 +409,7 @@ async function promoteFromWaitlist(
   // Get the first waitlisted booking
   const { data: nextInLine, error } = await supabase
     .from('oh_bookings')
-    .select('*')
+    .select('id, email, first_name, attendee_timezone, manage_token, is_waitlisted, waitlist_position')
     .eq('slot_id', slotId)
     .is('cancelled_at', null)
     .eq('is_waitlisted', true)

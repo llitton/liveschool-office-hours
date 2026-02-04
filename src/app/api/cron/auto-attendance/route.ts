@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getMeetParticipants, matchParticipantsToBookings } from '@/lib/google';
 import { updateMeetingOutcome } from '@/lib/hubspot';
 import { cronLogger } from '@/lib/logger';
+import { verifyCronSecret, createAdminTokenCache } from '@/lib/cron';
 
 // This cron job runs every hour (at :45) to automatically sync attendance
 // from Google Meet for sessions that ended 30-90 minutes ago.
@@ -12,11 +13,8 @@ import { cronLogger } from '@/lib/logger';
 const MIN_ATTENDANCE_DURATION = 5; // Minutes required to count as attended
 
 export async function GET(request?: Request) {
-  // Verify cron secret in production
-  const authHeader = request?.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = verifyCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   const supabase = getServiceSupabase();
   const now = new Date();
@@ -49,6 +47,8 @@ export async function GET(request?: Request) {
     return NextResponse.json({ error: 'Failed to fetch slots' }, { status: 500 });
   }
 
+  const getAdminTokens = createAdminTokenCache(supabase);
+
   for (const slot of slots || []) {
     // Filter to only non-cancelled, unmarked bookings
     const unmarkedBookings = (slot.bookings || []).filter(
@@ -59,14 +59,10 @@ export async function GET(request?: Request) {
     // Skip if no unmarked bookings
     if (unmarkedBookings.length === 0) continue;
 
-    // Get admin credentials for the host
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('*')
-      .eq('email', slot.event.host_email)
-      .single();
+    // Look up admin from cache (queries once per unique host email)
+    const admin = await getAdminTokens(slot.event.host_email);
 
-    if (!admin?.google_access_token || !admin?.google_refresh_token) {
+    if (!admin) {
       cronLogger.warn('Host Google not connected, skipping auto-attendance', {
         operation: 'auto-attendance',
         eventId: slot.event.id,
@@ -129,11 +125,15 @@ export async function GET(request?: Request) {
         const booking = unmarkedBookings.find((b: { id: string }) => b.id === match.bookingId);
         if (booking?.hubspot_contact_id) {
           const hubspotOutcome = match.attended ? 'COMPLETED' : 'NO_SHOW';
-          updateMeetingOutcome(
-            booking.hubspot_contact_id,
-            slot.event.name,
-            hubspotOutcome
-          ).catch((err) => console.error('Failed to sync HubSpot outcome:', err));
+          try {
+            await updateMeetingOutcome(
+              booking.hubspot_contact_id,
+              slot.event.name,
+              hubspotOutcome
+            );
+          } catch (err) {
+            console.error('Failed to sync HubSpot outcome:', err);
+          }
         }
       }
 

@@ -3,7 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { generateSlug } from '@/lib/routing';
 import type { RoutingQuestion } from '@/types';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET all routing forms (admin)
 export async function GET() {
@@ -38,17 +38,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const {
     name,
     description,
     questions,
     default_event_id,
-  }: {
-    name: string;
-    description?: string;
-    questions: RoutingQuestion[];
-    default_event_id?: string;
   } = body;
 
   if (!name) {

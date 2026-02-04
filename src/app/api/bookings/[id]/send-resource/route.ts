@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
 import { escapeHtml, sanitizeUrl } from '@/lib/email-html';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST send a help article/resource to attendee
 export async function POST(
@@ -15,7 +16,10 @@ export async function POST(
   }
 
   const { id: bookingId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { resourceId, customMessage } = body;
 
   if (!resourceId) {

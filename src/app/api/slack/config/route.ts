@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { saveSlackConfig, testSlackWebhook } from '@/lib/slack';
+import { safeParseJSON } from '@/lib/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,7 +10,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { webhook_url, default_channel, notify_on_booking, daily_digest, post_session_summary } = body;
 
   if (!webhook_url) {

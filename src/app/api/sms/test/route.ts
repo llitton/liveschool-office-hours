@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { sendSMS, formatPhoneE164, getSMSConfig } from '@/lib/sms';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST - Send test SMS
 export async function POST(request: NextRequest) {
@@ -9,7 +10,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { phone } = body as { phone: string };
 
   if (!phone) {

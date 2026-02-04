@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { findOrCreateContact, createTask } from '@/lib/hubspot';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST - Create a task for a booking
 export async function POST(request: NextRequest) {
@@ -11,7 +12,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { booking_id, title, notes, due_date, priority } = body;
 
   if (!booking_id || !title) {

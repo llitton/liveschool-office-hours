@@ -10,16 +10,14 @@ import { generateReminderEmailHtml } from '@/lib/email-html';
 import { getSMSConfig, sendSMS, processSMSTemplate, defaultSMSTemplates, logSMSSend } from '@/lib/sms';
 import { addHours, isAfter, isBefore } from 'date-fns';
 import { cronLogger, emailLogger, smsLogger } from '@/lib/logger';
+import { verifyCronSecret, createAdminTokenCache } from '@/lib/cron';
 
 // This endpoint is designed to be called by Vercel Cron
 // Configure in vercel.json: { "crons": [{ "path": "/api/cron/send-reminders", "schedule": "0 * * * *" }] }
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret in production
-  const authHeader = request.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = verifyCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   const supabase = getServiceSupabase();
   const now = new Date();
@@ -55,18 +53,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch slots' }, { status: 500 });
   }
 
+  const getAdminTokens = createAdminTokenCache(supabase);
+
   for (const slot of slots || []) {
     if (totalProcessed >= MAX_REMINDERS_PER_RUN) break;
     const slotTime = new Date(slot.start_time);
 
-    // Get admin tokens
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('*')
-      .eq('email', slot.event.host_email)
-      .single();
+    // Look up admin from cache (queries once per unique host email)
+    const admin = await getAdminTokens(slot.event.host_email);
 
-    if (!admin?.google_access_token || !admin?.google_refresh_token) {
+    if (!admin) {
       continue;
     }
 

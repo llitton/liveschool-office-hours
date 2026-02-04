@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { getTimezoneAbbr } from '@/lib/timezone';
 import { cronLogger } from '@/lib/logger';
+import { verifyCronSecret, createAdminTokenCache } from '@/lib/cron';
 
 // This cron job runs hourly to handle post-session tasks:
 // 1. Send follow-up emails 2 hours after session ends (to attended attendees)
@@ -14,11 +15,8 @@ import { cronLogger } from '@/lib/logger';
 // 4. Send recording links when added
 
 export async function GET(request?: Request) {
-  // Verify cron secret in production
-  const authHeader = request?.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = verifyCronSecret(request);
+  if (unauthorized) return unauthorized;
 
   const supabase = getServiceSupabase();
   const now = new Date();
@@ -32,6 +30,8 @@ export async function GET(request?: Request) {
   let feedbackSent = 0;
   let recordingsSent = 0;
   const errors: string[] = [];
+
+  const getAdminTokens = createAdminTokenCache(supabase);
 
   // =============================================
   // 1. Send follow-up emails (2-3 hours after session)
@@ -57,13 +57,8 @@ export async function GET(request?: Request) {
     if (slot.event.automated_emails_enabled === false) continue;
     if (slot.skip_automated_emails === true) continue;
 
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('*')
-      .eq('email', slot.event.host_email)
-      .single();
-
-    if (!admin?.google_access_token || !admin?.google_refresh_token) continue;
+    const admin = await getAdminTokens(slot.event.host_email);
+    if (!admin) continue;
 
     for (const booking of slot.bookings || []) {
       // Only send to attended bookings that haven't received follow-up
@@ -203,13 +198,8 @@ export async function GET(request?: Request) {
     const maxSendTime = new Date(new Date(slot.end_time).getTime() + 24 * 60 * 60 * 1000);
     if (now > maxSendTime) continue;
 
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('*')
-      .eq('email', event.host_email)
-      .single();
-
-    if (!admin?.google_access_token || !admin?.google_refresh_token) continue;
+    const admin = await getAdminTokens(event.host_email);
+    if (!admin) continue;
 
     for (const booking of slot.bookings || []) {
       // Only send to no-show bookings that haven't received the email
@@ -321,14 +311,8 @@ export async function GET(request?: Request) {
     if (slot.event.automated_emails_enabled === false) continue;
     if (slot.skip_automated_emails === true) continue;
 
-    // Get admin tokens
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('*')
-      .eq('email', slot.event.host_email)
-      .single();
-
-    if (!admin?.google_access_token || !admin?.google_refresh_token) continue;
+    const admin = await getAdminTokens(slot.event.host_email);
+    if (!admin) continue;
 
     // Send feedback requests to attendees who haven't received one
     for (const booking of slot.bookings || []) {
@@ -418,13 +402,8 @@ export async function GET(request?: Request) {
     if (slot.event.automated_emails_enabled === false) continue;
     if (slot.skip_automated_emails === true) continue;
 
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('*')
-      .eq('email', slot.event.host_email)
-      .single();
-
-    if (!admin?.google_access_token || !admin?.google_refresh_token) continue;
+    const admin = await getAdminTokens(slot.event.host_email);
+    if (!admin) continue;
 
     // Format session date/time in event's timezone (once per slot)
     const event = slot.event;

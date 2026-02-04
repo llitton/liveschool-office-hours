@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth, getHostWithTokens } from '@/lib/auth';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 import { createCalendarEvent, getFreeBusy } from '@/lib/google';
 import { getParticipatingHosts, getAllEventHosts } from '@/lib/round-robin';
 import { parseISO, format, addDays, startOfWeek, endOfWeek, startOfDay, endOfDay, areIntervalsOverlapping, differenceInDays } from 'date-fns';
@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { event_id, source_week_start, target_week_start } = body;
 
   if (!event_id || !source_week_start || !target_week_start) {

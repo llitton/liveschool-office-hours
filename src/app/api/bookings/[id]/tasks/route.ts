@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { findOrCreateContact, createTask as createHubSpotTask } from '@/lib/hubspot';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // Helper: verify the requesting admin hosts the event for this booking
 async function verifyBookingAccess(supabase: ReturnType<typeof getServiceSupabase>, bookingId: string, sessionEmail: string): Promise<boolean> {
@@ -96,7 +96,10 @@ export async function POST(
   }
 
   const { id: bookingId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { title, notes, due_date, sync_to_hubspot = false } = body;
 
   if (!title) {
@@ -189,7 +192,10 @@ export async function PATCH(
   }
 
   const { id: bookingId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { task_id, completed } = body;
 
   if (!task_id) {

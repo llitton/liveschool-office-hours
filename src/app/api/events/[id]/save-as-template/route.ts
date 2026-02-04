@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeParseJSON } from '@/lib/errors';
 
 // POST - Save event configuration as a reusable template
 export async function POST(
@@ -13,7 +14,10 @@ export async function POST(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { name, description, icon } = body;
 
   if (!name || typeof name !== 'string' || name.trim().length === 0) {

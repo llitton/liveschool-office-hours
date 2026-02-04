@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 import { addHours } from 'date-fns';
 import { findOrCreateContact, createTask as createHubSpotTask } from '@/lib/hubspot';
 
@@ -17,7 +17,10 @@ export async function POST(
   }
 
   const { id: eventId } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const { booking_id, template_ids, slot_end_time } = body;
 
   if (!booking_id) {
