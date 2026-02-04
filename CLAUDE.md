@@ -56,8 +56,6 @@ All admin pages are accessible via the main navigation in `src/components/AppShe
 
 /admin/insights (Insights - Overview)
 ├── /admin/insights/conversions (Conversions)
-├── /admin/insights/attendance (Attendance)
-├── /admin/insights/topics (Topics)
 ├── /admin/analytics (Analytics - word cloud/topics)
 └── /admin/team-health (Team Health)
 

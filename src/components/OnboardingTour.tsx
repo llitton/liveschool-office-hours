@@ -118,7 +118,7 @@ const tourSteps: TourStep[] = [
     ),
     action: {
       label: 'View Topics',
-      href: '/admin/topics',
+      href: '/admin/analytics',
     },
   },
   {
