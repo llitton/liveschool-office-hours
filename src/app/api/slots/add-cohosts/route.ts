@@ -30,6 +30,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 
+  // Verify the requesting admin hosts or co-hosts this event
+  let hasEventAccess = event.host_email === session.email;
+  if (!hasEventAccess) {
+    const { data: reqAdmin } = await supabase
+      .from('oh_admins')
+      .select('id')
+      .eq('email', session.email)
+      .single();
+
+    if (reqAdmin) {
+      const { data: coHostEntry } = await supabase
+        .from('oh_event_hosts')
+        .select('id')
+        .eq('event_id', event_id)
+        .eq('admin_id', reqAdmin.id)
+        .single();
+      hasEventAccess = !!coHostEntry;
+    }
+  }
+
+  if (!hasEventAccess) {
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+  }
+
   if (event.meeting_type !== 'webinar' && event.meeting_type !== 'collective') {
     return NextResponse.json({
       error: 'This operation is only for webinar and collective events'

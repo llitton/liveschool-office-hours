@@ -41,6 +41,36 @@ export async function GET(request: NextRequest) {
   const todayStart = startOfDay(zonedNow);
   const todayEnd = endOfDay(zonedNow);
 
+  // Get current admin's ID
+  const { data: sessionsAdmin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
+  if (!sessionsAdmin) {
+    return NextResponse.json({ sessions: [] });
+  }
+
+  // Get events where user is primary host or co-host
+  const { data: hostedEvents } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('host_id', sessionsAdmin.id);
+
+  const { data: coHostedEvents } = await supabase
+    .from('oh_event_hosts')
+    .select('event_id')
+    .eq('admin_id', sessionsAdmin.id);
+
+  const hostedEventIds: string[] = [];
+  hostedEvents?.forEach(e => hostedEventIds.push(e.id));
+  coHostedEvents?.forEach(e => hostedEventIds.push(e.event_id));
+
+  if (hostedEventIds.length === 0) {
+    return NextResponse.json({ sessions: [] });
+  }
+
   let query = supabase
     .from('oh_slots')
     .select(`
@@ -57,7 +87,8 @@ export async function GET(request: NextRequest) {
         feedback_rating
       )
     `)
-    .eq('is_cancelled', false);
+    .eq('is_cancelled', false)
+    .in('event_id', hostedEventIds);
 
   if (period === 'upcoming') {
     // Future sessions (after today)

@@ -4,19 +4,71 @@ import { requireAuth } from '@/lib/auth';
 import { findOrCreateContact, createTask as createHubSpotTask } from '@/lib/hubspot';
 import { getUserFriendlyError } from '@/lib/errors';
 
+// Helper: verify the requesting admin hosts the event for this booking
+async function verifyBookingAccess(supabase: ReturnType<typeof getServiceSupabase>, bookingId: string, sessionEmail: string): Promise<boolean> {
+  const { data: booking } = await supabase
+    .from('oh_bookings')
+    .select('slot:oh_slots!slot_id(event_id)')
+    .eq('id', bookingId)
+    .single();
+
+  if (!booking) return false;
+
+  const slotData = booking.slot as { event_id?: string } | null;
+  const eventId = slotData?.event_id;
+  if (!eventId) return false;
+
+  // Check if primary host
+  const { data: primaryEvent } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('id', eventId)
+    .eq('host_email', sessionEmail)
+    .single();
+
+  if (primaryEvent) return true;
+
+  // Check if co-host
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', sessionEmail)
+    .single();
+
+  if (admin) {
+    const { data: coHostEntry } = await supabase
+      .from('oh_event_hosts')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('admin_id', admin.id)
+      .single();
+
+    if (coHostEntry) return true;
+  }
+
+  return false;
+}
+
 // GET tasks for a booking
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let session;
   try {
-    await requireAuth();
+    session = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id: bookingId } = await params;
   const supabase = getServiceSupabase();
+
+  // Verify the requesting admin hosts the event for this booking
+  const hasAccess = await verifyBookingAccess(supabase, bookingId, session.email);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   const { data: tasks, error } = await supabase
     .from('oh_quick_tasks')
@@ -36,8 +88,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let session;
   try {
-    await requireAuth();
+    session = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -51,6 +104,12 @@ export async function POST(
   }
 
   const supabase = getServiceSupabase();
+
+  // Verify the requesting admin hosts the event for this booking
+  const hasPostAccess = await verifyBookingAccess(supabase, bookingId, session.email);
+  if (!hasPostAccess) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   // Get booking details for HubSpot sync
   const { data: booking } = await supabase
@@ -122,8 +181,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let session;
   try {
-    await requireAuth();
+    session = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -137,6 +197,12 @@ export async function PATCH(
   }
 
   const supabase = getServiceSupabase();
+
+  // Verify the requesting admin hosts the event for this booking
+  const hasPatchAccess = await verifyBookingAccess(supabase, bookingId, session.email);
+  if (!hasPatchAccess) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   const updateData: Record<string, unknown> = {};
   if (completed !== undefined) {
@@ -163,8 +229,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let session;
   try {
-    await requireAuth();
+    session = await requireAuth();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -178,6 +245,12 @@ export async function DELETE(
   }
 
   const supabase = getServiceSupabase();
+
+  // Verify the requesting admin hosts the event for this booking
+  const hasDeleteAccess = await verifyBookingAccess(supabase, bookingId, session.email);
+  if (!hasDeleteAccess) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   const { error } = await supabase
     .from('oh_quick_tasks')

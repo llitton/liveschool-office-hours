@@ -212,12 +212,20 @@ export async function GET() {
     .order('created_at', { ascending: false })
     .limit(5);
 
-  // Get admin info for setup checklist
+  // Get admin info for setup checklist (only boolean checks, not raw tokens)
   const { data: admin } = await supabase
     .from('oh_admins')
-    .select('id, google_access_token, google_refresh_token, profile_image')
+    .select('id, profile_image')
     .eq('email', session.email)
     .single();
+
+  // Check Google connection separately without exposing tokens
+  const { count: googleTokenCount } = await supabase
+    .from('oh_admins')
+    .select('id', { count: 'exact', head: true })
+    .eq('email', session.email)
+    .not('google_access_token', 'is', null)
+    .not('google_refresh_token', 'is', null);
 
   // Check for availability patterns and timezone for current user
   const { data: patterns } = await supabase
@@ -228,7 +236,7 @@ export async function GET() {
 
   // Check if user has set their timezone (not null/empty)
   const hasTimezoneSet = patterns?.some(p => p.timezone && p.timezone.length > 0) || false;
-  const hasGoogleConnected = !!(admin?.google_access_token && admin?.google_refresh_token);
+  const hasGoogleConnected = (googleTokenCount || 0) > 0;
   const hasProfilePhoto = !!admin?.profile_image;
 
   // Settings is complete if Google connected AND timezone set (photo is optional but nice)
@@ -284,7 +292,7 @@ export async function GET() {
   ];
 
   // Add action items for setup if incomplete
-  if (!admin?.google_access_token) {
+  if (!hasGoogleConnected) {
     actionItems.push({
       type: 'no_calendar',
       title: 'Google Calendar not connected',

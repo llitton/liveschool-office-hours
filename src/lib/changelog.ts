@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-data-scoping',
+    date: '2026-02-03',
+    title: 'Data Scoping & Token Safety',
+    description: 'Scoped admin data views to your own events and removed sensitive tokens from API responses.',
+    category: 'fix',
+    details: [
+      'Past and upcoming sessions now only show events you host or co-host',
+      'Booking tasks are now scoped to events you host',
+      'Add-cohosts endpoint now verifies event ownership',
+      'Custom templates list now shows only your own templates (plus system templates)',
+      'Template delete now verifies you created the template',
+      'Removed Google tokens from stats API queries',
+    ],
+  },
+  {
     id: '2026-02-03-ownership-verification',
     date: '2026-02-03',
     title: 'Resource Ownership Verification',

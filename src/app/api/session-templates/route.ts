@@ -13,9 +13,18 @@ export async function GET() {
 
   const supabase = getServiceSupabase();
 
+  // Get admin ID to scope custom templates
+  const { data: templateAdmin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
+  // Return system templates + custom templates created by this user
   const { data: templates, error } = await supabase
     .from('oh_session_templates')
     .select('*')
+    .or(`is_system.eq.true,created_by.eq.${templateAdmin?.id || '00000000-0000-0000-0000-000000000000'}`)
     .order('is_system', { ascending: false })
     .order('name');
 
@@ -110,15 +119,31 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Template ID is required' }, { status: 400 });
   }
 
-  // Check if it's a system template
+  // Get admin ID for ownership check
+  const { data: delTemplateAdmin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
+  // Check if it's a system template and verify ownership
   const { data: template } = await supabase
     .from('oh_session_templates')
-    .select('is_system')
+    .select('is_system, created_by')
     .eq('id', templateId)
     .single();
 
-  if (template?.is_system) {
+  if (!template) {
+    return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+  }
+
+  if (template.is_system) {
     return NextResponse.json({ error: 'Cannot delete system templates' }, { status: 403 });
+  }
+
+  // Verify the requesting admin created this template
+  if (template.created_by && delTemplateAdmin && template.created_by !== delTemplateAdmin.id) {
+    return NextResponse.json({ error: 'Template not found' }, { status: 404 });
   }
 
   const { error } = await supabase
