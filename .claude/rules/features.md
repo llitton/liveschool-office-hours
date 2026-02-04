@@ -68,6 +68,7 @@ Bypasses availability patterns AND Google Calendar conflict checks:
 - **Event titles:** Use event name directly (no prefix)
 - **Co-host invitations:** Webinars=all roles; Collective=owner+host only
 - **Attendee invitations:** Added as attendee to existing calendar event
+- **Manage link in description:** After adding an attendee, calendar event description is updated with a reschedule/cancel link (one-on-one: direct manage URL; group: points to confirmation email; webinars excluded). Uses `updateCalendarEventDescription()` with `sendUpdates: 'none'`.
 - **Retroactive fixes:** `POST /api/slots/add-cohosts` with `{"event_id": "..."}`
 
 ### Google Disconnect & Reconnect

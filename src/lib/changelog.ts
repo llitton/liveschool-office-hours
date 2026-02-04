@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-04-calendar-manage-link',
+    date: '2026-02-04',
+    title: 'Reschedule/Cancel Link in Calendar Invites',
+    description: 'Google Calendar event descriptions now include a reschedule or cancel link for non-webinar sessions.',
+    category: 'improvement',
+    details: [
+      'One-on-one sessions include a direct manage link in the calendar event description',
+      'Group sessions include a note to check the confirmation email for the manage link',
+      'Webinar sessions are excluded (no manage link needed)',
+      'Link appears in Google Calendar invitation emails automatically',
+    ],
+  },
+  {
     id: '2026-02-04-admin-attendee-management',
     date: '2026-02-04',
     title: 'Add & Remove Attendees from Sessions',
