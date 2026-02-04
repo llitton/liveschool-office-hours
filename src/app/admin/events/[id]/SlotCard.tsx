@@ -332,7 +332,7 @@ export default function SlotCard({
     if (!confirm(`Remove ${bookingName} from this session? This permanently deletes the booking.`)) {
       return;
     }
-    const notify = confirm(`Send cancellation email to ${bookingName}?`);
+    const notify = confirm(`Send cancellation email to ${bookingName}?\n\nOK = Yes, send email\nCancel = No, skip email`);
     try {
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: 'DELETE',
@@ -361,7 +361,7 @@ export default function SlotCard({
       alert('Please enter a valid email address');
       return;
     }
-    const notify = confirm(`Send confirmation email to ${addFirstName.trim()}?`);
+    const notify = confirm(`Send confirmation email to ${addFirstName.trim()}?\n\nOK = Yes, send email\nCancel = No, skip email`);
     setAddingAttendee(true);
     try {
       const response = await fetch(`/api/slots/${slot.id}/add-attendee`, {
