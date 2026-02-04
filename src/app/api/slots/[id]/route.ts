@@ -11,6 +11,47 @@ import {
 } from '@/lib/email-templates';
 import { slotLogger } from '@/lib/logger';
 
+// Helper: verify the requesting admin hosts or co-hosts the event for this slot
+async function verifySlotAccess(supabase: ReturnType<typeof getServiceSupabase>, slotId: string, sessionEmail: string): Promise<boolean> {
+  const { data: slot } = await supabase
+    .from('oh_slots')
+    .select('event_id')
+    .eq('id', slotId)
+    .single();
+
+  if (!slot) return false;
+
+  // Check if primary host
+  const { data: primaryEvent } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('id', slot.event_id)
+    .eq('host_email', sessionEmail)
+    .single();
+
+  if (primaryEvent) return true;
+
+  // Check if co-host
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', sessionEmail)
+    .single();
+
+  if (admin) {
+    const { data: coHostEntry } = await supabase
+      .from('oh_event_hosts')
+      .select('id')
+      .eq('event_id', slot.event_id)
+      .eq('admin_id', admin.id)
+      .single();
+
+    if (coHostEntry) return true;
+  }
+
+  return false;
+}
+
 // PATCH slot (admin only) - update recording link, etc.
 export async function PATCH(
   request: NextRequest,
@@ -22,22 +63,40 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
   const supabase = getServiceSupabase();
+
+  // Verify the requesting admin hosts or co-hosts this slot's event
+  const hasAccess = await verifySlotAccess(supabase, id, session.email);
+  if (!hasAccess) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
+  const body = await request.json();
 
   // Only allow updating certain fields
   const allowedUpdates: Record<string, unknown> = {};
   if (body.recording_link !== undefined) {
+    if (body.recording_link && typeof body.recording_link === 'string' && body.recording_link.length > 2048) {
+      return NextResponse.json({ error: 'Recording link must be 2,048 characters or less' }, { status: 400 });
+    }
     allowedUpdates.recording_link = body.recording_link || null;
   }
   if (body.deck_link !== undefined) {
+    if (body.deck_link && typeof body.deck_link === 'string' && body.deck_link.length > 2048) {
+      return NextResponse.json({ error: 'Deck link must be 2,048 characters or less' }, { status: 400 });
+    }
     allowedUpdates.deck_link = body.deck_link || null;
   }
   if (body.shared_links !== undefined) {
     // Validate shared_links format: array of {title, url} objects
     if (Array.isArray(body.shared_links)) {
+      if (body.shared_links.length > 20) {
+        return NextResponse.json({ error: 'Maximum 20 shared links allowed' }, { status: 400 });
+      }
       allowedUpdates.shared_links = body.shared_links.filter(
-        (link: { title?: string; url?: string }) => link.title && link.url
+        (link: { title?: string; url?: string }) =>
+          link.title && typeof link.title === 'string' && link.title.length <= 200 &&
+          link.url && typeof link.url === 'string' && link.url.length <= 2048
       );
     } else {
       allowedUpdates.shared_links = [];
@@ -92,6 +151,12 @@ export async function DELETE(
     .single();
 
   if (slotError || !slot) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
+  // Verify the requesting admin hosts or co-hosts this slot's event
+  const hasDeleteAccess = await verifySlotAccess(supabase, id, session.email);
+  if (!hasDeleteAccess) {
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 

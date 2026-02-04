@@ -50,6 +50,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
 
+  // Verify the requesting admin hosts or co-hosts this event
+  let hasEventAccess = event.host_email === session.email;
+  if (!hasEventAccess) {
+    const { data: importAdmin } = await supabase
+      .from('oh_admins')
+      .select('id')
+      .eq('email', session.email)
+      .single();
+
+    if (importAdmin) {
+      const { data: coHostEntry } = await supabase
+        .from('oh_event_hosts')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('admin_id', importAdmin.id)
+        .single();
+      hasEventAccess = !!coHostEntry;
+    }
+  }
+
+  if (!hasEventAccess) {
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+  }
+
   // Parse CSV file
   const text = await file.text();
   const lines = text.trim().split('\n');

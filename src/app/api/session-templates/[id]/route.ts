@@ -7,6 +7,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await requireAuth();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { id } = await params;
   const supabase = getServiceSupabase();
 
@@ -36,10 +41,17 @@ export async function PUT(
   const { id } = await params;
   const supabase = getServiceSupabase();
 
+  // Get admin ID for ownership check
+  const { data: putAdmin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
   // Check if template exists and is not a system template
   const { data: existing } = await supabase
     .from('oh_session_templates')
-    .select('is_system')
+    .select('is_system, created_by')
     .eq('id', id)
     .single();
 
@@ -49,6 +61,11 @@ export async function PUT(
 
   if (existing.is_system) {
     return NextResponse.json({ error: 'Cannot edit system templates' }, { status: 403 });
+  }
+
+  // Verify the requesting admin created this template
+  if (existing.created_by && putAdmin && existing.created_by !== putAdmin.id) {
+    return NextResponse.json({ error: 'Template not found' }, { status: 404 });
   }
 
   const body = await request.json();
@@ -139,10 +156,17 @@ export async function DELETE(
   const { id } = await params;
   const supabase = getServiceSupabase();
 
+  // Get admin ID for ownership check
+  const { data: delAdmin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', session.email)
+    .single();
+
   // Check if it's a system template
   const { data: template } = await supabase
     .from('oh_session_templates')
-    .select('is_system')
+    .select('is_system, created_by')
     .eq('id', id)
     .single();
 
@@ -152,6 +176,11 @@ export async function DELETE(
 
   if (template.is_system) {
     return NextResponse.json({ error: 'Cannot delete system templates' }, { status: 403 });
+  }
+
+  // Verify the requesting admin created this template
+  if (template.created_by && delAdmin && template.created_by !== delAdmin.id) {
+    return NextResponse.json({ error: 'Template not found' }, { status: 404 });
   }
 
   const { error } = await supabase

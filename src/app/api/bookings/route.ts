@@ -98,6 +98,9 @@ export async function POST(request: NextRequest) {
 
   // Validate guest_emails if provided
   let validatedGuestEmails: string[] = [];
+  if (guest_emails && Array.isArray(guest_emails) && guest_emails.length > 10) {
+    return NextResponse.json({ error: 'Maximum 10 guest emails allowed' }, { status: 400 });
+  }
   if (guest_emails && Array.isArray(guest_emails)) {
     for (const guestEmail of guest_emails) {
       const trimmed = guestEmail.trim().toLowerCase();

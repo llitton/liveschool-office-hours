@@ -12,6 +12,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-03-ownership-verification',
+    date: '2026-02-03',
+    title: 'Resource Ownership Verification',
+    description: 'Added ownership checks to prevent users from accessing or modifying resources belonging to other hosts.',
+    category: 'fix',
+    details: [
+      'Event read, update, and delete now verify you are the host or co-host',
+      'Slot update and cancel now verify event ownership',
+      'CSV slot import now scoped to events you host',
+      'Session template edit and delete now verify you created the template',
+      'Added auth to individual template endpoint',
+      'Added guest email count limit (max 10) on bookings',
+      'Added length limits on recording, deck, and shared links',
+    ],
+  },
+  {
     id: '2026-02-03-error-sanitization',
     date: '2026-02-03',
     title: 'Error Message Sanitization & Access Controls',

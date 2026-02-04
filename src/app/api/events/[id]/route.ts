@@ -3,6 +3,39 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 
+// Helper: verify the requesting admin hosts or co-hosts this event
+async function verifyEventAccess(supabase: ReturnType<typeof getServiceSupabase>, eventId: string, sessionEmail: string): Promise<boolean> {
+  // Check if primary host
+  const { data: primaryEvent } = await supabase
+    .from('oh_events')
+    .select('id')
+    .eq('id', eventId)
+    .eq('host_email', sessionEmail)
+    .single();
+
+  if (primaryEvent) return true;
+
+  // Check if co-host
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id')
+    .eq('email', sessionEmail)
+    .single();
+
+  if (admin) {
+    const { data: coHostEntry } = await supabase
+      .from('oh_event_hosts')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('admin_id', admin.id)
+      .single();
+
+    if (coHostEntry) return true;
+  }
+
+  return false;
+}
+
 // GET single event (admin only)
 export async function GET(
   request: NextRequest,
@@ -22,7 +55,13 @@ export async function GET(
     .eq('id', id)
     .single();
 
-  if (error) {
+  if (error || !event) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
+  // Verify the requesting admin hosts or co-hosts this event
+  const hasAccess = await verifyEventAccess(supabase, id, session.email);
+  if (!hasAccess) {
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
@@ -112,6 +151,12 @@ export async function PATCH(
   }
   const supabase = getServiceSupabase();
 
+  // Verify the requesting admin hosts or co-hosts this event
+  const hasPatchAccess = await verifyEventAccess(supabase, id, session.email);
+  if (!hasPatchAccess) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
   // Filter body to only include allowed fields
   const filteredUpdates: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body)) {
@@ -159,6 +204,12 @@ export async function DELETE(
 
   const { id } = await params;
   const supabase = getServiceSupabase();
+
+  // Verify the requesting admin hosts or co-hosts this event
+  const hasDeleteAccess = await verifyEventAccess(supabase, id, session.email);
+  if (!hasDeleteAccess) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
 
   // Check for active (non-cancelled) bookings
   const { data: slots } = await supabase
