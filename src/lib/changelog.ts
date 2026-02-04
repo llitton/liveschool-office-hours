@@ -12,6 +12,21 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-04-admin-attendee-management',
+    date: '2026-02-04',
+    title: 'Add & Remove Attendees from Sessions',
+    description: 'Admins can now manually add or remove attendees from any session, including past and ongoing ones.',
+    category: 'feature',
+    details: [
+      'Add attendees via inline form in the attendee list (name + email)',
+      'Remove attendees with a trash icon on each attendee row',
+      'Choose whether to send confirmation or cancellation emails',
+      'Google Calendar updated automatically when adding or removing',
+      'Works on past sessions for retroactive attendance tracking',
+      'Attendee section now visible even on empty slots',
+    ],
+  },
+  {
     id: '2026-02-04-remaining-escaping-bounds',
     date: '2026-02-04',
     title: 'Final Email Escaping & Input Bounds',

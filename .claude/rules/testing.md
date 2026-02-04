@@ -60,6 +60,7 @@ tests/
 │       ├── reliability.test.ts          # Reliability fixes validation (13 tests)
 │       ├── silent-failures.test.ts     # Silent failure prevention (6 tests)
 │       ├── send-followup.test.ts        # Follow-up emails (10 tests)
+│       ├── attendee-management.test.ts  # Admin add/remove attendees (16 tests)
 │       ├── slots.test.ts               # Slot generation API (11 tests)
 │       └── verify-migrations.test.ts    # Migration verification (6 tests)
 └── e2e/
@@ -150,6 +151,6 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-bo
 | Area | Tests |
 |------|-------|
 | **Total Unit Tests** | **498** |
-| **Integration Tests** | **117** |
+| **Integration Tests** | **133** |
 | **E2E Tests** | **9** |
-| **Grand Total** | **624** |
+| **Grand Total** | **640** |

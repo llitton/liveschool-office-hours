@@ -101,6 +101,7 @@ Event pages (accessible from event cards):
 | Structured logging | `src/lib/logger.ts` |
 | Session topics extraction | `src/lib/session-topics.ts` |
 | Booking health check | `src/app/api/health/booking/route.ts` |
+| Admin add attendee | `src/app/api/slots/[id]/add-attendee/route.ts` |
 | Type definitions | `src/types/index.ts` |
 
 ## Commands
@@ -179,6 +180,6 @@ const url = `https://liveschoolhelp.com/book/${slug}`;
 
 ## Current State
 
-Working features: Full booking flow with multiple meeting types, Google Calendar 2-way sync, round-robin distribution, lead routing forms, SMS reminders (multi-provider), HubSpot integration, analytics/conversion tracking, waitlist management, series bookings, polls/availability voting, event templates, per-event Slack notifications, changelog with badge, system status dashboard, user feedback collection, booking health monitoring.
+Working features: Full booking flow with multiple meeting types, Google Calendar 2-way sync, round-robin distribution, lead routing forms, SMS reminders (multi-provider), HubSpot integration, analytics/conversion tracking, waitlist management, series bookings, polls/availability voting, event templates, per-event Slack notifications, changelog with badge, system status dashboard, user feedback collection, booking health monitoring, admin attendee management (add/remove from any session).
 
 See `SCHEDULING_PLATFORM_ROADMAP.md` for detailed feature roadmap.

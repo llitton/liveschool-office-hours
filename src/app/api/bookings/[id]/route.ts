@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { sendEmail } from '@/lib/google';
+import { sendEmail, removeAttendeeFromEvent } from '@/lib/google';
 import { updateMeetingOutcome } from '@/lib/hubspot';
-import { getUserFriendlyError, CommonErrors } from '@/lib/errors';
-import { escapeHtml } from '@/lib/email-html';
+import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
+import { generateCancellationEmailHtml, escapeHtml } from '@/lib/email-html';
+import { calendarLogger } from '@/lib/logger';
+import { format, parseISO } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+import { getTimezoneAbbr } from '@/lib/timezone';
 
 // PATCH update booking (attendance status, etc.)
 export async function PATCH(
@@ -17,7 +21,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json();
+  const body = await safeParseJSON<Record<string, any>>(request);
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
   const supabase = getServiceSupabase();
 
   // Get current booking with slot and event info
@@ -244,4 +251,183 @@ export async function GET(
   }
 
   return NextResponse.json(booking);
+}
+
+// DELETE permanently remove a booking (admin only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: CommonErrors.UNAUTHORIZED }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  // Parse notify preference from body
+  let notify = false;
+  try {
+    const body = await request.json();
+    notify = body.notify === true;
+  } catch {
+    // Body might be empty
+  }
+
+  const supabase = getServiceSupabase();
+
+  // Get booking with slot and event info
+  const { data: booking, error: bookingError } = await supabase
+    .from('oh_bookings')
+    .select(`
+      *,
+      slot:oh_slots!slot_id(
+        *,
+        event:oh_events!event_id(*)
+      )
+    `)
+    .eq('id', id)
+    .single();
+
+  if (bookingError || !booking) {
+    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  }
+
+  // Verify the requesting admin hosts this booking's event
+  const delSlotData = booking.slot as { event_id?: string } | null;
+  const delEventId = delSlotData?.event_id;
+
+  if (delEventId) {
+    const { data: delAdmin } = await supabase
+      .from('oh_admins')
+      .select('id')
+      .eq('email', session.email)
+      .single();
+
+    const { data: delPrimaryEvent } = await supabase
+      .from('oh_events')
+      .select('id')
+      .eq('id', delEventId)
+      .eq('host_email', session.email)
+      .single();
+
+    let delIsCoHost = false;
+    if (!delPrimaryEvent && delAdmin) {
+      const { data: coHostEntry } = await supabase
+        .from('oh_event_hosts')
+        .select('id')
+        .eq('event_id', delEventId)
+        .eq('admin_id', delAdmin.id)
+        .single();
+      delIsCoHost = !!coHostEntry;
+    }
+
+    if (!delPrimaryEvent && !delIsCoHost) {
+      return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+    }
+  }
+
+  const wasWaitlisted = booking.is_waitlisted;
+
+  // Get admin for Google API access
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id, email, google_access_token, google_refresh_token')
+    .eq('email', booking.slot.event.host_email)
+    .single();
+
+  // Remove from Google Calendar (always, to keep calendar clean)
+  if (admin?.google_access_token && admin?.google_refresh_token && booking.slot.google_event_id && !wasWaitlisted) {
+    try {
+      await removeAttendeeFromEvent(
+        admin.google_access_token,
+        admin.google_refresh_token,
+        booking.slot.google_event_id,
+        booking.email
+      );
+      calendarLogger.info('Removed attendee from calendar event (admin delete)', {
+        operation: 'adminDeleteBooking',
+        bookingId: booking.id,
+        attendeeEmail: booking.email,
+        metadata: { googleEventId: booking.slot.google_event_id },
+      });
+    } catch (err) {
+      console.error('[Booking/Delete] Failed to remove attendee from calendar:', err);
+    }
+  }
+
+  // Send cancellation email if admin chose to notify
+  if (notify && admin?.google_access_token && admin?.google_refresh_token) {
+    try {
+      const event = booking.slot.event;
+      const eventTimezone = event?.timezone || 'America/Chicago';
+      const startTime = parseISO(booking.slot.start_time);
+      const zonedTime = toZonedTime(startTime, eventTimezone);
+      const sessionDate = format(zonedTime, 'EEEE, MMMM d');
+      const sessionTime = format(zonedTime, 'h:mm a');
+      const timezoneAbbr = getTimezoneAbbr(eventTimezone);
+      const bookingLink = `${process.env.NEXT_PUBLIC_APP_URL}/book/${event.slug}`;
+
+      const htmlBody = wasWaitlisted
+        ? `
+          <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
+            <h2>Waitlist Spot Removed</h2>
+            <p>Hi ${escapeHtml(booking.first_name)},</p>
+            <p>Your waitlist spot for <strong>${escapeHtml(event.name)}</strong> has been removed.</p>
+            <p>If you'd like to book another time, we'd love to connect with you:</p>
+            <p><a href="${bookingLink}" style="color: #6F71EE; text-decoration: none;">${bookingLink}</a></p>
+            <p>Best,<br>${escapeHtml(event.host_name)}</p>
+          </div>
+        `
+        : generateCancellationEmailHtml({
+            recipientFirstName: booking.first_name,
+            eventName: event?.name || 'Session',
+            hostName: event?.host_name || 'Your Host',
+            sessionDate,
+            sessionTime,
+            timezoneAbbr,
+            bookingPageUrl: bookingLink,
+          });
+
+      await sendEmail(
+        admin.google_access_token,
+        admin.google_refresh_token,
+        {
+          to: booking.email,
+          subject: `Cancelled: ${booking.slot.event.name}`,
+          replyTo: booking.slot.event.host_email,
+          from: booking.slot.event.host_email,
+          htmlBody,
+        }
+      );
+    } catch (err) {
+      console.error('[Booking/Delete] Failed to send cancellation email:', err);
+    }
+  }
+
+  // Sync cancellation to HubSpot
+  if (booking.hubspot_contact_id) {
+    try {
+      await updateMeetingOutcome(
+        booking.hubspot_contact_id,
+        booking.slot.event.name,
+        'CANCELED',
+        'Removed by admin'
+      );
+    } catch (err) {
+      console.error('[Booking/Delete] Failed to sync cancellation to HubSpot:', err);
+    }
+  }
+
+  // Permanently delete the booking
+  const { error: deleteError } = await supabase
+    .from('oh_bookings')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: getUserFriendlyError(deleteError) }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }

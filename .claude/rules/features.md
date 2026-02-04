@@ -91,6 +91,19 @@ Managed at People > Team (`/admin/people`):
 - Resend: `POST /api/admin/team/[id]/resend-invite`
 - Files: `src/app/admin/people/page.tsx`, `src/app/api/admin/team/route.ts`
 
+## Admin Attendee Management
+Admins can add or remove attendees from any session (including past/ongoing) directly from the SlotCard attendee list.
+
+**Add Attendee:** "+ Add Attendee" link in attendee section opens inline form (first name, last name, email). Skips public booking constraints (min notice, booking window). Admin chooses whether to send confirmation email.
+
+**Remove Attendee:** Trash icon on each attendee row permanently deletes the booking. Admin chooses whether to send cancellation email. Google Calendar updated automatically in both cases.
+
+**APIs:**
+- `POST /api/slots/[id]/add-attendee` — admin-only, uses `create_booking_atomic` RPC
+- `DELETE /api/bookings/[id]` — admin-only, permanent delete with optional notification
+
+**Files:** `src/app/api/slots/[id]/add-attendee/route.ts`, `src/app/api/bookings/[id]/route.ts`, `src/app/admin/events/[id]/SlotCard.tsx`
+
 ## Attendee Feedback
 After sessions, attendees provide feedback via email.
 

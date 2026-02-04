@@ -78,6 +78,11 @@ export default function SlotCard({
   const [expandedHubSpot, setExpandedHubSpot] = useState<string | null>(null);
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
   const [attendeeSearchTerm, setAttendeeSearchTerm] = useState('');
+  const [showAddAttendee, setShowAddAttendee] = useState(false);
+  const [addFirstName, setAddFirstName] = useState('');
+  const [addLastName, setAddLastName] = useState('');
+  const [addEmail, setAddEmail] = useState('');
+  const [addingAttendee, setAddingAttendee] = useState(false);
 
   // Tags and tasks state
   const [allTags, setAllTags] = useState<SessionTag[]>([]);
@@ -320,6 +325,70 @@ export default function SlotCard({
       onRefresh();
     } catch (err) {
       console.error('Failed to update attendance:', err);
+    }
+  };
+
+  const handleRemoveAttendee = async (bookingId: string, bookingName: string) => {
+    if (!confirm(`Remove ${bookingName} from this session? This permanently deletes the booking.`)) {
+      return;
+    }
+    const notify = confirm(`Send cancellation email to ${bookingName}?`);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notify }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'Failed to remove attendee');
+        return;
+      }
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to remove attendee:', err);
+      alert('Failed to remove attendee');
+    }
+  };
+
+  const handleAddAttendee = async () => {
+    if (!addFirstName.trim() || !addLastName.trim() || !addEmail.trim()) {
+      alert('Please fill in all fields');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(addEmail.trim())) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    const notify = confirm(`Send confirmation email to ${addFirstName.trim()}?`);
+    setAddingAttendee(true);
+    try {
+      const response = await fetch(`/api/slots/${slot.id}/add-attendee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: addFirstName.trim(),
+          last_name: addLastName.trim(),
+          email: addEmail.trim(),
+          notify,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to add attendee');
+        return;
+      }
+      setAddFirstName('');
+      setAddLastName('');
+      setAddEmail('');
+      setShowAddAttendee(false);
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to add attendee:', err);
+      alert('Failed to add attendee');
+    } finally {
+      setAddingAttendee(false);
     }
   };
 
@@ -1091,7 +1160,7 @@ export default function SlotCard({
       })()}
 
       {/* Collapsible Attendees Section */}
-      {bookings && bookings.length > 0 && (
+      {bookings && (
         <div className="border-t border-gray-200">
           <button
             onClick={() => setShowAttendees(!showAttendees)}
@@ -1099,8 +1168,10 @@ export default function SlotCard({
           >
             <div className="flex flex-col items-start gap-1">
               <span className="text-sm font-medium text-[#101E57]">
-                {bookings.length} Attendee{bookings.length !== 1 ? 's' : ''}
-                {isPastSlot && (
+                {bookings.length > 0
+                  ? `${bookings.length} Attendee${bookings.length !== 1 ? 's' : ''}`
+                  : 'No Attendees'}
+                {isPastSlot && bookings.length > 0 && (
                   <span className="ml-2 text-[#667085] font-normal">
                     ({bookings.filter(b => b.attended_at).length} attended)
                   </span>
@@ -1152,6 +1223,68 @@ export default function SlotCard({
 
           {showAttendees && (
             <div className="px-4 pb-4 space-y-2">
+              {/* Add Attendee toggle + inline form */}
+              <div className="mb-2">
+                {!showAddAttendee ? (
+                  <button
+                    onClick={() => setShowAddAttendee(true)}
+                    className="text-xs font-medium text-[#6F71EE] hover:text-[#5a5cd0] flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Attendee
+                  </button>
+                ) : (
+                  <div className="bg-[#F6F6F9] border border-gray-200 rounded-lg p-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="First name"
+                        value={addFirstName}
+                        onChange={(e) => setAddFirstName(e.target.value)}
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE]/30 focus:border-[#6F71EE] placeholder:text-[#9CA3AF]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Last name"
+                        value={addLastName}
+                        onChange={(e) => setAddLastName(e.target.value)}
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE]/30 focus:border-[#6F71EE] placeholder:text-[#9CA3AF]"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={addEmail}
+                        onChange={(e) => setAddEmail(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAddAttendee(); }}
+                        className="flex-[2] px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#6F71EE]/30 focus:border-[#6F71EE] placeholder:text-[#9CA3AF]"
+                      />
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={handleAddAttendee}
+                          disabled={addingAttendee}
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-[#6F71EE] hover:bg-[#5a5cd0] rounded-lg disabled:opacity-50 transition whitespace-nowrap"
+                        >
+                          {addingAttendee ? 'Adding...' : 'Add'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAddAttendee(false);
+                            setAddFirstName('');
+                            setAddLastName('');
+                            setAddEmail('');
+                          }}
+                          className="px-2 py-1.5 text-sm text-[#667085] hover:text-[#101E57] transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Search input - only show if more than 5 attendees */}
               {bookings.length > 5 && (
                 <div className="relative mb-3">
@@ -1317,6 +1450,17 @@ export default function SlotCard({
                         className="px-2 py-1 text-[#6F71EE] hover:text-[#5a5cd0] text-xs font-medium"
                       >
                         Session
+                      </button>
+
+                      {/* Remove attendee button */}
+                      <button
+                        onClick={() => handleRemoveAttendee(booking.id, `${booking.first_name} ${booking.last_name}`.trim())}
+                        title="Remove attendee"
+                        className="px-1.5 py-1 text-red-300 hover:text-red-600 transition"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
 
                       {/* Feedback rating if submitted */}
