@@ -12,6 +12,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-04-remaining-escaping-bounds',
+    date: '2026-02-04',
+    title: 'Final Email Escaping & Input Bounds',
+    description: 'Escaped remaining user content in email templates and added bounds to pagination and date range parameters.',
+    category: 'fix',
+    details: [
+      'Poll booking confirmation emails now escape voter names and poll titles',
+      'Session prep emails now escape attendee topics and previous topics',
+      'Team invitation emails now escape inviter/invitee names and profile image URLs',
+      'Resource email links now validated with sanitizeUrl()',
+      'Upcoming sessions days parameter capped at 90',
+      'Analytics trends days parameter capped at 365',
+      'SMS logs pagination limit capped at 200 with negative page guard',
+    ],
+  },
+  {
     id: '2026-02-03-email-url-data-hardening',
     date: '2026-02-03',
     title: 'Email URL Safety & Data Exposure Fixes',

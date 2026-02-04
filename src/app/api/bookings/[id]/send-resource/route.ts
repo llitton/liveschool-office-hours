@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
 import { sendEmail } from '@/lib/google';
-import { escapeHtml } from '@/lib/email-html';
+import { escapeHtml, sanitizeUrl } from '@/lib/email-html';
 
 // POST send a help article/resource to attendee
 export async function POST(
@@ -100,7 +100,7 @@ export async function POST(
       <div style="background: #F6F6F9; padding: 16px; border-radius: 8px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #101E57;">${escapeHtml(resource.title)}</h3>
         <p style="color: #667085; margin-bottom: 12px;">${escapeHtml(resource.content)}</p>
-        ${resource.link ? `<a href="${resource.link}" style="display: inline-block; background: #6F71EE; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">View Resource</a>` : ''}
+        ${resource.link ? `<a href="${sanitizeUrl(resource.link)}" style="display: inline-block; background: #6F71EE; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none;">View Resource</a>` : ''}
       </div>
 
       ${customMessage ? `<p>${escapeHtml(customMessage)}</p>` : ''}

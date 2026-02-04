@@ -197,7 +197,7 @@ export async function GET(request?: Request) {
                 ${
                   topic
                     ? `<div style="margin-top: 8px;">
-                        <p style="color: #667085; font-size: 13px; margin: 0;">Topic: <em>"${topic.slice(0, 100)}${topic.length > 100 ? '...' : ''}"</em></p>
+                        <p style="color: #667085; font-size: 13px; margin: 0;">Topic: <em>"${escapeHtml(topic.slice(0, 100))}${topic.length > 100 ? '...' : ''}"</em></p>
                       </div>`
                     : ''
                 }
@@ -205,7 +205,7 @@ export async function GET(request?: Request) {
                   previousTopics.length > 0
                     ? `<div style="margin-top: 4px;">
                         <p style="color: #98A2B3; font-size: 12px; margin: 0;">
-                          Previous: ${previousTopics.slice(0, 2).join(', ')}
+                          Previous: ${previousTopics.slice(0, 2).map(t => escapeHtml(t)).join(', ')}
                         </p>
                       </div>`
                     : ''
@@ -234,7 +234,7 @@ export async function GET(request?: Request) {
 
     const htmlBody = `
       <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #101E57;">
-        <h2 style="color: #101E57; margin-bottom: 8px;">Good morning, ${hostData.hostName.split(' ')[0]}!</h2>
+        <h2 style="color: #101E57; margin-bottom: 8px;">Good morning, ${escapeHtml(hostData.hostName.split(' ')[0])}!</h2>
         <p style="color: #667085; margin-top: 0;">
           Here's your session prep for <strong>${todayFormatted}</strong>.
         </p>

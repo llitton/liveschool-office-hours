@@ -6,6 +6,7 @@ import { createCalendarEvent, sendEmail } from '@/lib/google';
 import { format, parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { nanoid } from 'nanoid';
+import { escapeHtml } from '@/lib/email-html';
 
 // POST book the meeting for the selected option
 export async function POST(
@@ -219,15 +220,15 @@ export async function POST(
 
             <div style="padding: 24px; background: #F6F6F9;">
               <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-                Hi ${attendee.name},
+                Hi ${escapeHtml(attendee.name)},
               </p>
 
               <p style="color: #667085; font-size: 16px; margin-bottom: 20px;">
-                The poll results are in and <strong>${poll.title}</strong> has been scheduled!
+                The poll results are in and <strong>${escapeHtml(poll.title)}</strong> has been scheduled!
               </p>
 
               <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                <h2 style="color: #101E57; margin-top: 0; font-size: 18px;">${poll.title}</h2>
+                <h2 style="color: #101E57; margin-top: 0; font-size: 18px;">${escapeHtml(poll.title)}</h2>
                 <p style="color: #667085; margin: 8px 0;">
                   <strong>Date:</strong> ${formatInTimeZone(parseISO(selectedOption.start_time), timezone, 'EEEE, MMMM d, yyyy')}
                 </p>

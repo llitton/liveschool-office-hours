@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const eventId = searchParams.get('eventId');
-  const days = parseInt(searchParams.get('days') || '30', 10);
+  const days = Math.min(Math.max(parseInt(searchParams.get('days') || '30', 10) || 30, 1), 365);
 
   const supabase = getServiceSupabase();
 

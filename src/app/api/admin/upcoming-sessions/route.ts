@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams;
-  const daysAhead = parseInt(searchParams.get('days') || '7');
+  const daysAhead = Math.min(Math.max(parseInt(searchParams.get('days') || '7') || 7, 1), 90);
 
   const supabase = getServiceSupabase();
   const now = new Date();

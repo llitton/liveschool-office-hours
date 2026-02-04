@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams;
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '50');
+  const page = Math.max(parseInt(searchParams.get('page') || '1') || 1, 1);
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50') || 50, 1), 200);
   const status = searchParams.get('status'); // 'sent', 'delivered', 'failed'
   const eventId = searchParams.get('event_id');
   const messageType = searchParams.get('type'); // 'reminder_24h', 'reminder_1h', 'test'
