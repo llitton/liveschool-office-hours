@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { addAttendeeToEvent, sendEmail, createCalendarEvent } from '@/lib/google';
+import { addAttendeeToEvent, sendEmail, createCalendarEvent, updateCalendarEventDescription } from '@/lib/google';
 import {
   processTemplate,
   createEmailVariables,
@@ -707,6 +707,26 @@ export async function POST(request: NextRequest) {
 
         if (calUpdateError) {
           console.error('Failed to update calendar_invite_sent_at:', calUpdateError);
+        }
+
+        // Add manage/reschedule link to calendar event description (non-webinar only)
+        if (typedSlot.event.meeting_type !== 'webinar') {
+          try {
+            const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${manage_token}`;
+            const baseDesc = typedSlot.event.description || '';
+            const updatedDesc = event.max_attendees === 1
+              ? `${baseDesc}\n\n---\nReschedule or cancel: ${manageUrl}`
+              : `${baseDesc}\n\n---\nNeed to reschedule or cancel? Use the link in your confirmation email.`;
+
+            await updateCalendarEventDescription(
+              admin.google_access_token,
+              admin.google_refresh_token,
+              slot.google_event_id,
+              updatedDesc
+            );
+          } catch (descErr) {
+            console.error('Failed to update calendar event description:', descErr);
+          }
         }
 
         integrationStatus.calendar = 'sent';

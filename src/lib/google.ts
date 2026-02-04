@@ -296,6 +296,31 @@ export async function addAttendeeToEvent(
   );
 }
 
+// Update calendar event description (e.g., to add manage/reschedule link)
+export async function updateCalendarEventDescription(
+  accessToken: string,
+  refreshToken: string,
+  eventId: string,
+  description: string
+) {
+  const calendar = getCalendarClient(accessToken, refreshToken);
+
+  return withRetry(
+    async () => {
+      await calendar.events.patch({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'none',
+        requestBody: {
+          description,
+        },
+      });
+    },
+    DEFAULT_RETRY_CONFIG,
+    'Update calendar event description'
+  );
+}
+
 // Remove attendee from existing calendar event
 export async function removeAttendeeFromEvent(
   accessToken: string,

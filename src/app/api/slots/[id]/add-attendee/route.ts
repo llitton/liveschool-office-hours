@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { addAttendeeToEvent, sendEmail } from '@/lib/google';
+import { addAttendeeToEvent, sendEmail, updateCalendarEventDescription } from '@/lib/google';
 import { generateConfirmationEmailHtml, escapeHtml } from '@/lib/email-html';
 import { generateGoogleCalendarUrl, generateOutlookUrl } from '@/lib/ical';
 import { createEmailVariables } from '@/lib/email-templates';
@@ -152,6 +152,26 @@ export async function POST(
         .from('oh_bookings')
         .update({ calendar_invite_sent_at: new Date().toISOString() })
         .eq('id', bookingId);
+
+      // Add manage/reschedule link to calendar description (non-webinar only)
+      if (slot.event.meeting_type !== 'webinar') {
+        try {
+          const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/manage/${manageToken}`;
+          const baseDesc = slot.event.description || '';
+          const updatedDesc = slot.event.max_attendees === 1
+            ? `${baseDesc}\n\n---\nReschedule or cancel: ${manageUrl}`
+            : `${baseDesc}\n\n---\nNeed to reschedule or cancel? Use the link in your confirmation email.`;
+
+          await updateCalendarEventDescription(
+            admin.google_access_token,
+            admin.google_refresh_token,
+            slot.google_event_id,
+            updatedDesc
+          );
+        } catch (descErr) {
+          console.error('[Slot/AddAttendee] Failed to update calendar description:', descErr);
+        }
+      }
 
       calendarLogger.info('Added attendee to calendar event (admin add)', {
         operation: 'adminAddAttendee',
