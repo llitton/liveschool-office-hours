@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
-import { sendEmail } from '@/lib/google';
+import { sendEmail, deleteCalendarEvent } from '@/lib/google';
 import { getUserFriendlyError, CommonErrors, safeParseJSON } from '@/lib/errors';
 import {
   processTemplate,
@@ -177,6 +177,28 @@ export async function DELETE(
       return NextResponse.json({ error: getUserFriendlyError(bookingsDeleteError) }, { status: 500 });
     }
 
+    // Delete the Google Calendar event if one exists
+    if (slot.google_event_id) {
+      const { data: admin } = await supabase
+        .from('oh_admins')
+        .select('google_access_token, google_refresh_token')
+        .eq('email', slot.event.host_email)
+        .single();
+
+      if (admin?.google_access_token && admin?.google_refresh_token) {
+        try {
+          await deleteCalendarEvent(
+            admin.google_access_token,
+            admin.google_refresh_token,
+            slot.google_event_id
+          );
+        } catch (err) {
+          console.error('[Slot/Delete] Failed to delete calendar event:', err);
+          // Continue with slot deletion even if calendar fails
+        }
+      }
+    }
+
     // Permanently delete the slot
     const { error: slotDeleteError } = await supabase
       .from('oh_slots')
@@ -191,7 +213,7 @@ export async function DELETE(
     slotLogger.info('Slot permanently deleted', {
       operation: 'permanentDeleteSlot',
       slotId: id,
-      metadata: { deletedBy: session.email, bookingsDeleted: (slot.bookings || []).length },
+      metadata: { deletedBy: session.email, bookingsDeleted: (slot.bookings || []).length, calendarDeleted: !!slot.google_event_id },
     });
 
     return NextResponse.json({ success: true, permanent: true });

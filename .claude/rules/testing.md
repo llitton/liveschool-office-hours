@@ -141,24 +141,31 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-bo
 
 ## Production Health Check (Multi-Event)
 
-The `production-health-check.spec.ts` tests ALL active events automatically:
+The `production-health-check.spec.ts` tests active events by creating real bookings:
 
-1. **Discovers all active public events** from `/api/events`
+1. **Discovers active public events** from `/api/events` (filtered by host if specified)
 2. **Attempts a test booking** on each event that has available slots
 3. **Cleans up** by canceling each test booking via the manage token
 4. **Reports results** with pass/fail summary
 
-**Run against production:**
+**IMPORTANT:** Test bookings create real Google Calendar events on the host's calendar. Use `MONITOR_HOST_EMAIL` to limit testing to your own events only.
+
+**Run against production (recommended - YOUR events only):**
+```bash
+MONITOR_URL=https://liveschoolhelp.com MONITOR_HOST_EMAIL=you@company.com \
+  npm run test:e2e -- tests/e2e/production-health-check.spec.ts
+```
+
+**Run against production (ALL events - creates calendar events for all hosts):**
 ```bash
 MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-health-check.spec.ts
 ```
 
 **Output example:**
 ```
-📋 Found 3 active events:
+📋 Found 3 active events hosted by you@company.com:
    - LiveSchool Office Hours (group) [liveschool-office-hours]
    - Quick Chat (one_on_one) [quick-chat]
-   - Team Webinar (webinar) [team-webinar]
 
 🔍 Testing: LiveSchool Office Hours (group)
    ✅ Booking created: abc-123
@@ -172,7 +179,9 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 ⏭️ No available slots: 1
 ```
 
-**Use for scheduled monitoring:** Run daily via GitHub Actions or cron to catch booking issues before users do. Test bookings use `@e2e-health-check.invalid` emails that will never match real users.
+**Calendar cleanup:** Canceling test bookings removes the test attendee from the calendar event, but the calendar event itself remains. After running the health check, manually delete any test calendar events from your calendar.
+
+**Use for scheduled monitoring:** Run daily via GitHub Actions or cron to catch booking issues before users do. Test bookings use `@example.com` emails (IANA reserved domain).
 
 ## Booking Health Check Endpoint
 

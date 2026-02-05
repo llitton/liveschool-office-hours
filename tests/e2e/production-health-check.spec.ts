@@ -9,17 +9,28 @@ import { test, expect } from '@playwright/test';
  * Purpose: Catch booking failures like the "slot not found" issue before
  * real users encounter them.
  *
+ * IMPORTANT: Test bookings create real Google Calendar events on the host's
+ * calendar. Use MONITOR_HOST_EMAIL to limit testing to your own events only.
+ *
  * Run locally against dev:
  *   npm run test:e2e -- tests/e2e/production-health-check.spec.ts
  *
- * Run against production:
+ * Run against production (YOUR events only - recommended):
+ *   MONITOR_URL=https://liveschoolhelp.com MONITOR_HOST_EMAIL=you@company.com \
+ *     npm run test:e2e -- tests/e2e/production-health-check.spec.ts
+ *
+ * Run against production (ALL events - will create calendar events for all hosts):
  *   MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-health-check.spec.ts
  *
  * For scheduled monitoring, use GitHub Actions or a cron job with MONITOR_URL set.
  */
 
 const BASE_URL = process.env.MONITOR_URL || 'http://localhost:3000';
-const TEST_EMAIL_DOMAIN = 'e2e-health-check.invalid';
+// Optional: filter to only test events hosted by this email (prevents calendar pollution for teammates)
+const HOST_EMAIL_FILTER = process.env.MONITOR_HOST_EMAIL || null;
+// Use example.com - it's reserved by IANA for testing and has valid MX records
+// The unique prefix ensures we won't match any real users
+const TEST_EMAIL_DOMAIN = 'example.com';
 
 interface ActiveEvent {
   id: string;
@@ -28,6 +39,7 @@ interface ActiveEvent {
   meeting_type: string;
   is_active: boolean;
   max_attendees: number;
+  host_email: string;
 }
 
 interface AvailableSlot {
@@ -62,9 +74,18 @@ test.describe('Production Health Check', () => {
     const events = await response.json();
     expect(Array.isArray(events)).toBe(true);
 
-    activeEvents = events.filter((e: ActiveEvent) => e.is_active);
+    // Filter to active events, optionally filtered by host email
+    activeEvents = events.filter((e: ActiveEvent) => {
+      if (!e.is_active) return false;
+      if (HOST_EMAIL_FILTER && e.host_email !== HOST_EMAIL_FILTER) return false;
+      return true;
+    });
 
-    console.log(`\n📋 Found ${activeEvents.length} active events:`);
+    if (HOST_EMAIL_FILTER) {
+      console.log(`\n📋 Found ${activeEvents.length} active events hosted by ${HOST_EMAIL_FILTER}:`);
+    } else {
+      console.log(`\n⚠️  Testing ALL ${activeEvents.length} active events (set MONITOR_HOST_EMAIL to limit):`);
+    }
     for (const event of activeEvents) {
       console.log(`   - ${event.name} (${event.meeting_type}) [${event.slug}]`);
     }
@@ -101,6 +122,7 @@ test.describe('Production Health Check', () => {
 
         const slotsData = await slotsResponse.json();
         const slots: AvailableSlot[] = slotsData.slots || [];
+        const isDynamic = slotsData.is_dynamic === true;
 
         // Find a slot that has capacity
         const availableSlot = slots.find((s) => {
@@ -119,13 +141,20 @@ test.describe('Production Health Check', () => {
         // Attempt test booking
         const testEmail = `health-check-${Date.now()}-${event.slug}@${TEST_EMAIL_DOMAIN}`;
 
+        // For dynamic slots, we also need to pass event_id
+        const bookingPayload: Record<string, unknown> = {
+          slot_id: availableSlot.id,
+          first_name: 'HealthCheck',
+          last_name: 'Test',
+          email: testEmail,
+        };
+
+        if (isDynamic) {
+          bookingPayload.event_id = event.id;
+        }
+
         const bookingResponse = await request.post(`${BASE_URL}/api/bookings`, {
-          data: {
-            slot_id: availableSlot.id,
-            first_name: 'HealthCheck',
-            last_name: 'Test',
-            email: testEmail,
-          },
+          data: bookingPayload,
         });
 
         const bookingData = await bookingResponse.json();
@@ -164,11 +193,9 @@ test.describe('Production Health Check', () => {
 
     for (const result of successfulBookings) {
       try {
-        const cancelResponse = await request.post(
-          `${BASE_URL}/api/manage/${result.manageToken}`,
-          {
-            data: { action: 'cancel' },
-          }
+        // Cancel is a DELETE request, not POST
+        const cancelResponse = await request.delete(
+          `${BASE_URL}/api/manage/${result.manageToken}`
         );
 
         if (cancelResponse.status() === 200) {
@@ -176,7 +203,8 @@ test.describe('Production Health Check', () => {
           console.log(`   ✅ Cancelled booking for ${result.eventSlug}`);
         } else {
           result.cleanedUp = false;
-          console.log(`   ⚠️ Failed to cancel booking for ${result.eventSlug}`);
+          const errData = await cancelResponse.json().catch(() => ({}));
+          console.log(`   ⚠️ Failed to cancel booking for ${result.eventSlug}: ${errData.error || cancelResponse.status()}`);
         }
       } catch (err) {
         result.cleanedUp = false;
@@ -261,13 +289,20 @@ test.describe('Quick Smoke Test', () => {
     // Try booking with clearly invalid email (won't send actual email)
     const testEmail = `smoke-test-${Date.now()}@${TEST_EMAIL_DOMAIN}`;
 
+    // For dynamic slots, we also need to pass event_id
+    const bookingPayload: Record<string, unknown> = {
+      slot_id: slotsData.slots[0].id,
+      first_name: 'Smoke',
+      last_name: 'Test',
+      email: testEmail,
+    };
+
+    if (slotsData.is_dynamic) {
+      bookingPayload.event_id = activeEvent.id;
+    }
+
     const response = await request.post(`${BASE_URL}/api/bookings`, {
-      data: {
-        slot_id: slotsData.slots[0].id,
-        first_name: 'Smoke',
-        last_name: 'Test',
-        email: testEmail,
-      },
+      data: bookingPayload,
     });
 
     // Should get 200 (success) or 400 (validation) - NOT 404 or 500
@@ -277,9 +312,7 @@ test.describe('Quick Smoke Test', () => {
 
     // If successful, clean up
     if (response.status() === 200 && data.manage_token) {
-      await request.post(`${BASE_URL}/api/manage/${data.manage_token}`, {
-        data: { action: 'cancel' },
-      });
+      await request.delete(`${BASE_URL}/api/manage/${data.manage_token}`);
     }
 
     // Should never see "Slot not found" for a valid slot

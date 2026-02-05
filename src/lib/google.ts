@@ -361,6 +361,27 @@ export async function removeAttendeeFromEvent(
   );
 }
 
+// Delete a calendar event
+export async function deleteCalendarEvent(
+  accessToken: string,
+  refreshToken: string,
+  eventId: string
+) {
+  const calendar = getCalendarClient(accessToken, refreshToken);
+
+  return withRetry(
+    async () => {
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all', // Notify attendees of cancellation
+      });
+    },
+    DEFAULT_RETRY_CONFIG,
+    'Delete calendar event'
+  );
+}
+
 // Get free/busy information from Google Calendar
 export async function getFreeBusy(
   accessToken: string,
