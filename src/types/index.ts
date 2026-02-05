@@ -373,26 +373,7 @@ export interface OHBookingWithExtras extends OHBooking {
   tags?: OHSessionTag[];
   tasks?: OHQuickTask[];
   hubspot_contact_id?: string | null;
-  series_id?: string | null;
-  series_sequence?: number | null;
   prep_resources_sent?: string[];
-}
-
-// ============================================
-// SERIES BOOKINGS
-// ============================================
-
-export interface OHBookingSeries {
-  id: string;
-  attendee_email: string;
-  event_id: string;
-  recurrence_pattern: 'weekly' | 'biweekly' | 'monthly';
-  total_sessions: number;
-  preferred_day: number | null;
-  preferred_time: string | null;
-  created_at: string;
-  // Joined data
-  bookings?: OHBooking[];
 }
 
 // ============================================
@@ -488,27 +469,6 @@ export interface OHPrepResource {
   keywords: string[];
   is_active: boolean;
   created_at: string;
-}
-
-// ============================================
-// ANALYTICS
-// ============================================
-
-export interface OHEffectivenessMetrics {
-  id: string;
-  event_id: string | null;
-  period_start: string;
-  period_end: string;
-  total_bookings: number;
-  attended_count: number;
-  no_show_count: number;
-  cancelled_count: number;
-  feedback_count: number;
-  avg_feedback_rating: number | null;
-  resolved_count: number;
-  follow_up_count: number;
-  escalated_count: number;
-  computed_at: string;
 }
 
 // ============================================
