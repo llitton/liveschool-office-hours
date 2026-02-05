@@ -70,6 +70,7 @@ tests/
 └── e2e/
     ├── booking-flow.spec.ts          # Public booking flows
     ├── critical-booking-flow.spec.ts # Critical path monitoring (9 tests)
+    ├── production-health-check.spec.ts # Multi-event booking test with cleanup (5 tests)
     └── round-robin-booking.spec.ts   # Team booking + admin UI
 ```
 
@@ -137,6 +138,41 @@ npm run test:e2e -- tests/e2e/critical-booking-flow.spec.ts
 ```bash
 MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/critical-booking-flow.spec.ts
 ```
+
+## Production Health Check (Multi-Event)
+
+The `production-health-check.spec.ts` tests ALL active events automatically:
+
+1. **Discovers all active public events** from `/api/events`
+2. **Attempts a test booking** on each event that has available slots
+3. **Cleans up** by canceling each test booking via the manage token
+4. **Reports results** with pass/fail summary
+
+**Run against production:**
+```bash
+MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-health-check.spec.ts
+```
+
+**Output example:**
+```
+📋 Found 3 active events:
+   - LiveSchool Office Hours (group) [liveschool-office-hours]
+   - Quick Chat (one_on_one) [quick-chat]
+   - Team Webinar (webinar) [team-webinar]
+
+🔍 Testing: LiveSchool Office Hours (group)
+   ✅ Booking created: abc-123
+...
+
+🧹 Cleaning up 2 test bookings...
+   ✅ Cancelled booking for liveschool-office-hours
+
+📊 HEALTH CHECK SUMMARY
+✅ Successful bookings: 2
+⏭️ No available slots: 1
+```
+
+**Use for scheduled monitoring:** Run daily via GitHub Actions or cron to catch booking issues before users do. Test bookings use `@e2e-health-check.invalid` emails that will never match real users.
 
 ## Booking Health Check Endpoint
 
