@@ -25,10 +25,10 @@ src/
 │   ├── embed/[slug]/       # Embeddable widget
 │   ├── route/[slug]/       # Lead routing forms
 │   ├── vote/[slug]/        # Availability polls
-│   ├── api/                # API routes (~97 endpoints)
+│   ├── api/                # API routes (~116 endpoints)
 │   └── icon.svg            # Favicon (calendar + checkmark in brand purple)
-├── components/             # React components (32 files)
-├── lib/                    # Business logic (22 modules)
+├── components/             # React components (26 files)
+├── lib/                    # Business logic (25 modules)
 ├── contexts/               # React Context providers
 ├── hooks/                  # Custom hooks
 └── types/                  # TypeScript definitions

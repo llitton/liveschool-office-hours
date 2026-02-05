@@ -12,6 +12,18 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-04-session-deletion',
+    date: '2026-02-04',
+    title: 'Delete Past Sessions',
+    description: 'Admins can now permanently delete past sessions, including the associated Google Calendar event.',
+    category: 'feature',
+    details: [
+      'Delete button on past session cards removes the slot, all bookings, and Google Calendar event',
+      'Past sessions now display most recent first',
+      'Most recent past session auto-expands for quick access',
+    ],
+  },
+  {
     id: '2026-02-04-calendar-manage-link',
     date: '2026-02-04',
     title: 'Reschedule/Cancel Link in Calendar Invites',

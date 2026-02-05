@@ -68,10 +68,11 @@ tests/
 │       ├── slots.test.ts               # Slot generation API (11 tests)
 │       └── verify-migrations.test.ts    # Migration verification (6 tests)
 └── e2e/
-    ├── booking-flow.spec.ts          # Public booking flows
+    ├── booking-flow.spec.ts          # Public booking flows (13 tests)
     ├── critical-booking-flow.spec.ts # Critical path monitoring (9 tests)
+    ├── critical-booking-path.spec.ts # Complete booking journey (4 tests)
     ├── production-health-check.spec.ts # Multi-event booking test with cleanup (5 tests)
-    └── round-robin-booking.spec.ts   # Team booking + admin UI
+    └── round-robin-booking.spec.ts   # Team booking + admin UI (12 tests)
 ```
 
 ## Writing Tests
@@ -201,5 +202,5 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 |------|-------|
 | **Total Unit Tests** | **529** |
 | **Integration Tests** | **196** |
-| **E2E Tests** | **9** |
-| **Grand Total** | **734** |
+| **E2E Tests** | **43** |
+| **Grand Total** | **768** |

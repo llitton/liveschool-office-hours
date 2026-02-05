@@ -77,7 +77,7 @@ const payload = {
 };
 ```
 
-**Other tables with `attendee_email` column:** `oh_attendee_notes`, `oh_booking_series` - these DO have an `attendee_email` column.
+**Other tables with `attendee_email` column:** `oh_attendee_notes` - this DOES have an `attendee_email` column.
 
 ## Database Constraints (Migration 034)
 
