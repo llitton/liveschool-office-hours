@@ -9,8 +9,9 @@ import { test, expect } from '@playwright/test';
  * Purpose: Catch booking failures like the "slot not found" issue before
  * real users encounter them.
  *
- * IMPORTANT: Test bookings create real Google Calendar events on the host's
- * calendar. Use MONITOR_HOST_EMAIL to limit testing to your own events only.
+ * IMPORTANT: Cancelling test bookings now auto-deletes the Google Calendar
+ * event and slot when the slot has no remaining bookings. Use
+ * MONITOR_HOST_EMAIL to limit testing to your own events only.
  *
  * Run locally against dev:
  *   npm run test:e2e -- tests/e2e/production-health-check.spec.ts

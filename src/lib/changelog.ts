@@ -18,8 +18,8 @@ export const changelog: ChangelogEntry[] = [
     description: 'Fixed an issue where rescheduling showed "No other time slots available" even when slots were open.',
     category: 'fix',
     details: [
-      'Cancelled bookings no longer count toward slot capacity when rescheduling',
-      'Your current time slot is excluded from the list so you only see different options',
+      'Reschedule now shows the same available times as the booking page',
+      'Cancelling a booking automatically deletes the empty calendar event',
     ],
   },
   {

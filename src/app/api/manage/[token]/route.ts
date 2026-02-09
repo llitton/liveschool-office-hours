@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { sendEmail, removeAttendeeFromEvent, createCalendarEvent } from '@/lib/google';
+import { sendEmail, removeAttendeeFromEvent, createCalendarEvent, deleteCalendarEvent } from '@/lib/google';
 import { CommonErrors, safeParseJSON } from '@/lib/errors';
 import {
   processTemplate,
@@ -595,6 +595,38 @@ export async function DELETE(
   // If cancelled booking was waitlisted, update positions for remaining waitlist
   if (wasWaitlisted) {
     await updateWaitlistPositions(booking.slot_id, supabase);
+  }
+
+  // Clean up empty slots: if no active bookings remain, delete the slot + calendar event
+  // Skip for webinars (pre-created slots that may be needed for future bookings)
+  if (booking.slot.event.meeting_type !== 'webinar') {
+    try {
+      const { count: remainingActive } = await supabase
+        .from('oh_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('slot_id', booking.slot_id)
+        .is('cancelled_at', null);
+
+      if (remainingActive === 0) {
+        if (booking.slot.google_event_id && admin?.google_access_token && admin?.google_refresh_token) {
+          await deleteCalendarEvent(
+            admin.google_access_token,
+            admin.google_refresh_token,
+            booking.slot.google_event_id
+          );
+        }
+
+        await supabase.from('oh_slots').delete().eq('id', booking.slot_id);
+
+        calendarLogger.info('Cleaned up empty slot and calendar event', {
+          operation: 'emptySlotCleanup',
+          slotId: booking.slot_id,
+          metadata: { calendarDeleted: !!booking.slot.google_event_id },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to clean up empty slot:', err);
+    }
   }
 
   return NextResponse.json({ success: true });

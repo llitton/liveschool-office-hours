@@ -57,7 +57,7 @@ tests/
 │       ├── bookings.test.ts              # Booking API endpoints (7 tests)
 │       ├── events.test.ts               # Event CRUD operations (13 tests)
 │       ├── feedback.test.ts             # Feedback submission (8 tests)
-│       ├── manage.test.ts               # Manage/cancel/reschedule bookings (9 tests)
+│       ├── manage.test.ts               # Manage/cancel/reschedule bookings (10 tests)
 │       ├── reliability.test.ts          # Reliability fixes validation (13 tests)
 │       ├── silent-failures.test.ts     # Silent failure prevention (6 tests)
 │       ├── send-followup.test.ts        # Follow-up emails (10 tests)
@@ -180,7 +180,7 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 ⏭️ No available slots: 1
 ```
 
-**Calendar cleanup:** Canceling test bookings removes the test attendee from the calendar event, but the calendar event itself remains. After running the health check, manually delete any test calendar events from your calendar.
+**Calendar cleanup:** Cancelling test bookings automatically deletes the Google Calendar event and slot when no active bookings remain. No manual cleanup needed.
 
 **Use for scheduled monitoring:** Run daily via GitHub Actions or cron to catch booking issues before users do. Test bookings use `@example.com` emails (IANA reserved domain).
 
@@ -201,6 +201,6 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 | Area | Tests |
 |------|-------|
 | **Total Unit Tests** | **529** |
-| **Integration Tests** | **197** |
+| **Integration Tests** | **198** |
 | **E2E Tests** | **43** |
-| **Grand Total** | **769** |
+| **Grand Total** | **770** |

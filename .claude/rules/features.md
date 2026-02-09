@@ -58,6 +58,12 @@ Attendees reschedule via `GET/PUT /api/manage/[token]`:
 - Webinar events still use pre-created slots only
 - Reschedule confirmation email sent via host's Google credentials
 
+### Cancellation Cleanup
+When a booking is cancelled via the manage page (`DELETE /api/manage/[token]`):
+- If the slot has zero remaining active bookings, the Google Calendar event and `oh_slots` row are auto-deleted
+- Prevents orphaned calendar events from cluttering host calendars
+- Webinar slots are exempt (pre-created, may be reused)
+
 ## Custom Questions
 Events have custom questions via `custom_questions` JSON field on `oh_events`.
 

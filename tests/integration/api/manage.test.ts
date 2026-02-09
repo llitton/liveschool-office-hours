@@ -19,6 +19,8 @@ vi.mock('@/lib/google', () => ({
   removeAttendeeFromEvent: vi.fn().mockResolvedValue(undefined),
   sendEmail: vi.fn().mockResolvedValue(undefined),
   updateCalendarEvent: vi.fn().mockResolvedValue(undefined),
+  createCalendarEvent: vi.fn().mockResolvedValue({ eventId: 'gcal-new', meetLink: 'https://meet.google.com/new' }),
+  deleteCalendarEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/hubspot', () => ({
@@ -56,47 +58,71 @@ function createMockSupabaseClient() {
     from: vi.fn((table: string) => {
       if (table === 'oh_bookings') {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockImplementation((field: string, value: unknown) => {
-              if (field === 'manage_token') {
-                const booking = mockBookings.find((b) => b.manage_token === value);
-                const bookingWithRelations = booking
-                  ? {
-                      ...booking,
-                      slot: { ...mockSlots[0], event: mockEvents[0] },
-                      assigned_host: null,
-                    }
-                  : null;
-                return {
-                  // Support .eq().single() pattern (GET route)
-                  single: vi.fn().mockResolvedValue({
-                    data: bookingWithRelations,
-                    error: booking ? null : { code: 'PGRST116', message: 'Not found' },
-                  }),
-                  // Support .eq().is().single() pattern (PUT/DELETE routes)
-                  is: vi.fn().mockReturnValue({
-                    single: vi.fn().mockResolvedValue({
-                      data: booking && !booking.cancelled_at ? bookingWithRelations : null,
-                      error: booking && !booking.cancelled_at ? null : { code: 'PGRST116', message: 'Not found' },
+          select: vi.fn().mockImplementation((_fields: string, opts?: { count?: string; head?: boolean }) => {
+            // Handle count queries: .select('id', { count: 'exact', head: true })
+            if (opts?.count === 'exact') {
+              let trackedSlotId: string | null = null;
+              return {
+                eq: vi.fn().mockImplementation((field: string, value: unknown) => {
+                  if (field === 'slot_id') trackedSlotId = value as string;
+                  const countChain = {
+                    is: vi.fn().mockImplementation(() => {
+                      const activeCount = mockBookings.filter(
+                        (b) => !b.cancelled_at && (!trackedSlotId || b.slot_id === trackedSlotId)
+                      ).length;
+                      return Promise.resolve({ count: activeCount, error: null });
                     }),
-                    order: vi.fn().mockReturnValue({
-                      limit: vi.fn().mockReturnValue({
-                        single: vi.fn().mockResolvedValue({
-                          data: null,
-                          error: { code: 'PGRST116' },
+                    eq: vi.fn().mockReturnValue(
+                      Promise.resolve({ count: 0, error: null })
+                    ),
+                  };
+                  return countChain;
+                }),
+              };
+            }
+            // Regular select queries
+            return {
+              eq: vi.fn().mockImplementation((field: string, value: unknown) => {
+                if (field === 'manage_token') {
+                  const booking = mockBookings.find((b) => b.manage_token === value);
+                  const bookingWithRelations = booking
+                    ? {
+                        ...booking,
+                        slot: { ...mockSlots[0], event: mockEvents[0] },
+                        assigned_host: null,
+                      }
+                    : null;
+                  return {
+                    // Support .eq().single() pattern (GET route)
+                    single: vi.fn().mockResolvedValue({
+                      data: bookingWithRelations,
+                      error: booking ? null : { code: 'PGRST116', message: 'Not found' },
+                    }),
+                    // Support .eq().is().single() pattern (PUT/DELETE routes)
+                    is: vi.fn().mockReturnValue({
+                      single: vi.fn().mockResolvedValue({
+                        data: booking && !booking.cancelled_at ? bookingWithRelations : null,
+                        error: booking && !booking.cancelled_at ? null : { code: 'PGRST116', message: 'Not found' },
+                      }),
+                      order: vi.fn().mockReturnValue({
+                        limit: vi.fn().mockReturnValue({
+                          single: vi.fn().mockResolvedValue({
+                            data: null,
+                            error: { code: 'PGRST116' },
+                          }),
                         }),
                       }),
                     }),
+                  };
+                }
+                return {
+                  single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
+                  is: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
                   }),
                 };
-              }
-              return {
-                single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
-                is: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
-                }),
-              };
-            }),
+              }),
+            };
           }),
           update: vi.fn().mockImplementation((updates) => {
             capturedUpdates = { ...capturedUpdates, ...updates };
@@ -172,6 +198,9 @@ function createMockSupabaseClient() {
 
         return {
           select: vi.fn().mockReturnValue(createChain()),
+          delete: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
         };
       }
 
@@ -386,6 +415,25 @@ describe('Manage API Integration Tests', () => {
       const response = await DELETE(request, { params: Promise.resolve({ token: 'invalid-token' }) });
 
       expect(response.status).toBe(404);
+    });
+
+    it('deletes empty slot and calendar event after last booking cancelled', async () => {
+      const { deleteCalendarEvent } = await import('@/lib/google');
+      const { DELETE } = await import('@/app/api/manage/[token]/route');
+
+      const request = new NextRequest('http://localhost:3000/api/manage/test-manage-token', {
+        method: 'DELETE',
+      });
+
+      const response = await DELETE(request, { params: Promise.resolve({ token: 'test-manage-token' }) });
+
+      expect(response.status).toBe(200);
+      // After the only booking is cancelled, the slot's calendar event should be deleted
+      expect(deleteCalendarEvent).toHaveBeenCalledWith(
+        'mock-token',
+        'mock-refresh',
+        'gcal-123'
+      );
     });
   });
 
