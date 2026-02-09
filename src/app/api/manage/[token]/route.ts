@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { sendEmail, removeAttendeeFromEvent } from '@/lib/google';
+import { sendEmail, removeAttendeeFromEvent, createCalendarEvent } from '@/lib/google';
 import { CommonErrors, safeParseJSON } from '@/lib/errors';
 import {
   processTemplate,
@@ -10,10 +10,12 @@ import {
 } from '@/lib/email-templates';
 import { generateCancellationEmailHtml, escapeHtml } from '@/lib/email-html';
 import { updateMeetingOutcome } from '@/lib/hubspot';
-import { calendarLogger } from '@/lib/logger';
-import { format, parseISO } from 'date-fns';
+import { calendarLogger, bookingLogger } from '@/lib/logger';
+import { format, parseISO, addMinutes, addHours, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { getTimezoneAbbr } from '@/lib/timezone';
+import { getAvailableSlots, getCollectiveAvailableSlots, syncGoogleCalendarBusy, checkTimeAvailability } from '@/lib/availability';
+import { getParticipatingHosts } from '@/lib/round-robin';
 
 // GET booking by manage token
 export async function GET(
@@ -41,25 +43,137 @@ export async function GET(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Get other available slots for rescheduling (exclude current slot)
-  const { data: availableSlots } = await supabase
-    .from('oh_slots')
-    .select(`
-      id, event_id, start_time, end_time, google_meet_link, is_cancelled,
-      bookings:oh_bookings!slot_id(count)
-    `)
-    .eq('event_id', booking.slot.event.id)
-    .eq('is_cancelled', false)
-    .neq('id', booking.slot_id)
-    .gt('start_time', new Date().toISOString())
-    .is('bookings.cancelled_at', null)
-    .order('start_time', { ascending: true });
+  // Get available slots for rescheduling using same dynamic generation as booking page
+  const event = booking.slot.event;
+  const now = new Date();
+  const minNoticeHours = event.min_notice_hours ?? 0;
+  const bookingWindowDays = event.booking_window_days ?? 60;
+  const earliestBookable = addHours(now, minNoticeHours);
+  const latestBookable = addDays(now, bookingWindowDays);
 
-  // Filter to slots that aren't full
-  const openSlots = (availableSlots || []).filter((s: { bookings: { count: number }[]; }) => {
-    const bookingCount = s.bookings?.[0]?.count || 0;
-    return bookingCount < booking.slot.event.max_attendees;
-  });
+  let openSlots: { id: string; event_id: string; start_time: string; end_time: string; is_dynamic: boolean }[] = [];
+
+  if (event.meeting_type === 'webinar') {
+    // Webinars use pre-created slots
+    const { data: availableSlots } = await supabase
+      .from('oh_slots')
+      .select(`
+        id, event_id, start_time, end_time, google_meet_link, is_cancelled,
+        bookings:oh_bookings!slot_id(count)
+      `)
+      .eq('event_id', event.id)
+      .eq('is_cancelled', false)
+      .neq('id', booking.slot_id)
+      .gt('start_time', now.toISOString())
+      .is('bookings.cancelled_at', null)
+      .order('start_time', { ascending: true });
+
+    openSlots = (availableSlots || [])
+      .filter((s: { bookings: { count: number }[] }) => {
+        const bookingCount = s.bookings?.[0]?.count || 0;
+        return bookingCount < event.max_attendees;
+      })
+      .map((s: { id: string; event_id: string; start_time: string; end_time: string }) => ({
+        id: s.id,
+        event_id: s.event_id,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        is_dynamic: false,
+      }));
+  } else {
+    // Non-webinars: generate dynamic availability (same as booking page)
+    const { data: adminData } = await supabase
+      .from('oh_admins')
+      .select('id, google_access_token, google_refresh_token')
+      .eq('email', event.host_email)
+      .single();
+
+    if (adminData) {
+      // Sync calendar busy times
+      if (adminData.google_access_token && adminData.google_refresh_token) {
+        try {
+          await syncGoogleCalendarBusy(
+            adminData.id,
+            adminData.google_access_token,
+            adminData.google_refresh_token,
+            earliestBookable,
+            latestBookable
+          );
+        } catch (err) {
+          console.warn('Failed to sync Google Calendar busy times for reschedule:', err);
+        }
+      }
+
+      const bufferBefore = event.buffer_before || 0;
+      const bufferAfter = event.buffer_after || 0;
+      const startTimeIncrement = event.start_time_increment || 30;
+      let dynamicSlots: { start: Date; end: Date }[] = [];
+
+      if (event.meeting_type === 'collective') {
+        const collectiveHosts = await getParticipatingHosts(event.id);
+        if (collectiveHosts.length > 0) {
+          dynamicSlots = await getCollectiveAvailableSlots(
+            collectiveHosts,
+            event.duration_minutes,
+            earliestBookable,
+            latestBookable,
+            event.id,
+            startTimeIncrement,
+            event.ignore_busy_blocks ?? false
+          );
+        }
+      } else if (event.meeting_type === 'round_robin') {
+        const participatingHosts = await getParticipatingHosts(event.id);
+        if (participatingHosts.length === 0) {
+          dynamicSlots = await getAvailableSlots(
+            adminData.id, event.duration_minutes, bufferBefore, bufferAfter,
+            earliestBookable, latestBookable, event.id, startTimeIncrement,
+            event.ignore_busy_blocks ?? false
+          );
+        } else {
+          const allHostSlots = await Promise.all(
+            participatingHosts.map(async (hostId) => {
+              try {
+                return await getAvailableSlots(
+                  hostId, event.duration_minutes, bufferBefore, bufferAfter,
+                  earliestBookable, latestBookable, event.id, startTimeIncrement,
+                  event.ignore_busy_blocks ?? false
+                );
+              } catch { return []; }
+            })
+          );
+          const slotMap = new Map<string, { start: Date; end: Date }>();
+          for (const hostSlots of allHostSlots) {
+            for (const slot of hostSlots) {
+              const key = slot.start.toISOString();
+              if (!slotMap.has(key)) slotMap.set(key, slot);
+            }
+          }
+          dynamicSlots = Array.from(slotMap.values()).sort(
+            (a, b) => a.start.getTime() - b.start.getTime()
+          );
+        }
+      } else {
+        dynamicSlots = await getAvailableSlots(
+          adminData.id, event.duration_minutes, bufferBefore, bufferAfter,
+          earliestBookable, latestBookable, event.id, startTimeIncrement,
+          event.ignore_busy_blocks ?? false
+        );
+      }
+
+      // Filter out the current booking's time slot
+      const currentStart = new Date(booking.slot.start_time).getTime();
+      openSlots = dynamicSlots
+        .filter((s) => s.start.getTime() !== currentStart)
+        .map((s) => ({
+          id: `dynamic-${s.start.toISOString()}`,
+          event_id: event.id,
+          start_time: s.start.toISOString(),
+          end_time: s.end.toISOString(),
+          is_dynamic: true,
+        }));
+    }
+  }
 
   return NextResponse.json({
     booking: {
@@ -86,16 +200,20 @@ export async function PUT(
   if (!body) {
     return NextResponse.json({ error: CommonErrors.VALIDATION_ERROR }, { status: 400 });
   }
-  const { new_slot_id } = body;
+  let { new_slot_id } = body;
 
   if (!new_slot_id) {
     return NextResponse.json({ error: 'new_slot_id is required' }, { status: 400 });
   }
 
-  // Validate UUID format to prevent invalid queries
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(new_slot_id)) {
-    return NextResponse.json({ error: 'Invalid slot ID format' }, { status: 400 });
+  const isDynamicSlot = new_slot_id.startsWith('dynamic-');
+
+  // Validate format: either dynamic-<ISO> or UUID
+  if (!isDynamicSlot) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(new_slot_id)) {
+      return NextResponse.json({ error: 'Invalid slot ID format' }, { status: 400 });
+    }
   }
 
   const supabase = getServiceSupabase();
@@ -119,38 +237,138 @@ export async function PUT(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Verify new slot exists and has capacity (only count non-cancelled bookings)
-  const { data: newSlot, error: slotError } = await supabase
-    .from('oh_slots')
-    .select(`
-      *,
-      event:oh_events!event_id(*),
-      bookings:oh_bookings!slot_id(count)
-    `)
-    .eq('id', new_slot_id)
-    .eq('is_cancelled', false)
-    .is('bookings.cancelled_at', null)
+  const eventData = booking.slot.event;
+
+  // Get host admin for calendar operations
+  const { data: admin } = await supabase
+    .from('oh_admins')
+    .select('id, email, name, google_access_token, google_refresh_token')
+    .eq('email', eventData.host_email)
     .single();
 
-  if (slotError || !newSlot) {
-    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+  // Handle dynamic slots: create the slot on-the-fly (same as booking API)
+  if (isDynamicSlot) {
+    const startTimeStr = new_slot_id.replace('dynamic-', '');
+    const startTime = parseISO(startTimeStr);
+
+    if (isNaN(startTime.getTime())) {
+      return NextResponse.json({ error: 'Invalid dynamic slot format' }, { status: 400 });
+    }
+
+    if (eventData.meeting_type === 'webinar') {
+      return NextResponse.json({ error: 'Webinar events require pre-created time slots' }, { status: 400 });
+    }
+
+    const endTime = addMinutes(startTime, eventData.duration_minutes);
+
+    if (!admin) {
+      return NextResponse.json({ error: 'No host configured for this event' }, { status: 400 });
+    }
+
+    // Verify the time is still available
+    const availabilityCheck = await checkTimeAvailability(
+      admin.id, startTime, endTime, eventData.id,
+      eventData.buffer_before || 0, eventData.buffer_after || 0,
+      eventData.ignore_busy_blocks ?? false
+    );
+
+    if (!availabilityCheck.available) {
+      return NextResponse.json(
+        { error: availabilityCheck.reason || 'This time slot is no longer available' },
+        { status: 400 }
+      );
+    }
+
+    // Create Google Calendar event
+    let googleEventId: string | null = null;
+    let googleMeetLink: string | null = null;
+
+    if (admin.google_access_token && admin.google_refresh_token) {
+      try {
+        const calendarResult = await createCalendarEvent(
+          admin.google_access_token,
+          admin.google_refresh_token,
+          {
+            summary: eventData.name,
+            description: eventData.description || '',
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            hostEmail: admin.email,
+            attendeeEmail: booking.email,
+          }
+        );
+        googleEventId = calendarResult.eventId || null;
+        googleMeetLink = calendarResult.meetLink;
+      } catch (err) {
+        console.error('Failed to create calendar event for reschedule:', err);
+      }
+    }
+
+    // Create the slot
+    const { data: createdSlot, error: createError } = await supabase
+      .from('oh_slots')
+      .insert({
+        event_id: eventData.id,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        google_event_id: googleEventId,
+        google_meet_link: googleMeetLink,
+      })
+      .select()
+      .single();
+
+    if (createError || !createdSlot) {
+      return NextResponse.json({ error: 'Failed to create time slot' }, { status: 500 });
+    }
+
+    new_slot_id = createdSlot.id;
+  } else {
+    // Existing slot: verify it exists and has capacity
+    const { data: existingSlot, error: slotError } = await supabase
+      .from('oh_slots')
+      .select(`
+        *,
+        event:oh_events!event_id(*),
+        bookings:oh_bookings!slot_id(count)
+      `)
+      .eq('id', new_slot_id)
+      .eq('is_cancelled', false)
+      .is('bookings.cancelled_at', null)
+      .single();
+
+    if (slotError || !existingSlot) {
+      return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
+    }
+
+    const bookingCount = existingSlot.bookings?.[0]?.count || 0;
+    if (bookingCount >= existingSlot.event.max_attendees) {
+      return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
+    }
+
+    // Re-check capacity right before update
+    const { count: currentCount } = await supabase
+      .from('oh_bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('slot_id', new_slot_id)
+      .is('cancelled_at', null);
+
+    if ((currentCount ?? 0) >= existingSlot.event.max_attendees) {
+      return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
+    }
   }
 
-  const bookingCount = newSlot.bookings?.[0]?.count || 0;
-  if (bookingCount >= newSlot.event.max_attendees) {
-    return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
-  }
-
-  // Re-check capacity right before update to reduce race condition window.
-  // Uses count query which is more reliable than the aggregate join above.
-  const { count: currentCount } = await supabase
-    .from('oh_bookings')
-    .select('id', { count: 'exact', head: true })
-    .eq('slot_id', new_slot_id)
-    .is('cancelled_at', null);
-
-  if ((currentCount ?? 0) >= newSlot.event.max_attendees) {
-    return NextResponse.json({ error: CommonErrors.SLOT_FULL }, { status: 400 });
+  // Remove attendee from old Google Calendar event
+  if (admin?.google_access_token && admin?.google_refresh_token && booking.slot.google_event_id) {
+    try {
+      await removeAttendeeFromEvent(
+        admin.google_access_token,
+        admin.google_refresh_token,
+        booking.slot.google_event_id,
+        booking.email
+      );
+    } catch (err) {
+      console.error('Failed to remove attendee from old calendar event:', err);
+    }
   }
 
   // Update booking to new slot
@@ -163,14 +381,14 @@ export async function PUT(
     return NextResponse.json({ error: CommonErrors.SERVER_ERROR }, { status: 500 });
   }
 
-  // Send confirmation email for the reschedule
-  const { data: admin } = await supabase
-    .from('oh_admins')
-    .select('id, email, google_access_token, google_refresh_token')
-    .eq('email', newSlot.event.host_email)
+  // Get the new slot for the confirmation email
+  const { data: newSlot } = await supabase
+    .from('oh_slots')
+    .select('*, event:oh_events!event_id(*)')
+    .eq('id', new_slot_id)
     .single();
 
-  if (admin?.google_access_token && admin?.google_refresh_token) {
+  if (admin?.google_access_token && admin?.google_refresh_token && newSlot) {
     try {
       // Get assigned host for round-robin bookings
       const assignedHost = booking.assigned_host as { id: string; name: string | null; email: string } | null;

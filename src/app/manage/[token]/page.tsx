@@ -6,11 +6,19 @@ import { formatInTimeZone } from 'date-fns-tz';
 import Image from 'next/image';
 import type { OHEvent, OHSlot, OHBooking } from '@/types';
 
+interface RescheduleSlot {
+  id: string;
+  event_id: string;
+  start_time: string;
+  end_time: string;
+  is_dynamic?: boolean;
+}
+
 interface BookingData {
   booking: OHBooking;
   slot: OHSlot;
   event: OHEvent;
-  availableSlots: Array<OHSlot & { booking_count: number }>;
+  availableSlots: RescheduleSlot[];
 }
 
 export default function ManageBookingPage({
@@ -166,7 +174,7 @@ export default function ManageBookingPage({
   const hasPassed = isPast(parseISO(slot.end_time));
   const isMissed = hasPassed && !isCancelled && !isWaitlisted && !isAttended;
   const hoursSinceMeeting = hasPassed ? differenceInHours(new Date(), parseISO(slot.end_time)) : 0;
-  const availableSlotsForReschedule = data.availableSlots.filter((s) => s.id !== slot.id);
+  const availableSlotsForReschedule = data.availableSlots;
 
   return (
     <div className="min-h-screen bg-[#F6F6F9] py-12 px-4">

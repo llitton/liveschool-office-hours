@@ -37,6 +37,19 @@ vi.mock('@/lib/auth', () => ({
   getHostWithTokens: vi.fn().mockImplementation(async () => mockAdmins[0] || null),
 }));
 
+// Mock availability functions (GET handler now generates dynamic slots)
+const mockDynamicSlots: { start: Date; end: Date }[] = [];
+vi.mock('@/lib/availability', () => ({
+  getAvailableSlots: vi.fn().mockImplementation(async () => mockDynamicSlots),
+  getCollectiveAvailableSlots: vi.fn().mockImplementation(async () => mockDynamicSlots),
+  syncGoogleCalendarBusy: vi.fn().mockResolvedValue(undefined),
+  checkTimeAvailability: vi.fn().mockResolvedValue({ available: true }),
+}));
+
+vi.mock('@/lib/round-robin', () => ({
+  getParticipatingHosts: vi.fn().mockResolvedValue([]),
+}));
+
 // Create mock Supabase client
 function createMockSupabaseClient() {
   return {
@@ -269,6 +282,7 @@ describe('Manage API Integration Tests', () => {
     mockEvents = [createMockEvent()];
     mockAdmins = [createMockAdmin()];
     capturedUpdates = {};
+    mockDynamicSlots.length = 0;
     mockSupabase = createMockSupabaseClient();
   });
 
@@ -278,6 +292,7 @@ describe('Manage API Integration Tests', () => {
     mockEvents = [];
     mockAdmins = [];
     capturedUpdates = {};
+    mockDynamicSlots.length = 0;
   });
 
   describe('GET /api/manage/[token] - Get Booking Details', () => {
@@ -309,26 +324,12 @@ describe('Manage API Integration Tests', () => {
       expect(response.status).toBe(404);
     });
 
-    it('does not count cancelled bookings toward slot capacity', async () => {
-      // Group event with max 2 attendees
-      mockEvents = [createMockEvent({ max_attendees: 2 })];
-      // Slot has 1 active booking (the user's) and 1 cancelled booking
-      const otherSlot = createMockSlot({ id: 'slot-other' });
-      mockSlots = [createMockSlot(), otherSlot];
-      mockBookings = [
-        createMockBooking(),
-        createMockBooking({
-          id: 'booking-cancelled',
-          slot_id: 'slot-other',
-          manage_token: 'other-token',
-          cancelled_at: new Date().toISOString(),
-        }),
-        createMockBooking({
-          id: 'booking-active-other',
-          slot_id: 'slot-other',
-          manage_token: 'active-other-token',
-        }),
-      ];
+    it('returns dynamically generated available slots for rescheduling', async () => {
+      // Add dynamic slots that the availability engine would return
+      const tomorrow = addDays(new Date(), 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const slotEnd = addHours(tomorrow, 1);
+      mockDynamicSlots.push({ start: tomorrow, end: slotEnd });
       mockSupabase = createMockSupabaseClient();
 
       const { GET } = await import('@/app/api/manage/[token]/route');
@@ -338,9 +339,8 @@ describe('Manage API Integration Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      // slot-other should appear as available because cancelled bookings don't count
-      // Mock filters non-cancelled bookings: only booking-active-other counts (1 < 2 max)
-      expect(data.availableSlots.length).toBeGreaterThanOrEqual(1);
+      expect(data.availableSlots.length).toBe(1);
+      expect(data.availableSlots[0].id).toMatch(/^dynamic-/);
     });
 
     it('includes cancelled_at in response for cancelled bookings', async () => {
