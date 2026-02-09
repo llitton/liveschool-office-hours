@@ -41,7 +41,7 @@ export async function GET(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Get other available slots for rescheduling
+  // Get other available slots for rescheduling (exclude current slot)
   const { data: availableSlots } = await supabase
     .from('oh_slots')
     .select(`
@@ -50,7 +50,9 @@ export async function GET(
     `)
     .eq('event_id', booking.slot.event.id)
     .eq('is_cancelled', false)
+    .neq('id', booking.slot_id)
     .gt('start_time', new Date().toISOString())
+    .is('bookings.cancelled_at', null)
     .order('start_time', { ascending: true });
 
   // Filter to slots that aren't full
@@ -117,7 +119,7 @@ export async function PUT(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Verify new slot exists and has capacity
+  // Verify new slot exists and has capacity (only count non-cancelled bookings)
   const { data: newSlot, error: slotError } = await supabase
     .from('oh_slots')
     .select(`
@@ -127,6 +129,7 @@ export async function PUT(
     `)
     .eq('id', new_slot_id)
     .eq('is_cancelled', false)
+    .is('bookings.cancelled_at', null)
     .single();
 
   if (slotError || !newSlot) {
