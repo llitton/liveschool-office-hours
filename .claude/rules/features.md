@@ -52,9 +52,10 @@ Categorized by HubSpot `user_type` field (Teacher, Administrator, Site Leader).
 
 ### Rescheduling
 Attendees reschedule via `GET/PUT /api/manage/[token]`:
-- GET returns booking details + available slots for the same event (future, not full, excludes current slot)
-- PUT moves the booking to a new slot after re-verifying capacity
-- **Capacity checks must filter cancelled bookings:** Use `.is('bookings.cancelled_at', null)` on aggregate count joins
+- GET returns booking details + dynamically generated available slots (same availability engine as booking page)
+- PUT moves the booking to a new slot; creates `oh_slots` row on-the-fly for dynamic slots (`dynamic-<ISO>` IDs)
+- Dynamic slots get a new Google Calendar event; attendee is removed from old calendar event
+- Webinar events still use pre-created slots only
 - Reschedule confirmation email sent via host's Google credentials
 
 ## Custom Questions
