@@ -50,6 +50,13 @@ Categorized by HubSpot `user_type` field (Teacher, Administrator, Site Leader).
 4. POST `/api/bookings` creates booking
 5. Syncs to Google Calendar, sends confirmation email
 
+### Rescheduling
+Attendees reschedule via `GET/PUT /api/manage/[token]`:
+- GET returns booking details + available slots for the same event (future, not full, excludes current slot)
+- PUT moves the booking to a new slot after re-verifying capacity
+- **Capacity checks must filter cancelled bookings:** Use `.is('bookings.cancelled_at', null)` on aggregate count joins
+- Reschedule confirmation email sent via host's Google credentials
+
 ## Custom Questions
 Events have custom questions via `custom_questions` JSON field on `oh_events`.
 

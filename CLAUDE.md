@@ -157,6 +157,7 @@ Host priorities (1-10 weight slider) set in `oh_event_hosts.priority`.
 - **Escape user input in Slack messages:** Use `escapeSlackMarkdown()` in `src/lib/slack.ts`
 - **Batch API limits:** Endpoints accepting arrays must enforce max size (100)
 - **Validate host_email:** Must belong to a registered admin in `oh_admins`
+- **Booking count queries must filter cancelled:** Any query counting bookings toward capacity must include `.is('cancelled_at', null)` or `.is('bookings.cancelled_at', null)` for aggregate joins — cancelled bookings do NOT count toward slot capacity
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint)

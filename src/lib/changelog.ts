@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-09-reschedule-fix',
+    date: '2026-02-09',
+    title: 'Reschedule Now Shows Available Times',
+    description: 'Fixed an issue where rescheduling showed "No other time slots available" even when slots were open.',
+    category: 'fix',
+    details: [
+      'Cancelled bookings no longer count toward slot capacity when rescheduling',
+      'Your current time slot is excluded from the list so you only see different options',
+    ],
+  },
+  {
     id: '2026-02-04-session-deletion',
     date: '2026-02-04',
     title: 'Delete Past Sessions',

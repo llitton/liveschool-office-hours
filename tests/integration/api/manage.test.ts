@@ -309,6 +309,40 @@ describe('Manage API Integration Tests', () => {
       expect(response.status).toBe(404);
     });
 
+    it('does not count cancelled bookings toward slot capacity', async () => {
+      // Group event with max 2 attendees
+      mockEvents = [createMockEvent({ max_attendees: 2 })];
+      // Slot has 1 active booking (the user's) and 1 cancelled booking
+      const otherSlot = createMockSlot({ id: 'slot-other' });
+      mockSlots = [createMockSlot(), otherSlot];
+      mockBookings = [
+        createMockBooking(),
+        createMockBooking({
+          id: 'booking-cancelled',
+          slot_id: 'slot-other',
+          manage_token: 'other-token',
+          cancelled_at: new Date().toISOString(),
+        }),
+        createMockBooking({
+          id: 'booking-active-other',
+          slot_id: 'slot-other',
+          manage_token: 'active-other-token',
+        }),
+      ];
+      mockSupabase = createMockSupabaseClient();
+
+      const { GET } = await import('@/app/api/manage/[token]/route');
+
+      const request = new NextRequest('http://localhost:3000/api/manage/test-manage-token');
+      const response = await GET(request, { params: Promise.resolve({ token: 'test-manage-token' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // slot-other should appear as available because cancelled bookings don't count
+      // Mock filters non-cancelled bookings: only booking-active-other counts (1 < 2 max)
+      expect(data.availableSlots.length).toBeGreaterThanOrEqual(1);
+    });
+
     it('includes cancelled_at in response for cancelled bookings', async () => {
       const cancelledAt = new Date().toISOString();
       mockBookings = [createMockBooking({ cancelled_at: cancelledAt })];
