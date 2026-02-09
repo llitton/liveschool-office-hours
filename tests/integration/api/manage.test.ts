@@ -490,5 +490,32 @@ describe('Manage API Integration Tests', () => {
 
       expect(response.status).toBe(404);
     });
+
+    it('deletes old empty slot and calendar event after reschedule', async () => {
+      const { deleteCalendarEvent } = await import('@/lib/google');
+
+      // Add a new available slot to reschedule to
+      const newSlot = createMockSlot({ id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', google_event_id: 'gcal-new' });
+      mockSlots.push(newSlot);
+      mockSupabase = createMockSupabaseClient();
+
+      const { PUT } = await import('@/app/api/manage/[token]/route');
+
+      const request = new NextRequest('http://localhost:3000/api/manage/test-manage-token', {
+        method: 'PUT',
+        body: JSON.stringify({ new_slot_id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const response = await PUT(request, { params: Promise.resolve({ token: 'test-manage-token' }) });
+
+      expect(response.status).toBe(200);
+      // After the booking moves to the new slot, the old slot's calendar event should be deleted
+      expect(deleteCalendarEvent).toHaveBeenCalledWith(
+        'mock-token',
+        'mock-refresh',
+        'gcal-123'
+      );
+    });
   });
 });

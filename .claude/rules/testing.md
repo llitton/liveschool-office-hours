@@ -57,7 +57,7 @@ tests/
 │       ├── bookings.test.ts              # Booking API endpoints (7 tests)
 │       ├── events.test.ts               # Event CRUD operations (13 tests)
 │       ├── feedback.test.ts             # Feedback submission (8 tests)
-│       ├── manage.test.ts               # Manage/cancel/reschedule bookings (10 tests)
+│       ├── manage.test.ts               # Manage/cancel/reschedule bookings (11 tests)
 │       ├── reliability.test.ts          # Reliability fixes validation (13 tests)
 │       ├── silent-failures.test.ts     # Silent failure prevention (6 tests)
 │       ├── send-followup.test.ts        # Follow-up emails (10 tests)
@@ -201,6 +201,6 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 | Area | Tests |
 |------|-------|
 | **Total Unit Tests** | **529** |
-| **Integration Tests** | **198** |
+| **Integration Tests** | **199** |
 | **E2E Tests** | **43** |
-| **Grand Total** | **770** |
+| **Grand Total** | **771** |

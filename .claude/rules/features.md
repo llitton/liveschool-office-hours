@@ -55,12 +55,14 @@ Attendees reschedule via `GET/PUT /api/manage/[token]`:
 - GET returns booking details + dynamically generated available slots (same availability engine as booking page)
 - PUT moves the booking to a new slot; creates `oh_slots` row on-the-fly for dynamic slots (`dynamic-<ISO>` IDs)
 - Dynamic slots get a new Google Calendar event; attendee is removed from old calendar event
+- **Old slot auto-cleanup:** After reschedule, if old slot has zero remaining bookings, its calendar event and `oh_slots` row are deleted
 - Webinar events still use pre-created slots only
 - Reschedule confirmation email sent via host's Google credentials
 
-### Cancellation Cleanup
-When a booking is cancelled via the manage page (`DELETE /api/manage/[token]`):
-- If the slot has zero remaining active bookings, the Google Calendar event and `oh_slots` row are auto-deleted
+### Empty Slot Cleanup
+Both cancellation (`DELETE /api/manage/[token]`) and reschedule (`PUT /api/manage/[token]`) auto-clean empty slots:
+- After the booking is cancelled/moved, checks if the slot has zero remaining active bookings
+- If empty: deletes the Google Calendar event and the `oh_slots` row
 - Prevents orphaned calendar events from cluttering host calendars
 - Webinar slots are exempt (pre-created, may be reused)
 

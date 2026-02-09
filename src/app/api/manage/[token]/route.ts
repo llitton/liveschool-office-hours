@@ -371,6 +371,10 @@ export async function PUT(
     }
   }
 
+  const oldSlotId = booking.slot_id;
+  const oldGoogleEventId = booking.slot.google_event_id;
+  const oldMeetingType = eventData.meeting_type;
+
   // Update booking to new slot
   const { error: updateError } = await supabase
     .from('oh_bookings')
@@ -379,6 +383,37 @@ export async function PUT(
 
   if (updateError) {
     return NextResponse.json({ error: CommonErrors.SERVER_ERROR }, { status: 500 });
+  }
+
+  // Clean up old slot if empty after reschedule (same logic as cancellation)
+  if (oldMeetingType !== 'webinar') {
+    try {
+      const { count: remainingActive } = await supabase
+        .from('oh_bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('slot_id', oldSlotId)
+        .is('cancelled_at', null);
+
+      if (remainingActive === 0) {
+        if (oldGoogleEventId && admin?.google_access_token && admin?.google_refresh_token) {
+          await deleteCalendarEvent(
+            admin.google_access_token,
+            admin.google_refresh_token,
+            oldGoogleEventId
+          );
+        }
+
+        await supabase.from('oh_slots').delete().eq('id', oldSlotId);
+
+        calendarLogger.info('Cleaned up empty slot after reschedule', {
+          operation: 'rescheduleSlotCleanup',
+          slotId: oldSlotId,
+          metadata: { calendarDeleted: !!oldGoogleEventId },
+        });
+      }
+    } catch (err) {
+      console.error('Failed to clean up old slot after reschedule:', err);
+    }
   }
 
   // Get the new slot for the confirmation email
