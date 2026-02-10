@@ -183,17 +183,20 @@ describe('Auth Module', () => {
       expect(session?.google_access_token).toBe('new-access-token');
     });
 
-    it('returns null when token refresh fails', async () => {
+    it('returns admin with stale token when token refresh fails', async () => {
       mockSessionId = 'admin-123';
-      mockAdmin = createTestAdmin({
+      const staleAdmin = createTestAdmin({
         token_expires_at: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
       });
+      mockAdmin = staleAdmin;
       mockTokenRefreshResult = null; // Will cause refresh to fail
       vi.resetModules();
       const { getSession } = await import('@/lib/auth');
 
       const session = await getSession();
-      expect(session).toBe(null);
+      // Should return admin with stale token — auth still works, only Google API calls will fail
+      expect(session).toEqual(staleAdmin);
+      expect(session?.google_access_token).toBe('access-token');
     });
 
     it('does not refresh when token is still valid', async () => {

@@ -7,6 +7,37 @@ The app uses `src/lib/errors.ts` to provide consistent, user-friendly error mess
 - PostgreSQL error codes (23505, 23503, etc.) are mapped to helpful explanations
 - Technical details are sanitized from user-facing messages
 
+## Auth Resilience
+`getSession()` returns the admin record even when Google token refresh fails — this allows auth-only operations (saving settings, availability patterns) to succeed. Only operations that actually call Google API (calendar sync, email send) will fail with a stale token.
+
+**`requireAuth()` throws — always catch it:**
+```typescript
+// CORRECT
+let session;
+try {
+  session = await requireAuth();
+} catch {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+
+// WRONG — requireAuth() throws, so the null check is dead code
+const session = await requireAuth();
+if (!session) {  // never reached
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+```
+
+**Client-side error handling for save operations:**
+```typescript
+if (!response.ok) {
+  if (response.status === 401) {
+    throw new Error('Your session has expired. Please refresh the page and try again.');
+  }
+  const data = await response.json().catch(() => null);
+  throw new Error(data?.error || 'Failed to save');
+}
+```
+
 ## Google API Retry Logic
 All Google Calendar and Gmail API calls include automatic retry with exponential backoff:
 - Max 3 retries for transient failures

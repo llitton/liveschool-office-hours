@@ -199,7 +199,11 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save patterns');
+        if (response.status === 401) {
+          throw new Error('Your session has expired. Please refresh the page and try again.');
+        }
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to save availability');
       }
 
       const data = await response.json();
@@ -207,7 +211,7 @@ export default function SettingsPage() {
       setSuccess('Availability saved successfully!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to save availability');
+      setError(err instanceof Error ? err.message : 'Failed to save availability');
       console.error(err);
     } finally {
       setSaving(false);
@@ -224,7 +228,11 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sync calendar');
+        if (response.status === 401) {
+          throw new Error('Your session has expired. Please refresh the page and try again.');
+        }
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to sync calendar');
       }
 
       const data = await response.json();
@@ -236,7 +244,7 @@ export default function SettingsPage() {
       setSuccess('Calendar synced successfully!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to sync with Google Calendar');
+      setError(err instanceof Error ? err.message : 'Failed to sync with Google Calendar');
       console.error(err);
     } finally {
       setSyncing(false);

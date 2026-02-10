@@ -161,6 +161,8 @@ Host priorities (1-10 weight slider) set in `oh_event_hosts.priority`.
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint)
+- **`requireAuth()` throws — always use try/catch:** `requireAuth()` throws `Error('Unauthorized')` on failure. Wrap in try/catch and return 401 — do NOT use `const session = await requireAuth(); if (!session)` as the null check is dead code
+- **Client-side save errors must be specific:** Parse `response.status` to distinguish 401 (session expired) from other errors. Show the API error message, not generic "Failed to save"
 
 ### URL Handling
 All URLs in emails, API responses, and redirects **must** use `NEXT_PUBLIC_APP_URL`:

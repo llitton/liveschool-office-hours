@@ -5,8 +5,10 @@ import { getUserFriendlyError, safeParseJSON } from '@/lib/errors';
 
 // GET availability patterns for current admin
 export async function GET() {
-  const session = await requireAuth();
-  if (!session) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -38,8 +40,10 @@ export async function GET() {
 
 // POST create new availability pattern
 export async function POST(request: NextRequest) {
-  const session = await requireAuth();
-  if (!session) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -120,8 +124,10 @@ export async function POST(request: NextRequest) {
 
 // PUT update multiple patterns (bulk update)
 export async function PUT(request: NextRequest) {
-  const session = await requireAuth();
-  if (!session) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -200,8 +206,10 @@ export async function PUT(request: NextRequest) {
 
 // DELETE a specific pattern
 export async function DELETE(request: NextRequest) {
-  const session = await requireAuth();
-  if (!session) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

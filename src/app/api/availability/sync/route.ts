@@ -6,8 +6,10 @@ import { addDays } from 'date-fns';
 
 // POST trigger manual sync of Google Calendar busy times
 export async function POST() {
-  const session = await requireAuth();
-  if (!session) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -67,8 +69,10 @@ export async function POST() {
 
 // GET current sync status
 export async function GET() {
-  const session = await requireAuth();
-  if (!session) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -332,8 +332,11 @@ export default function EventSettingsPage({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save settings');
+        if (response.status === 401) {
+          throw new Error('Your session has expired. Please refresh the page and try again.');
+        }
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to save settings');
       }
 
       setSuccess('Settings saved successfully!');

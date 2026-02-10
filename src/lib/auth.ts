@@ -54,7 +54,8 @@ export async function getSession(): Promise<OHAdmin | null> {
         };
       } catch (err) {
         console.error('Token refresh failed:', err);
-        return null;
+        // Return admin with stale token — auth still works, only Google API calls will fail
+        return admin;
       }
     }
   }

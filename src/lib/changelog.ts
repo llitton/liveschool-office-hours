@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-10-auth-resilience',
+    date: '2026-02-10',
+    title: 'More Reliable Settings Saves',
+    description: 'Fixed an issue where saving availability or event settings could show "Failed to save" even though data was persisting, or fail silently when your Google session expired.',
+    category: 'fix',
+    details: [
+      'Settings saves no longer fail when your Google token needs refreshing',
+      'Error messages now explain what went wrong instead of generic "Failed to save"',
+    ],
+  },
+  {
     id: '2026-02-09-reschedule-fix',
     date: '2026-02-09',
     title: 'Reschedule Now Shows Available Times',
