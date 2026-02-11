@@ -160,6 +160,11 @@ export async function POST(request: NextRequest) {
     slot_id = trimmedSlotId;
   }
 
+  // Track round-robin assignment early for dynamic slots
+  // (declared here so assignment in dynamic slot block carries to round-robin section)
+  let assignedHost: OHAdmin | null = null;
+  let assignedHostId: string | null = null;
+
   if (isDynamicSlot && slot_id) {
     // Extract start time from dynamic slot ID
     const startTimeStr = slot_id.replace('dynamic-', '');
@@ -192,7 +197,9 @@ export async function POST(request: NextRequest) {
         duration_minutes,
         buffer_before,
         buffer_after,
-        ignore_busy_blocks
+        ignore_busy_blocks,
+        round_robin_strategy,
+        round_robin_period
       `)
       .eq('id', event_id)
       .single();
@@ -212,53 +219,125 @@ export async function POST(request: NextRequest) {
     // Calculate end time based on event duration
     const endTime = addMinutes(startTime, event.duration_minutes);
 
-    // Get the host admin separately
-    const { data: admin } = await supabase
-      .from('oh_admins')
-      .select('id, email, name, google_access_token, google_refresh_token')
-      .eq('email', event.host_email)
-      .single();
+    // Determine the host for this slot based on meeting type
+    let slotAdmin: { id: string; email: string; name: string | null; google_access_token: string | null; google_refresh_token: string | null } | null = null;
 
-    if (!admin) {
-      return NextResponse.json(
-        { error: 'No host configured for this event' },
-        { status: 400 }
+    if (event.meeting_type === 'round_robin') {
+      // For round-robin, select the host NOW (before calendar event creation)
+      // so the availability check runs against all participating hosts
+      // and the calendar event goes on the correct host's calendar
+      const hostIds = await getParticipatingHosts(event_id);
+
+      if (hostIds.length === 0) {
+        return NextResponse.json(
+          { error: 'No hosts available for this event' },
+          { status: 400 }
+        );
+      }
+
+      // Check if a preferred host was specified (e.g., from routing forms)
+      if (preferred_host_id && hostIds.includes(preferred_host_id)) {
+        const { data: preferredHostData } = await supabase
+          .from('oh_admins')
+          .select('*')
+          .eq('id', preferred_host_id)
+          .single();
+
+        if (preferredHostData) {
+          slotAdmin = preferredHostData;
+          assignedHost = preferredHostData;
+          assignedHostId = preferred_host_id;
+          bookingLogger.info('Using preferred host from routing form (dynamic slot)', {
+            operation: 'createBooking',
+            eventId: event_id,
+            metadata: { hostEmail: preferredHostData.email },
+          });
+        }
+      }
+
+      // Fall back to round-robin selection if no preferred host
+      if (!assignedHost) {
+        const rrConfig = {
+          strategy: (event.round_robin_strategy || 'cycle') as 'cycle' | 'least_bookings' | 'availability_weighted' | 'priority',
+          period: (event.round_robin_period || 'week') as 'day' | 'week' | 'month' | 'all_time',
+          hostIds,
+        };
+
+        const assignment = await selectNextHost(
+          event_id,
+          startTime,
+          endTime,
+          rrConfig,
+          event.ignore_busy_blocks ?? false
+        );
+
+        if (!assignment) {
+          return NextResponse.json(
+            { error: 'All hosts are currently unavailable for this time slot' },
+            { status: 400 }
+          );
+        }
+
+        slotAdmin = assignment.host;
+        assignedHost = assignment.host;
+        assignedHostId = assignment.hostId;
+        bookingLogger.info('Round-robin assigned host (dynamic slot)', {
+          operation: 'createBooking',
+          eventId: event_id,
+          metadata: { hostEmail: assignment.host.email, reason: assignment.reason },
+        });
+      }
+    } else {
+      // Non-round-robin: use the primary host
+      const { data: admin } = await supabase
+        .from('oh_admins')
+        .select('id, email, name, google_access_token, google_refresh_token')
+        .eq('email', event.host_email)
+        .single();
+
+      if (!admin) {
+        return NextResponse.json(
+          { error: 'No host configured for this event' },
+          { status: 400 }
+        );
+      }
+
+      // Check availability against the primary host
+      const availabilityCheck = await checkTimeAvailability(
+        admin.id,
+        startTime,
+        endTime,
+        event_id,
+        event.buffer_before || 0,
+        event.buffer_after || 0,
+        event.ignore_busy_blocks ?? false
       );
+
+      if (!availabilityCheck.available) {
+        return NextResponse.json(
+          { error: availabilityCheck.reason || 'This time slot is no longer available' },
+          { status: 400 }
+        );
+      }
+
+      slotAdmin = admin;
     }
 
-    // Check availability one more time to prevent race conditions
-    const availabilityCheck = await checkTimeAvailability(
-      admin.id,
-      startTime,
-      endTime,
-      event_id,
-      event.buffer_before || 0,
-      event.buffer_after || 0,
-      event.ignore_busy_blocks ?? false
-    );
-
-    if (!availabilityCheck.available) {
-      return NextResponse.json(
-        { error: availabilityCheck.reason || 'This time slot is no longer available' },
-        { status: 400 }
-      );
-    }
-
-    // Create Google Calendar event if tokens available
+    // Create Google Calendar event on the selected host's calendar
     let googleEventId: string | null = null;
     let googleMeetLink: string | null = null;
 
-    if (admin.google_access_token && admin.google_refresh_token) {
+    if (slotAdmin && slotAdmin.google_access_token && slotAdmin.google_refresh_token) {
       try {
         const calendarResult = await createCalendarEvent(
-          admin.google_access_token,
-          admin.google_refresh_token,
+          slotAdmin.google_access_token,
+          slotAdmin.google_refresh_token,
           {
             summary: event.name,
             description: event.description || '',
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            hostEmail: admin.email,
+            hostEmail: slotAdmin.email,
             attendeeEmail: email,
             guestEmails: validatedGuestEmails,
           }
@@ -280,6 +359,7 @@ export async function POST(request: NextRequest) {
         end_time: endTime.toISOString(),
         google_event_id: googleEventId,
         google_meet_link: googleMeetLink,
+        ...(assignedHostId ? { assigned_host_id: assignedHostId } : {}),
       })
       .select()
       .single();
@@ -489,10 +569,9 @@ export async function POST(request: NextRequest) {
   // === END CONSTRAINT VALIDATION ===
 
   // === ROUND-ROBIN HOST ASSIGNMENT ===
-  let assignedHost: OHAdmin | null = null;
-  let assignedHostId: string | null = null;
+  // (assignedHost/assignedHostId may already be set from dynamic slot creation above)
 
-  if (event.meeting_type === 'round_robin') {
+  if (event.meeting_type === 'round_robin' && !assignedHost) {
     const hostIds = await getParticipatingHosts(event.id);
 
     if (hostIds.length === 0) {

@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-10-round-robin-booking-fix',
+    date: '2026-02-10',
+    title: 'Team Event Booking Fix',
+    description: 'Fixed an issue where booking a team (round-robin) event could show "Conflicts with calendar event" even when a team member was available.',
+    category: 'fix',
+    details: [
+      'Round-robin bookings now correctly check all team members, not just the primary host',
+      'Calendar events are now created on the assigned team member\'s calendar',
+    ],
+  },
+  {
     id: '2026-02-10-auth-resilience',
     date: '2026-02-10',
     title: 'More Reliable Settings Saves',

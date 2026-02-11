@@ -26,6 +26,8 @@ vi.mock('@/lib/google', () => ({
   addAttendeeToEvent: vi.fn().mockResolvedValue(undefined),
   removeAttendeeFromEvent: vi.fn().mockResolvedValue(undefined),
   sendEmail: vi.fn().mockResolvedValue(undefined),
+  createCalendarEvent: vi.fn().mockResolvedValue({ eventId: 'gcal-new-123', meetLink: 'https://meet.google.com/new-123' }),
+  updateCalendarEventDescription: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/hubspot', () => ({
@@ -158,6 +160,20 @@ function createMockSupabaseClient() {
       return Promise.resolve({ data: null, error: null });
     }),
     from: vi.fn((table: string) => {
+      if (table === 'oh_events') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockImplementation(async () => {
+                const event = mockEvents[0];
+                if (!event) return { data: null, error: { message: 'Not found' } };
+                return { data: event, error: null };
+              }),
+            }),
+          }),
+        };
+      }
+
       if (table === 'oh_slots') {
         return {
           select: vi.fn().mockReturnValue({
@@ -179,6 +195,20 @@ function createMockSupabaseClient() {
                 };
               }),
             }),
+          }),
+          insert: vi.fn().mockImplementation((data) => {
+            const newSlot = {
+              id: `slot-dynamic-${Date.now()}`,
+              created_at: new Date().toISOString(),
+              ...data,
+            };
+            // Add to mockSlots so subsequent queries find it
+            mockSlots.push(newSlot);
+            return {
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: newSlot, error: null }),
+              }),
+            };
           }),
           update: vi.fn().mockReturnValue(createChainableMock({ data: null, error: null })),
         };
@@ -554,6 +584,121 @@ describe('Bookings API Integration Tests', () => {
       expect(newBooking).toBeTruthy();
       expect(newBooking?.is_waitlisted).toBe(true);
       expect(newBooking?.waitlist_position).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Round-Robin Dynamic Slot Booking', () => {
+    it('books round-robin dynamic slot using assigned host, not primary host', async () => {
+      // Set up a round-robin event where the primary host has a conflict
+      // but a participating host is available
+      const rrEvent = createMockEvent({
+        meeting_type: 'round_robin',
+        round_robin_strategy: 'least_bookings',
+        round_robin_period: 'week',
+        host_email: 'primary@test.com',
+      });
+      mockEvents = [rrEvent];
+
+      // The assigned (participating) host
+      const assignedHostAdmin = createMockAdmin({
+        id: 'host-b-123',
+        email: 'hostb@test.com',
+        name: 'Host B',
+      });
+
+      // Primary host admin (has a calendar conflict, but round-robin shouldn't check them)
+      mockAdmins = [createMockAdmin({ email: 'primary@test.com', name: 'Primary Host' })];
+
+      mockSupabase = createMockSupabaseClient();
+
+      // Mock round-robin to return the assigned host
+      const { getParticipatingHosts, selectNextHost } = await import('@/lib/round-robin');
+      vi.mocked(getParticipatingHosts).mockResolvedValue(['host-b-123', 'host-c-456']);
+      vi.mocked(selectNextHost).mockResolvedValue({
+        hostId: 'host-b-123',
+        host: assignedHostAdmin as unknown as import('@/types').OHAdmin,
+        reason: 'least_bookings',
+      });
+
+      const { POST } = await import('@/app/api/bookings/route');
+
+      // Use a dynamic slot ID (simulates calendar-based availability)
+      const tomorrow = addDays(new Date(), 1);
+      tomorrow.setHours(18, 0, 0, 0); // 6 PM UTC = 12 PM CT
+      const dynamicSlotId = `dynamic-${tomorrow.toISOString()}`;
+
+      // For the slot re-fetch after creation, put the dynamic slot in mockSlots
+      const dynamicSlot = createMockSlot({
+        id: `slot-dynamic-${Date.now()}`,
+        start_time: tomorrow.toISOString(),
+        end_time: addHours(tomorrow, 0.25).toISOString(), // 15 min
+        assigned_host_id: 'host-b-123',
+      });
+      mockSlots = [dynamicSlot];
+
+      const request = createMockRequest({
+        slot_id: dynamicSlotId,
+        event_id: TEST_EVENT_ID,
+        first_name: 'Jose Martin',
+        last_name: 'Montoya Dura',
+        email: 'jmontoyadura@cps.edu',
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      // Should succeed — selectNextHost picks an available host
+      // even if the primary host has a calendar conflict
+      expect(response.status).toBe(200);
+      expect(data.email).toBe('jmontoyadura@cps.edu');
+
+      // Verify selectNextHost was called (not checkTimeAvailability against primary host)
+      expect(vi.mocked(selectNextHost)).toHaveBeenCalledWith(
+        TEST_EVENT_ID,
+        expect.any(Date),
+        expect.any(Date),
+        expect.objectContaining({
+          strategy: 'least_bookings',
+          hostIds: ['host-b-123', 'host-c-456'],
+        }),
+        false
+      );
+    });
+
+    it('returns error when all round-robin hosts are unavailable for dynamic slot', async () => {
+      const rrEvent = createMockEvent({
+        meeting_type: 'round_robin',
+        round_robin_strategy: 'cycle',
+        host_email: 'primary@test.com',
+      });
+      mockEvents = [rrEvent];
+      mockAdmins = [createMockAdmin({ email: 'primary@test.com' })];
+      mockSupabase = createMockSupabaseClient();
+
+      const { getParticipatingHosts, selectNextHost } = await import('@/lib/round-robin');
+      vi.mocked(getParticipatingHosts).mockResolvedValue(['host-a', 'host-b']);
+      // selectNextHost returns null when no host is available
+      vi.mocked(selectNextHost).mockResolvedValue(null);
+
+      const { POST } = await import('@/app/api/bookings/route');
+
+      const tomorrow = addDays(new Date(), 1);
+      tomorrow.setHours(18, 0, 0, 0);
+      const dynamicSlotId = `dynamic-${tomorrow.toISOString()}`;
+
+      const request = createMockRequest({
+        slot_id: dynamicSlotId,
+        event_id: TEST_EVENT_ID,
+        first_name: 'Test',
+        last_name: 'User',
+        email: 'test@example.com',
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('unavailable');
     });
   });
 });

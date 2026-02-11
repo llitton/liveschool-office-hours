@@ -50,6 +50,15 @@ Categorized by HubSpot `user_type` field (Teacher, Administrator, Site Leader).
 4. POST `/api/bookings` creates booking
 5. Syncs to Google Calendar, sends confirmation email
 
+### Round-Robin Dynamic Slot Booking
+For round-robin events with dynamic slots, host selection happens **early** in the booking flow (before calendar event creation):
+- `selectNextHost()` is called during dynamic slot creation to pick an available host
+- The availability check runs against all participating hosts via `selectNextHost`, not just the primary host
+- The Google Calendar event is created on the **assigned host's** calendar
+- Preferred host from routing forms is respected if specified
+- The later round-robin assignment block is skipped via `!assignedHost` guard
+- This ensures slots shown as available (because ANY host is free) can always be booked
+
 ### Rescheduling
 Attendees reschedule via `GET/PUT /api/manage/[token]`:
 - GET returns booking details + dynamically generated available slots (same availability engine as booking page)
