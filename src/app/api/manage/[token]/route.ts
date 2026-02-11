@@ -11,7 +11,7 @@ import {
 import { generateCancellationEmailHtml, escapeHtml } from '@/lib/email-html';
 import { updateMeetingOutcome } from '@/lib/hubspot';
 import { calendarLogger, bookingLogger } from '@/lib/logger';
-import { format, parseISO, addMinutes, addHours, addDays } from 'date-fns';
+import { format, parseISO, addMinutes, addHours, addDays, startOfDay, endOfDay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { getTimezoneAbbr } from '@/lib/timezone';
 import { getAvailableSlots, getCollectiveAvailableSlots, syncGoogleCalendarBusy, checkTimeAvailability } from '@/lib/availability';
@@ -263,6 +263,22 @@ export async function PUT(
 
     if (!admin) {
       return NextResponse.json({ error: 'No host configured for this event' }, { status: 400 });
+    }
+
+    // Re-sync Google Calendar busy blocks for the booking day
+    // Ensures fresh data between when reschedule page loaded and confirmation
+    if (admin.google_access_token && admin.google_refresh_token && !eventData.ignore_busy_blocks) {
+      try {
+        await syncGoogleCalendarBusy(
+          admin.id,
+          admin.google_access_token,
+          admin.google_refresh_token,
+          startOfDay(startTime),
+          endOfDay(startTime)
+        );
+      } catch (err) {
+        console.warn('[Reschedule] Failed to sync calendar for availability check:', err);
+      }
     }
 
     // Verify the time is still available

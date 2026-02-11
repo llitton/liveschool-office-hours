@@ -73,8 +73,8 @@ vi.mock('@/lib/supabase', () => ({
             delete: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 eq: vi.fn().mockReturnValue({
-                  gte: vi.fn().mockReturnValue({
-                    lte: vi.fn().mockImplementation(() =>
+                  lt: vi.fn().mockReturnValue({
+                    gt: vi.fn().mockImplementation(() =>
                       Promise.resolve({ error: mockDeleteError })
                     ),
                   }),

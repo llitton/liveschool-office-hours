@@ -13,7 +13,7 @@ import { matchPrepResources } from '@/lib/prep-matcher';
 import { generateConfirmationEmailHtml, escapeHtml } from '@/lib/email-html';
 import { selectNextHost, getParticipatingHosts } from '@/lib/round-robin';
 import { formatPhoneE164 } from '@/lib/sms';
-import { checkTimeAvailability } from '@/lib/availability';
+import { checkTimeAvailability, syncGoogleCalendarBusy } from '@/lib/availability';
 import { validateEmail } from '@/lib/email-validation';
 import { bookingLogger } from '@/lib/logger';
 import { getSession } from '@/lib/auth';
@@ -300,6 +300,24 @@ export async function POST(request: NextRequest) {
           { error: 'No host configured for this event' },
           { status: 400 }
         );
+      }
+
+      // Re-sync Google Calendar busy blocks for the booking day
+      // The available-times endpoint syncs when the page loads, but data can go stale
+      // between page load and booking confirmation
+      if (admin.google_access_token && admin.google_refresh_token && !event.ignore_busy_blocks) {
+        try {
+          await syncGoogleCalendarBusy(
+            admin.id,
+            admin.google_access_token,
+            admin.google_refresh_token,
+            startOfDay(startTime),
+            endOfDay(startTime)
+          );
+        } catch (err) {
+          console.warn('[Booking] Failed to sync calendar for availability check:', err);
+          // Continue with existing data
+        }
       }
 
       // Check availability against the primary host

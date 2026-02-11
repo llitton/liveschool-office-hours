@@ -12,6 +12,17 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-10-calendar-conflict-fix',
+    date: '2026-02-10',
+    title: 'Booking Calendar Conflict Fix',
+    description: 'Fixed an issue where booking or rescheduling could show "Conflicts with calendar event" even though the time slot appeared as available.',
+    category: 'fix',
+    details: [
+      'Booking and reschedule now re-sync your Google Calendar before checking availability',
+      'Calendar conflict detection now correctly handles events that span time boundaries',
+    ],
+  },
+  {
     id: '2026-02-10-round-robin-booking-fix',
     date: '2026-02-10',
     title: 'Team Event Booking Fix',

@@ -158,6 +158,8 @@ Host priorities (1-10 weight slider) set in `oh_event_hosts.priority`.
 - **Batch API limits:** Endpoints accepting arrays must enforce max size (100)
 - **Validate host_email:** Must belong to a registered admin in `oh_admins`
 - **Booking count queries must filter cancelled:** Any query counting bookings toward capacity must include `.is('cancelled_at', null)` or `.is('bookings.cancelled_at', null)` for aggregate joins — cancelled bookings do NOT count toward slot capacity
+- **Busy block queries must use overlap logic:** `getBusyBlocks()` uses `.lt('start_time', rangeEnd).gt('end_time', rangeStart)` (interval overlap), NOT `.gte/.lte` (containment). Containment misses blocks that span range boundaries. Same applies to the delete in `syncGoogleCalendarBusy()`.
+- **Booking/reschedule must re-sync calendar:** `POST /api/bookings` and `PUT /api/manage/[token]` call `syncGoogleCalendarBusy()` before `checkTimeAvailability()` for dynamic slots — the available-times page may have synced hours ago
 - Dates stored in UTC, displayed in user's timezone
 - All tables use `created_at` and `updated_at` timestamps
 - Event slugs must be unique (enforced by DB constraint)

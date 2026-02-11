@@ -447,6 +447,38 @@ class MockDeleteBuilder<T> {
     return this;
   }
 
+  gt(field: string, value: unknown) {
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) > (value as number | string);
+    });
+    return this;
+  }
+
+  gte(field: string, value: unknown) {
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) >= (value as number | string);
+    });
+    return this;
+  }
+
+  lt(field: string, value: unknown) {
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) < (value as number | string);
+    });
+    return this;
+  }
+
+  lte(field: string, value: unknown) {
+    this.filters.push((item) => {
+      const itemVal = (item as Record<string, unknown>)[field];
+      return (itemVal as number | string) <= (value as number | string);
+    });
+    return this;
+  }
+
   async then(resolve: (val: { data: null; error: null }) => void) {
     for (let i = this.data.length - 1; i >= 0; i--) {
       const item = this.data[i];

@@ -45,10 +45,16 @@ Categorized by HubSpot `user_type` field (Teacher, Administrator, Site Leader).
 
 ## Booking Flow
 1. Public page loads event config
-2. Client calculates available slots (availability patterns - busy blocks - buffers)
+2. GET `/api/events/[id]/available-times` syncs Google Calendar busy blocks, generates dynamic slots
 3. Attendee selects slot, fills form
-4. POST `/api/bookings` creates booking
+4. POST `/api/bookings` re-syncs Google Calendar for the booking day, verifies availability, creates booking
 5. Syncs to Google Calendar, sends confirmation email
+
+### Busy Block Sync & Overlap
+- `syncGoogleCalendarBusy()` fetches Google FreeBusy data and stores in `oh_busy_blocks`
+- `getBusyBlocks()` uses **interval overlap logic** (`block.start < rangeEnd AND block.end > rangeStart`) — NOT containment
+- Both `POST /api/bookings` and `PUT /api/manage/[token]` re-sync busy blocks before checking availability, ensuring fresh data between page load and confirmation
+- The sync delete also uses overlap logic to clean up stale blocks at range boundaries
 
 ### Round-Robin Dynamic Slot Booking
 For round-robin events with dynamic slots, host selection happens **early** in the booking flow (before calendar event creation):

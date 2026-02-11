@@ -30,7 +30,9 @@ function createQueryMock(data: unknown[] = []) {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: data[0] || null, error: null }),
@@ -628,6 +630,40 @@ describe('Availability Logic', () => {
       const blocks = await getBusyBlocks(testAdminId, tomorrow, dayAfter);
 
       expect(blocks.length).toBe(1);
+    });
+
+    it('uses overlap logic (lt/gt) not containment logic (gte/lte)', async () => {
+      // This test verifies the critical fix: getBusyBlocks must use interval overlap
+      // (block.start < rangeEnd AND block.end > rangeStart) to catch blocks that
+      // span range boundaries — previously used containment (gte/lte) which missed them
+      const tomorrow = addDays(new Date(), 1);
+      const dayAfter = addDays(tomorrow, 1);
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'oh_busy_blocks') {
+          return createQueryMock([]);
+        }
+        return createQueryMock([]);
+      });
+
+      await getBusyBlocks(testAdminId, tomorrow, dayAfter);
+
+      // Verify the query used lt/gt (overlap) not gte/lte (containment)
+      const fromCall = mockSupabaseClient.from.mock.calls.find(
+        (c: string[]) => c[0] === 'oh_busy_blocks'
+      );
+      expect(fromCall).toBeTruthy();
+
+      const queryChain = mockSupabaseClient.from.mock.results[0].value;
+      // The chain is: .select('*').eq('admin_id', ...).lt('start_time', ...).gt('end_time', ...)
+      // Verify lt was called (not lte) for start_time
+      expect(queryChain.select).toHaveBeenCalled();
+      const selectResult = queryChain.select.mock.results[0].value;
+      expect(selectResult.eq).toHaveBeenCalledWith('admin_id', testAdminId);
+      const eqResult = selectResult.eq.mock.results[0].value;
+      expect(eqResult.lt).toHaveBeenCalledWith('start_time', dayAfter.toISOString());
+      const ltResult = eqResult.lt.mock.results[0].value;
+      expect(ltResult.gt).toHaveBeenCalledWith('end_time', tomorrow.toISOString());
     });
   });
 });

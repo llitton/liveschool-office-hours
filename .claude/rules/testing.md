@@ -31,7 +31,7 @@ tests/
 ├── unit/
 │   └── lib/
 │       ├── auth.test.ts              # Session management, token refresh (21 tests)
-│       ├── availability.test.ts      # Slot generation logic (14 tests)
+│       ├── availability.test.ts      # Slot generation logic, overlap checks (15 tests)
 │       ├── booking-constraints.test.ts # Validation rules (29 tests)
 │       ├── email-html.test.ts        # HTML email templates (90 tests)
 │       ├── email-templates.test.ts  # Email template processing (31 tests)
@@ -200,7 +200,7 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 
 | Area | Tests |
 |------|-------|
-| **Total Unit Tests** | **529** |
+| **Total Unit Tests** | **530** |
 | **Integration Tests** | **201** |
 | **E2E Tests** | **43** |
-| **Grand Total** | **773** |
+| **Grand Total** | **774** |

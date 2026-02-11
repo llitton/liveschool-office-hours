@@ -42,14 +42,16 @@ export async function syncGoogleCalendarBusy(
     endDate.toISOString()
   );
 
-  // Delete existing busy blocks for this admin in this date range
+  // Delete existing busy blocks that overlap this date range (not just contained)
+  // Uses interval overlap: block.start < rangeEnd AND block.end > rangeStart
+  // This prevents stale blocks from lingering when sync range boundaries shift
   const { error: deleteError } = await supabase
     .from('oh_busy_blocks')
     .delete()
     .eq('admin_id', adminId)
     .eq('source', 'google_calendar')
-    .gte('start_time', startDate.toISOString())
-    .lte('end_time', endDate.toISOString());
+    .lt('start_time', endDate.toISOString())
+    .gt('end_time', startDate.toISOString());
 
   if (deleteError) {
     throw new Error(`Failed to clear existing busy blocks: ${deleteError.message}`);
@@ -101,12 +103,15 @@ export async function getBusyBlocks(
 ): Promise<OHBusyBlock[]> {
   const supabase = getServiceSupabase();
 
+  // Use interval overlap logic: block.start < rangeEnd AND block.end > rangeStart
+  // This correctly finds all blocks that overlap with the query range,
+  // not just blocks fully contained within it
   const { data, error } = await supabase
     .from('oh_busy_blocks')
     .select('*')
     .eq('admin_id', adminId)
-    .gte('start_time', startDate.toISOString())
-    .lte('end_time', endDate.toISOString());
+    .lt('start_time', endDate.toISOString())
+    .gt('end_time', startDate.toISOString());
 
   if (error) throw error;
   return data || [];
