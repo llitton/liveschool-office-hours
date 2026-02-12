@@ -71,7 +71,7 @@ const ALLOWED_UPDATE_FIELDS = [
   'description',
   'subtitle',
   'banner_image',
-  // Scheduling
+  // Scheduling & capacity
   'duration_minutes',
   'max_attendees',
   'buffer_before',

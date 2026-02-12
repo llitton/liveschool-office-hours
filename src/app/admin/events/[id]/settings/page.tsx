@@ -69,6 +69,9 @@ export default function EventSettingsPage({
   // Meeting type
   const [meetingType, setMeetingType] = useState<MeetingType>('group');
 
+  // Capacity
+  const [maxAttendees, setMaxAttendees] = useState('30');
+
   // Booking constraints
   const [minNoticeHours, setMinNoticeHours] = useState(24);
   const [maxDailyBookings, setMaxDailyBookings] = useState<string>('');
@@ -208,6 +211,9 @@ export default function EventSettingsPage({
       // Set meeting type
       setMeetingType(eventData.meeting_type || 'group');
 
+      // Set capacity
+      setMaxAttendees(eventData.max_attendees?.toString() || '30');
+
       // Set booking constraints
       setMinNoticeHours(eventData.min_notice_hours ?? 24);
       setMaxDailyBookings(eventData.max_daily_bookings?.toString() || '');
@@ -295,6 +301,8 @@ export default function EventSettingsPage({
           banner_image: finalBannerImage,
           // Meeting type
           meeting_type: meetingType,
+          // Capacity
+          max_attendees: parseInt(maxAttendees) || 1,
           // Booking constraints
           min_notice_hours: minNoticeHours,
           max_daily_bookings: maxDailyBookings ? parseInt(maxDailyBookings) : null,
@@ -502,6 +510,31 @@ export default function EventSettingsPage({
                 placeholder="Describe what attendees will get from this session..."
               />
             </div>
+
+            {/* Max Attendees - show for all types except one-on-one */}
+            {meetingType !== 'one_on_one' && (
+              <div>
+                <label className="block text-sm font-medium text-[#101E57] mb-1">
+                  Max Attendees per Session
+                </label>
+                <input
+                  type="number"
+                  min={2}
+                  value={maxAttendees}
+                  onChange={(e) => setMaxAttendees(e.target.value)}
+                  onBlur={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (isNaN(val) || val < 2) {
+                      setMaxAttendees('2');
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6F71EE] focus:border-[#6F71EE] text-[#101E57]"
+                />
+                <p className="text-xs text-[#667085] mt-1">
+                  How many people can register for each session.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
