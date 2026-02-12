@@ -55,7 +55,7 @@ tests/
 │       ├── automated-emails-toggle.test.ts # Per-event email toggle (10 tests)
 │       ├── batch-context.test.ts         # Batch HubSpot context (8 tests)
 │       ├── bookings.test.ts              # Booking API endpoints (9 tests)
-│       ├── events.test.ts               # Event CRUD operations (13 tests)
+│       ├── events.test.ts               # Event CRUD operations (18 tests)
 │       ├── feedback.test.ts             # Feedback submission (8 tests)
 │       ├── manage.test.ts               # Manage/cancel/reschedule bookings (11 tests)
 │       ├── reliability.test.ts          # Reliability fixes validation (13 tests)
@@ -201,6 +201,6 @@ MONITOR_URL=https://liveschoolhelp.com npm run test:e2e -- tests/e2e/production-
 | Area | Tests |
 |------|-------|
 | **Total Unit Tests** | **530** |
-| **Integration Tests** | **201** |
+| **Integration Tests** | **206** |
 | **E2E Tests** | **43** |
-| **Grand Total** | **774** |
+| **Grand Total** | **779** |

@@ -7,6 +7,12 @@ The app uses `src/lib/errors.ts` to provide consistent, user-friendly error mess
 - PostgreSQL error codes (23505, 23503, etc.) are mapped to helpful explanations
 - Technical details are sanitized from user-facing messages
 
+## Event Access Control
+- **GET /api/events/[id]:** Any authenticated admin can view any event (team-wide visibility matches dashboard)
+- **PATCH /api/events/[id]:** Requires `verifyEventAccess()` — user must be `host_email` or co-host in `oh_event_hosts`
+- **DELETE /api/events/[id]:** Same access check as PATCH
+- Access denial returns 404 (not 403) to avoid leaking event existence
+
 ## Auth Resilience
 `getSession()` returns the admin record even when Google token refresh fails — this allows auth-only operations (saving settings, availability patterns) to succeed. Only operations that actually call Google API (calendar sync, email send) will fail with a stale token.
 

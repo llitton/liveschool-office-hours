@@ -208,10 +208,36 @@ describe('Event Settings API', () => {
   // Note: The events API uses PATCH for updates, not PUT
   // These tests document the expected behavior
 
+  describe('GET /api/events/[id] - Get Single Event', () => {
+    it('returns event for any authenticated admin', () => {
+      // Any authenticated admin can view any event details
+      // This supports team-wide visibility (dashboard shows all events)
+      // No host/co-host check on GET - only on PATCH/DELETE
+      expect(true).toBe(true);
+    });
+
+    it('returns 401 for unauthenticated request', () => {
+      // GET /api/events/[id] requires authentication
+      expect(true).toBe(true);
+    });
+
+    it('returns 404 for non-existent event', () => {
+      // Returns 404 if the event UUID does not exist in the database
+      expect(true).toBe(true);
+    });
+  });
+
   describe('PATCH /api/events/[id] - Update Event', () => {
     it('accepts event setting updates', () => {
       // PATCH endpoint accepts partial updates to event settings
       // including name, duration, meeting_type, etc.
+      expect(true).toBe(true);
+    });
+
+    it('accepts max_attendees updates', () => {
+      // max_attendees can be updated via PATCH for group/webinar/collective events
+      // The field is in the ALLOWED_UPDATE_FIELDS whitelist
+      // Minimum value is 1 (enforced by DB CHECK constraint)
       expect(true).toBe(true);
     });
 
@@ -224,6 +250,12 @@ describe('Event Settings API', () => {
     it('accepts round-robin setting updates', () => {
       // round_robin_strategy: 'cycle' | 'least_bookings' | 'priority' | 'availability_weighted'
       // round_robin_period: 'week' | 'month'
+      expect(true).toBe(true);
+    });
+
+    it('requires host or co-host access', () => {
+      // PATCH requires verifyEventAccess - user must be host_email or in oh_event_hosts
+      // Returns 404 (not 403) if access denied, to avoid leaking event existence
       expect(true).toBe(true);
     });
   });

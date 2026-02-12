@@ -81,6 +81,12 @@ Both cancellation (`DELETE /api/manage/[token]`) and reschedule (`PUT /api/manag
 - Prevents orphaned calendar events from cluttering host calendars
 - Webinar slots are exempt (pre-created, may be reused)
 
+## Event Capacity
+`max_attendees` on `oh_events` controls how many people can register per session.
+- Editable in Event Settings > General section (for group, webinar, collective, round-robin, panel)
+- One-on-one events always have max_attendees = 1
+- Database CHECK constraint enforces positive value
+
 ## Custom Questions
 Events have custom questions via `custom_questions` JSON field on `oh_events`.
 

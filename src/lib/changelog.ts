@@ -12,6 +12,28 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-11-editable-max-attendees',
+    date: '2026-02-11',
+    title: 'Edit Max Attendees in Event Settings',
+    description: 'You can now change the maximum number of attendees per session directly from Event Settings, without recreating the event.',
+    category: 'feature',
+    details: [
+      'New "Max Attendees per Session" field in the General section of Event Settings',
+      'Available for all multi-attendee event types (group, webinar, collective, round-robin, panel)',
+    ],
+  },
+  {
+    id: '2026-02-11-view-all-team-events',
+    date: '2026-02-11',
+    title: 'View All Team Events',
+    description: 'All team members can now click into any event from the dashboard, not just events they host.',
+    category: 'fix',
+    details: [
+      'Previously, clicking an event hosted by another team member showed "Event not found"',
+      'All admins can now view event details for any team event',
+    ],
+  },
+  {
     id: '2026-02-11-webinar-registration-layout',
     date: '2026-02-11',
     title: 'Improved Webinar Registration Page',
