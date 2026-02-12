@@ -59,12 +59,6 @@ export async function GET(
     return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
   }
 
-  // Verify the requesting admin hosts or co-hosts this event
-  const hasAccess = await verifyEventAccess(supabase, id, session.email);
-  if (!hasAccess) {
-    return NextResponse.json({ error: CommonErrors.NOT_FOUND }, { status: 404 });
-  }
-
   return NextResponse.json(event);
 }
 
