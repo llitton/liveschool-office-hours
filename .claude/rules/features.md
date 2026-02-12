@@ -46,7 +46,7 @@ Categorized by HubSpot `user_type` field (Teacher, Administrator, Site Leader).
 ## Booking Flow
 1. Public page loads event config
 2. GET `/api/events/[id]/available-times` syncs Google Calendar busy blocks, generates dynamic slots
-3. Attendee selects slot, fills form
+3. Attendee selects slot, fills form (webinars show a registration layout with prominent date/time and "Register" button instead of a time-slot grid)
 4. POST `/api/bookings` re-syncs Google Calendar for the booking day, verifies availability, creates booking
 5. Syncs to Google Calendar, sends confirmation email
 

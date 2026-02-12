@@ -12,6 +12,19 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: '2026-02-11-webinar-registration-layout',
+    date: '2026-02-11',
+    title: 'Improved Webinar Registration Page',
+    description: 'Webinar registration pages now display the date and time prominently with a clear Register button, instead of the generic time slot picker.',
+    category: 'improvement',
+    details: [
+      'Large, prominent date and time display for each webinar session',
+      'Clear "Register" button replaces small time slot buttons',
+      'Shows spots remaining and "Registration full" status',
+      'Multiple sessions each get their own card with date, time, and Register button',
+    ],
+  },
+  {
     id: '2026-02-10-calendar-conflict-fix',
     date: '2026-02-10',
     title: 'Booking Calendar Conflict Fix',

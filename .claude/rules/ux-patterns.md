@@ -66,6 +66,7 @@
 - Minimum 2 time slots on initial load
 - Progressive disclosure with "Show more days" button
 - 650px max-width for comfortable reading
+- **Webinars use a registration layout** (not time-slot grid): prominent date/time card with calendar icon, time range with timezone, spots remaining count, and "Register" button. Multiple sessions each get their own card.
 
 ## Booking Confirmation Page
 - Large success indicator (80x80px checkmark)

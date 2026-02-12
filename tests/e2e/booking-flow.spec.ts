@@ -45,7 +45,10 @@ test.describe('Booking Flow', () => {
     const pageContent = await page.textContent('body');
 
     // Either we see booking UI elements or a not found message
+    // Non-webinar events show "Choose a time" / slot picker; webinars show "Register" button
     const hasBookingUI = pageContent?.includes('Select a time') ||
+                         pageContent?.includes('Choose a time') ||
+                         pageContent?.includes('Register') ||
                          pageContent?.includes('Book') ||
                          pageContent?.includes('available');
     const hasNotFound = pageContent?.includes('not found') ||

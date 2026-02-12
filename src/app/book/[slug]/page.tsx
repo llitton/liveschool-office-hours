@@ -1361,6 +1361,139 @@ export default function BookingPage({
 
           {/* Time slots / Scheduling section */}
           <div className="pt-6 pb-5 px-5 bg-[#FAFAFC] border-t border-gray-100">
+            {/* WEBINAR: Prominent date/time with Register button */}
+            {isWebinar ? (
+              <div>
+                {Object.keys(groupedSlots).length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-[#667085]">
+                      No upcoming sessions at the moment. Please check back later.
+                    </p>
+                    {isAdmin && event && (
+                      <button
+                        onClick={() => setShowTroubleshoot(true)}
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#6F71EE] border border-[#6F71EE] rounded-lg hover:bg-[#6F71EE]/5 transition"
+                      >
+                        Troubleshoot Availability
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {slots.map((slot) => {
+                      const isFull = slot.booking_count >= event.max_attendees;
+                      const spotsLeft = event.max_attendees - slot.booking_count;
+
+                      return (
+                        <div key={slot.id} className="bg-white rounded-xl border border-gray-100 p-5">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-[#6F71EE]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <svg className="w-5 h-5 text-[#6F71EE]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-lg font-semibold text-[#101E57]">
+                                {formatInTimeZone(parseISO(slot.start_time), timezone, 'EEEE, MMMM d, yyyy')}
+                              </p>
+                              <p className="text-base text-[#667085]">
+                                {formatInTimeZone(parseISO(slot.start_time), timezone, 'h:mm a')}
+                                {' – '}
+                                {formatInTimeZone(parseISO(slot.end_time), timezone, 'h:mm a')}
+                                <span className="ml-2 text-sm">
+                                  <button
+                                    onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
+                                    className="text-[#6F71EE] hover:underline inline-flex items-center gap-0.5"
+                                  >
+                                    {getTimezoneLabel(timezone)}
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </button>
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Timezone dropdown */}
+                          <div className="relative">
+                            {showTimezoneDropdown && (
+                              <div className="absolute top-0 left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-64 overflow-y-auto w-64">
+                                {detectedTimezone && !isDetectedInList && (
+                                  <div className="p-2 border-b border-gray-100">
+                                    <p className="text-xs text-[#667085] px-2 mb-1">Your timezone</p>
+                                    <button
+                                      onClick={() => { setTimezone(detectedTimezone); setShowTimezoneDropdown(false); }}
+                                      className={`w-full text-left px-2 py-1.5 rounded text-sm hover:bg-[#6F71EE]/5 ${timezone === detectedTimezone ? 'bg-[#6F71EE]/10 text-[#6F71EE]' : 'text-[#101E57]'}`}
+                                    >
+                                      {detectedTimezone.replace(/_/g, ' ')}
+                                    </button>
+                                  </div>
+                                )}
+                                {TIMEZONE_OPTIONS.map((group) => (
+                                  <div key={group.group} className="p-2 border-b border-gray-100 last:border-0">
+                                    <p className="text-xs text-[#667085] px-2 mb-1">{group.group}</p>
+                                    {group.zones.map((tz) => (
+                                      <button
+                                        key={tz.value}
+                                        onClick={() => { setTimezone(tz.value); setShowTimezoneDropdown(false); }}
+                                        className={`w-full text-left px-2 py-1.5 rounded text-sm hover:bg-[#6F71EE]/5 ${timezone === tz.value ? 'bg-[#6F71EE]/10 text-[#6F71EE]' : 'text-[#101E57]'}`}
+                                      >
+                                        {tz.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between mt-4">
+                            {isFull ? (
+                              <span className="text-sm text-red-500 font-medium">Registration full</span>
+                            ) : (
+                              <span className="text-sm text-[#667085]">
+                                {spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} remaining
+                              </span>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (!isFull) {
+                                  analytics.trackSlotSelection(slot.id, slot.start_time);
+                                  setSelectedSlot(slot);
+                                }
+                              }}
+                              disabled={isFull}
+                              className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                                isFull
+                                  ? 'bg-gray-100 text-[#98A2B3] cursor-not-allowed'
+                                  : 'bg-[#6F71EE] text-white hover:bg-[#5a5cd0] shadow-sm hover:shadow-md'
+                              }`}
+                            >
+                              Register
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Confidence cue */}
+                    <div className="mt-3 pt-4 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-sm text-[#667085]">
+                        <div className="w-5 h-5 bg-[#417762]/10 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-3 h-3 text-[#417762]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <span>Calendar invite with Google Meet link sent instantly</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+            <>
+            {/* NON-WEBINAR: Standard slot picker */}
             {/* Section header - feels like "now let's do this" */}
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-[#101E57] mb-1">Choose a time</h2>
@@ -1639,6 +1772,8 @@ export default function BookingPage({
                   </div>
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
 
